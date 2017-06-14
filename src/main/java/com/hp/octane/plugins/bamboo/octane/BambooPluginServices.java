@@ -44,17 +44,19 @@ import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
-import com.hp.octane.integrations.spi.CIPluginServices;
+import com.hp.octane.integrations.spi.CIPluginServicesBase;
+import com.hp.octane.integrations.util.CIPluginUtils;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import org.acegisecurity.acls.Permission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.*;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-public class BambooPluginServices implements CIPluginServices {
+public class BambooPluginServices extends CIPluginServicesBase {
 	private static final Logger log = LoggerFactory.getLogger(BambooPluginServices.class);
 	private static final String PLUGIN_VERSION = "1.0.0-SNAPSHOT";
 
@@ -133,19 +135,35 @@ public class BambooPluginServices implements CIPluginServices {
 
 	public CIProxyConfiguration getProxyConfiguration(String targetHost) {
 		log.info("get proxy configuration");
+
 		CIProxyConfiguration result = null;
-		if (isProxyNeeded(targetHost)) {
-			log.info("proxy is required for host " + targetHost);
-			return CONVERTER.getProxyCconfiguration(System.getProperty("https.proxyHost"),
-					Integer.parseInt(System.getProperty("https.proxyPort")), System.getProperty("https.proxyUser", ""),
-					System.getProperty("https.proxyPassword", ""));
+		try {
+			URL targetHostUrl = new URL(targetHost);
+
+			if (isProxyNeeded(targetHostUrl)) {
+				log.info("proxy is required for host " + targetHost);
+				String protocol = targetHostUrl.getProtocol();
+				return CONVERTER.getProxyCconfiguration(System.getProperty(protocol+".proxyHost"),
+						Integer.parseInt(System.getProperty(protocol+".proxyPort")),
+						System.getProperty(protocol+".proxyUser", ""),
+						System.getProperty(protocol+".proxyPassword", ""));
+			}
+		} catch (MalformedURLException e) {
+			log.error("Invalid url", e);
 		}
 		return result;
 	}
 
-	private boolean isProxyNeeded(String targetHost) {
-		String[] nonProxyHosts = System.getProperty("http.nonProxyHosts", "").split("\\|");
-		return Arrays.asList(nonProxyHosts).contains(targetHost);
+	private boolean isProxyNeeded(URL targetHostUrl) {
+		boolean result =false;
+		String proxyHost = System.getProperty(targetHostUrl.getProtocol()+".proxyHost", "");
+		String nonProxyHostsStr = System.getProperty(targetHostUrl.getProtocol()+".nonProxyHosts", "");
+
+		if(proxyHost!=null && !CIPluginUtils.isNonProxyHost(targetHostUrl.getHost(),nonProxyHostsStr)) {
+			result =true;
+		}
+
+		return  result;
 	}
 
 	public CIServerInfo getServerInfo() {
@@ -169,11 +187,6 @@ public class BambooPluginServices implements CIPluginServices {
 		log.info("get latest snapshot  for pipeline " + pipeline);
 		ImmutableTopLevelPlan plan = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline), ImmutableTopLevelPlan.class);
 		return CONVERTER.getSnapshot(plan, plan.getLatestResultsSummary());
-	}
-
-	//  [YG] TODO: implement this one for queued push tests results implementation
-	public TestsResult getTestsResult(String pipeline, String build) {
-		return null;
 	}
 
 	public void runPipeline(final String pipeline, String parameters) {
@@ -218,7 +231,7 @@ public class BambooPluginServices implements CIPluginServices {
 		Collection<Permission> permissionForPlan = ComponentLocator.getComponent(BambooPermissionManager.class).getPermissionsForPlan(chain.getPlanKey());
 		for(Permission permission : permissionForPlan){
 			if(permission.equals(permissionType)){
-				 return true;
+				return true;
 			}
 		}
 		return false;
