@@ -133,7 +133,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 				.setInstanceId(instanceId)
 				.setInstanceIdFrom(System.currentTimeMillis())
 				.setSendingTime(System.currentTimeMillis())
-				.setType(CIServerTypes.BAMBOO)
+				.setType(CIServerTypes.BAMBOO.value())
 				.setUrl(baseUrl);
 	}
 
