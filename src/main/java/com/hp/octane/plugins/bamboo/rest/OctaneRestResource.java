@@ -27,6 +27,7 @@ import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.net.ssl.SSLHandshakeException;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -89,6 +90,9 @@ public class OctaneRestResource {
             }
             return "Error validating octane config";
 
+        } catch(SSLHandshakeException e){
+            log.error("Exception at tryToConnect", e);
+            return e.getMessage();
         } catch (Exception e) {
             log.error("Exception at tryToConnect", e);
             return "Error validating octane config";

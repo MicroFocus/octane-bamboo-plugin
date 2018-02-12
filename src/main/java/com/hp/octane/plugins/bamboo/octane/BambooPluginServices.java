@@ -139,23 +139,33 @@ public class BambooPluginServices extends CIPluginServicesBase {
 		log.info("get proxy configuration");
 		CIProxyConfiguration result = null;
 		try {
-			URL targetHostUrl = new URL(targetHost);if (isProxyNeeded(targetHostUrl)) {
-			log.info("proxy is required for host " + targetHost);String protocol = targetHostUrl.getProtocol();
-			return CONVERTER.getProxyCconfiguration(System.getProperty(protocol+".proxyHost"),
-					Integer.parseInt(System.getProperty(protocol+".proxyPort")), System.getProperty(protocol+".proxyUser", ""),
-					System.getProperty(protocol+".proxyPassword", ""));}
+			URL targetHostUrl = new URL(targetHost);
+			if (isProxyNeeded(targetHostUrl)) {
+                log.info("proxy is required for host " + targetHost);
+                String protocol = targetHostUrl.getProtocol();
+
+                return CONVERTER.getProxyCconfiguration(getProxyProperty(protocol+".proxyHost", null),
+                        Integer.parseInt( getProxyProperty(protocol+".proxyPort", null)),
+                        System.getProperty(protocol+".proxyUser", ""),
+                        System.getProperty(protocol+".proxyPassword", ""));
+			}
 		} catch (MalformedURLException e) {
 			log.error("Invalid url", e);
 		}
 		return result;
 	}
 
-	private boolean isProxyNeeded(URL targetHostUrl) {
-		boolean result =false;
-		String proxyHost = System.getProperty(targetHostUrl.getProtocol()+".proxyHost", "");
-		String nonProxyHostsStr = System.getProperty(targetHostUrl.getProtocol()+".nonProxyHosts", "");
+    private String getProxyProperty(String propKey, String def) {
+        if(def == null) def = "";
+        return System.getProperty(propKey) != null ? System.getProperty(propKey).trim() : def;
+    }
 
-		if(proxyHost!=null && !CIPluginUtils.isNonProxyHost(targetHostUrl.getHost(),nonProxyHostsStr)) {
+    private boolean isProxyNeeded(URL targetHostUrl) {
+		boolean result =false;
+		String proxyHost = getProxyProperty(targetHostUrl.getProtocol()+".proxyHost", "");
+		String nonProxyHostsStr = getProxyProperty(targetHostUrl.getProtocol()+".nonProxyHosts", "");
+
+		if(proxyHost!=null && !proxyHost.isEmpty() && !CIPluginUtils.isNonProxyHost(targetHostUrl.getHost(),nonProxyHostsStr)) {
 			result =true;
 		}
 
