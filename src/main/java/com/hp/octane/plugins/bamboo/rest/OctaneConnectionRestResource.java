@@ -89,7 +89,7 @@ public class OctaneConnectionRestResource implements InitializingBean {
 
     public void afterPropertiesSet() throws Exception {
         try {
-            OctaneSDK.init(new BambooPluginServices(settingsFactory), true);
+            OctaneSDK.init(new BambooPluginServices(settingsFactory));
         } catch (IllegalStateException ise) {
             log.warn("failed to init SDK, more than a single init?", ise);
         }
