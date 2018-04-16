@@ -179,8 +179,8 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
         String baseUrl = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class)
                 .getAdministrationConfiguration().getBaseUrl();
-
-        return CONVERTER.getServerInfo(baseUrl, instanceId);
+        String runAsUser = getRunAsUser();
+        return CONVERTER.getServerInfo(baseUrl, instanceId, runAsUser);
     }
 
     public SnapshotNode getSnapshotByNumber(String pipeline, String snapshot, boolean arg2) {
