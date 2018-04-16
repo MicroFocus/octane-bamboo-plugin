@@ -128,11 +128,12 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return node;
 	}
 
-	public CIServerInfo getServerInfo(String baseUrl, String instanceId) {
+	public CIServerInfo getServerInfo(String baseUrl, String instanceId, String impersonatedUser) {
 		return dtoFactoryInstance.newDTO(CIServerInfo.class)
 				.setInstanceId(instanceId)
 				.setInstanceIdFrom(System.currentTimeMillis())
 				.setSendingTime(System.currentTimeMillis())
+				.setImpersonatedUser(impersonatedUser)
 				.setType(CIServerTypes.BAMBOO.value())
 				.setUrl(baseUrl);
 	}

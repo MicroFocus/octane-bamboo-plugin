@@ -38,14 +38,13 @@ import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIPluginInfo;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
-import com.hp.octane.integrations.dto.pipelines.BuildHistory;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.spi.CIPluginServicesBase;
-import com.hp.octane.integrations.util.CIPluginUtils;
+import com.hp.octane.integrations.util.CIPluginSDKUtils;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import org.acegisecurity.acls.Permission;
 import org.slf4j.Logger;
@@ -79,16 +78,6 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
     // return null as we don't have file storage available
     public File getAllowedOctaneStorage() {
-        return null;
-    }
-
-    @Override
-    public File getPredictiveOctanePath() {
-        return null;
-    }
-
-    public BuildHistory getHistoryPipeline(String arg0, String arg1) {
-        log.info("Get build history pipeline " + arg0 + " , " + arg1);
         return null;
     }
 
@@ -165,7 +154,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
 		String proxyHost = getProxyProperty(targetHostUrl.getProtocol()+".proxyHost", "");
 		String nonProxyHostsStr = getProxyProperty(targetHostUrl.getProtocol()+".nonProxyHosts", "");
 
-		if(proxyHost!=null && !proxyHost.isEmpty() && !CIPluginUtils.isNonProxyHost(targetHostUrl.getHost(),nonProxyHostsStr)) {
+		if(proxyHost!=null && !proxyHost.isEmpty() && !CIPluginSDKUtils.isNonProxyHost(targetHostUrl.getHost(),nonProxyHostsStr)) {
 			result =true;
 		}
 
@@ -179,8 +168,8 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
         String baseUrl = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class)
                 .getAdministrationConfiguration().getBaseUrl();
-
-        return CONVERTER.getServerInfo(baseUrl, instanceId);
+        String runAsUser = getRunAsUser();
+        return CONVERTER.getServerInfo(baseUrl, instanceId, runAsUser);
     }
 
     public SnapshotNode getSnapshotByNumber(String pipeline, String snapshot, boolean arg2) {

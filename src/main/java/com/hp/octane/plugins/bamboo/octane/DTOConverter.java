@@ -51,7 +51,7 @@ public interface DTOConverter {
 	CIProxyConfiguration getProxyCconfiguration(String proxyServer, int proxyPort, String proxyUser,
 	                                            String proxyPassword);
 
-	CIServerInfo getServerInfo(String baseUrl, String instanceId);
+	CIServerInfo getServerInfo(String baseUrl, String instanceId, String impersonatedUser);
 
 	SnapshotNode getSnapshot(ImmutableTopLevelPlan plan, ImmutableResultsSummary summary);
 
