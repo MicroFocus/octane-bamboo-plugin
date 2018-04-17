@@ -62,8 +62,8 @@
 		<maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
 		<maven.compiler.plugin.version>1.7</maven.compiler.plugin.version>
 		<maven-source-plugin.version>2.2.1</maven-source-plugin.version>
-		<bamboo.version>5.9.10</bamboo.version>
-		<bamboo.data.version>5.9.10</bamboo.data.version>
+		<bamboo.version>5.13.0.1</bamboo.version>
+		<bamboo.data.version>5.13.0.1</bamboo.data.version>
 		<amps.version>5.1.11</amps.version>
 		<plugin.testrunner.version>1.2.3</plugin.testrunner.version>
 		<atlassian.spring.scanner.version>1.2.13</atlassian.spring.scanner.version>
@@ -96,7 +96,7 @@
 		<dependency>
 			<groupId>com.atlassian.bamboo</groupId>
 			<artifactId>atlassian-bamboo-api</artifactId>
-			<version>5.13.0.1</version>
+			<version>${bamboo.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
