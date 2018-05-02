@@ -57,6 +57,7 @@ import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunError;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -222,15 +223,32 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return identifier.getPlanKey().getKey();
 	}
 
-	public TestRun getTestRunFromTestResult(TestResults testResult, TestRunResult result, long startTime) {
+	public TestRun getTestRunFromTestResult(com.atlassian.bamboo.v2.build.BuildContext buildContext, HPRunnerType runnerType, TestResults testResult, TestRunResult result, long startTime) {
 		String className = testResult.getClassName();
 		String simpleName = testResult.getShortClassName();
 		String packageName = className.substring(0,
 				className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0));
+		String testName = testResult.getActualMethodName();
+		if (buildContext.getCheckoutLocation() != null && buildContext.getCheckoutLocation().size() == 1) {
+			String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
+			if (testName.startsWith(checkoutDir)) {
+				testName = testName.substring(checkoutDir.length());
+				testName = StringUtils.stripStart(testName, "\\/");
+			}
+
+			if (HPRunnerType.UFT.equals(runnerType)) { //for example : a\b\c\d\uftTestName => package name = a\b\c\d and testName = uftTestName
+				packageName = "";
+				int packageSplitter = testName.lastIndexOf("\\");
+				if (packageSplitter > 0) {
+					packageName = testName.substring(0, packageSplitter);
+					testName = testName.substring(packageSplitter + 1);
+				}
+			}
+		}
 
 		TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
 				.setDuration(Math.round(Double.valueOf(testResult.getDuration()))).setPackageName(packageName)
-				.setResult(result).setStarted(startTime).setTestName(testResult.getActualMethodName());
+				.setResult(result).setStarted(startTime).setTestName(testName);
 		if (result == TestRunResult.FAILED) {
 			TestRunError error = dtoFactoryInstance.newDTO(TestRunError.class)
 					.setErrorMessage(testResult.getSystemOut());

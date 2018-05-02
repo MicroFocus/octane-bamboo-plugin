@@ -33,7 +33,6 @@ import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
 import com.hp.octane.integrations.dto.scm.SCMData;
-import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
@@ -59,7 +58,7 @@ public interface DTOConverter {
 
 	String getCiId(PlanIdentifier identifier);
 
-	TestRun getTestRunFromTestResult(TestResults currentTestResult, TestRunResult result, long startTime);
+	TestRun getTestRunFromTestResult(com.atlassian.bamboo.v2.build.BuildContext buildContext, HPRunnerType runnerType, TestResults currentTestResult, TestRunResult result, long startTime);
 
 
 	CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType,

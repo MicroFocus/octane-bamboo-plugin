@@ -35,6 +35,10 @@ import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
 import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
+import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
+import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
+import com.hp.octane.integrations.dto.executor.TestConnectivityInfo;
+import com.hp.octane.integrations.dto.executor.TestSuiteExecutionInfo;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIPluginInfo;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
@@ -46,6 +50,7 @@ import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.spi.CIPluginServicesBase;
 import com.hp.octane.integrations.util.CIPluginSDKUtils;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
+import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import org.acegisecurity.acls.Permission;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,7 +71,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
     private PluginSettingsFactory settingsFactory;
-    public static Map<String, TestsResult> TEST_RESULTS = Collections.synchronizedMap(new HashMap<String, TestsResult>());
+    private UftManager uftManager;
 
     public BambooPluginServices(PluginSettingsFactory settingsFactory) {
         super();
@@ -124,42 +129,42 @@ public class BambooPluginServices extends CIPluginServicesBase {
         return DTOFactory.getInstance().newDTO(CIPluginInfo.class).setVersion(PLUGIN_VERSION);
     }
 
-	public CIProxyConfiguration getProxyConfiguration(String targetHost) {
-		log.info("get proxy configuration");
-		CIProxyConfiguration result = null;
-		try {
-			URL targetHostUrl = new URL(targetHost);
-			if (isProxyNeeded(targetHostUrl)) {
+    public CIProxyConfiguration getProxyConfiguration(String targetHost) {
+        log.info("get proxy configuration");
+        CIProxyConfiguration result = null;
+        try {
+            URL targetHostUrl = new URL(targetHost);
+            if (isProxyNeeded(targetHostUrl)) {
                 log.info("proxy is required for host " + targetHost);
                 String protocol = targetHostUrl.getProtocol();
 
-                return CONVERTER.getProxyCconfiguration(getProxyProperty(protocol+".proxyHost", null),
-                        Integer.parseInt( getProxyProperty(protocol+".proxyPort", null)),
-                        System.getProperty(protocol+".proxyUser", ""),
-                        System.getProperty(protocol+".proxyPassword", ""));
-			}
-		} catch (MalformedURLException e) {
-			log.error("Invalid url", e);
-		}
-		return result;
-	}
+                return CONVERTER.getProxyCconfiguration(getProxyProperty(protocol + ".proxyHost", null),
+                        Integer.parseInt(getProxyProperty(protocol + ".proxyPort", null)),
+                        System.getProperty(protocol + ".proxyUser", ""),
+                        System.getProperty(protocol + ".proxyPassword", ""));
+            }
+        } catch (MalformedURLException e) {
+            log.error("Invalid url", e);
+        }
+        return result;
+    }
 
     private String getProxyProperty(String propKey, String def) {
-        if(def == null) def = "";
+        if (def == null) def = "";
         return System.getProperty(propKey) != null ? System.getProperty(propKey).trim() : def;
     }
 
     private boolean isProxyNeeded(URL targetHostUrl) {
-		boolean result =false;
-		String proxyHost = getProxyProperty(targetHostUrl.getProtocol()+".proxyHost", "");
-		String nonProxyHostsStr = getProxyProperty(targetHostUrl.getProtocol()+".nonProxyHosts", "");
+        boolean result = false;
+        String proxyHost = getProxyProperty(targetHostUrl.getProtocol() + ".proxyHost", "");
+        String nonProxyHostsStr = getProxyProperty(targetHostUrl.getProtocol() + ".nonProxyHosts", "");
 
-		if(proxyHost!=null && !proxyHost.isEmpty() && !CIPluginSDKUtils.isNonProxyHost(targetHostUrl.getHost(),nonProxyHostsStr)) {
-			result =true;
-		}
+        if (proxyHost != null && !proxyHost.isEmpty() && !CIPluginSDKUtils.isNonProxyHost(targetHostUrl.getHost(), nonProxyHostsStr)) {
+            result = true;
+        }
 
-		return  result;
-	}
+        return result;
+    }
 
     public CIServerInfo getServerInfo() {
         PluginSettings settings = settingsFactory.createGlobalSettings();
@@ -186,11 +191,10 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
 
-
-	public void runPipeline(final String pipeline, String parameters) {
-		// TODO implement parameters conversion
-		// only execute runnable plans
-		log.info("starting pipeline run");
+    public void runPipeline(final String pipeline, final String parameters) {
+        // TODO implement parameters conversion
+        // only execute runnable plans
+        log.info("starting pipeline run");
 
         Callable<String> impersonated = impService.runAsUser(getRunAsUser(), new Callable<String>() {
 
@@ -213,31 +217,77 @@ public class BambooPluginServices extends CIPluginServicesBase {
                 return null;
             }
         });
-        try {
-            impersonated.call();
-        } catch (PermissionException e) {
-            throw e;
-        } catch (ConfigurationException ce) {
-            throw ce;
-        } catch (Exception e) {
-            log.info("Error impersonating for plan execution", e);
-        }
 
+        execute(impersonated);
     }
 
-	private boolean isUserHasPermission(Permission permissionType, BambooUser user, ImmutableChain chain ){
-		Collection<Permission> permissionForPlan = ComponentLocator.getComponent(BambooPermissionManager.class).getPermissionsForPlan(chain.getPlanKey());
-		for(Permission permission : permissionForPlan){
-			if(permission.equals(permissionType)){
-				 return true;
-			}
-		}
-		return false;
-	}
+    private boolean isUserHasPermission(Permission permissionType, BambooUser user, ImmutableChain chain) {
+        Collection<Permission> permissionForPlan = ComponentLocator.getComponent(BambooPermissionManager.class).getPermissionsForPlan(chain.getPlanKey());
+        for (Permission permission : permissionForPlan) {
+            if (permission.equals(permissionType)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private String getRunAsUser() {
         PluginSettings settings = settingsFactory.createGlobalSettings();
         return String.valueOf(settings.get(OctaneConfigurationKeys.IMPERSONATION_USER));
     }
 
+    @Override
+    public OctaneResponse checkRepositoryConnectivity(TestConnectivityInfo testConnectivityInfo) {
+        return getUftManager().checkRepositoryConnectivity(testConnectivityInfo);
+    }
+
+    @Override
+    public void runTestDiscovery(final DiscoveryInfo discoveryInfo) {
+        final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
+            public Void call() {
+                getUftManager().runTestDiscovery(discoveryInfo, getRunAsUser());
+                return null;
+            }
+        });
+
+        execute(impersonated);
+    }
+
+    @Override
+    public void runTestSuiteExecution(final TestSuiteExecutionInfo testSuiteExecutionInfo) {
+        final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
+            public Void call() {
+                getUftManager().runTestSuiteExecution(testSuiteExecutionInfo, getRunAsUser());
+                return null;
+            }
+        });
+        execute(impersonated);
+    }
+
+    private UftManager getUftManager() {
+        if (uftManager == null) {
+            uftManager = new UftManager();
+        }
+        return uftManager;
+    }
+
+    private <V> V execute(Callable<V> callable) {
+        log.info("Impersonated call");
+
+        Callable<V> impersonated = impService.runAsUser(getRunAsUser(), callable);
+        try {
+            return impersonated.call();
+        } catch (PermissionException e) {
+            throw e;
+        } catch (Throwable e) {
+            log.info("Error impersonating : " + e.getMessage(), e);
+            RuntimeException runtimeException = null;
+            if (e instanceof RuntimeException) {
+                runtimeException = (RuntimeException) e;
+            } else {
+                runtimeException = new RuntimeException(e);
+            }
+            throw runtimeException;
+        }
+    }
 }

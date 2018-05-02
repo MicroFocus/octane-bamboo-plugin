@@ -36,11 +36,11 @@ import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
-import com.hp.octane.integrations.dto.tests.BuildContext;
-import com.hp.octane.integrations.dto.tests.TestRun;
-import com.hp.octane.integrations.dto.tests.TestRunResult;
-import com.hp.octane.integrations.dto.tests.TestsResult;
+import com.hp.octane.integrations.dto.tests.*;
+import com.hp.octane.plugins.bamboo.octane.HPRunnerType;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
+import com.hp.octane.plugins.bamboo.octane.HPRunnerTypeUtils;
+import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -60,6 +60,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 		// TODO move this listener into OctanePostJobAction
 		log.info("Build context event " + event.getClass().getSimpleName());
 		if (event instanceof PostBuildCompletedEvent) {
+			HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(event.getContext().getRuntimeTaskDefinitions());
 			CurrentBuildResult results = event.getContext().getBuildResult();
 			PlanKey planKey = event.getPlanKey();
 			PlanResultKey planResultKey = event.getPlanResultKey();
@@ -80,6 +81,9 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 						event.getContext().getCurrentResult().getBuildState(),
 						(event.getTimestamp()- event.getContext().getCurrentResult().getTasksStartDate().getTime()),
 						PhaseType.INTERNAL);
+				if(HPRunnerType.UFT.equals(runnerType)){
+					UftManager.addUftParametersToEvent(ciEvent, event.getContext());
+				}
 
 				OctaneSDK.getInstance().getEventsService().publishEvent(ciEvent);
 			}
@@ -87,15 +91,15 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 			List<TestRun> testRuns = new ArrayList<>(results.getFailedTestResults().size()
 					+ results.getSkippedTestResults().size() + results.getSuccessfulTestResults().size());
 			for (TestResults currentTestResult : results.getFailedTestResults()) {
-				testRuns.add(CONVERTER.getTestRunFromTestResult(currentTestResult, TestRunResult.FAILED,
+				testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.FAILED,
 						results.getTasksStartDate().getTime()));
 			}
 			for (TestResults currentTestResult : results.getSkippedTestResults()) {
-				testRuns.add(CONVERTER.getTestRunFromTestResult(currentTestResult, TestRunResult.SKIPPED,
+				testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.SKIPPED,
 						results.getTasksStartDate().getTime()));
 			}
 			for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
-				testRuns.add(CONVERTER.getTestRunFromTestResult(currentTestResult, TestRunResult.PASSED,
+				testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.PASSED,
 						results.getTasksStartDate().getTime()));
 			}
 			String build = PlanKeys.getPlanResultKey(identifier, planResultKey.getBuildNumber()).getKey();
@@ -104,8 +108,9 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 					String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
 					identifier,
 					build);
+			List<TestField> testFields = runnerType.getTestFields();
 			TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
-					.setBuildContext(context);
+					.setBuildContext(context).setTestFields(testFields);
 			try {
 				// TODO check if synchronous test results push is a good idea
 				OctaneSDK.getInstance().getTestsService().pushTestsResult(testsResult);
@@ -140,5 +145,4 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 //		event.setDuration(System.currentTimeMillis() - chainExecution.getQueueTime().getTime());
 		OctaneSDK.getInstance().getEventsService().publishEvent(event);
 	}
-
 }
