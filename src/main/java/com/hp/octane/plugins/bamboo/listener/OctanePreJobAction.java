@@ -25,6 +25,9 @@ import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
+import com.hp.octane.plugins.bamboo.octane.HPRunnerType;
+import com.hp.octane.plugins.bamboo.octane.HPRunnerTypeUtils;
+import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 
 import java.util.Arrays;
 
@@ -49,6 +52,11 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 				Arrays.asList(cause),
 				String.valueOf(resultKey.getBuildNumber()),
 				PhaseType.INTERNAL);
+
+		HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
+		if(HPRunnerType.UFT.equals(runnerType)){
+			UftManager.addUftParametersToEvent(event, buildContext);
+		}
 
 		OctaneSDK.getInstance().getEventsService().publishEvent(event);
 
