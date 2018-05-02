@@ -236,7 +236,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 				testName = StringUtils.stripStart(testName, "\\/");
 			}
 
-			if (HPRunnerType.UFT.equals(runnerType)) { //for example : a\b\c\d\uftTestName => package name = a\b\c\d and testName = uftTestName
+			if (HPRunnerType.UFT.equals(runnerType)) { /*for example : a\b\c\d\uftTestName => package name = a\b\c\d and testName = uftTestName*/
 				packageName = "";
 				int packageSplitter = testName.lastIndexOf("\\");
 				if (packageSplitter > 0) {
