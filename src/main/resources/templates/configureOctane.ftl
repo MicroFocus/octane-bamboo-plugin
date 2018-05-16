@@ -29,12 +29,12 @@
         }));
     }
 </script>
-<h1>HPE ALM Octane CI Plugin</h1>
+<h1>ALM Octane CI Plugin</h1>
 <div class="paddedClearer"></div>
 [@ww.form action="/admin/nga/configureOctaneSave.action"
 id="octaneConfigurationForm"
 submitLabelKey='global.buttons.update']
-[@ui.bambooSection title="HPE ALM Octane Server Configuration"]
+[@ui.bambooSection title="ALM Octane Server Configuration"]
 [@ww.textfield name='octaneUrl' label='Location' required='true' description='Location of the HPE ALM Octane application' /]
 [@ww.textfield name="accessKey" label='Client ID'  required='true' description='Client ID used for logging into the ALM Octane server'/]
 [@ww.password name="apiSecret" label='Client secret'  showPassword="true" required='true' description='Client secret used for logging into the ALM Octane server'/]

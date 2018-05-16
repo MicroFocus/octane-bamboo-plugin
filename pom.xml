@@ -8,7 +8,7 @@
 	<version>1.0-SNAPSHOT</version>
 	<packaging>atlassian-plugin</packaging>
 
-	<name>HPE ALM Octane Bamboo CI Plugin</name>
+	<name>ALM Octane Bamboo CI Plugin</name>
 	<description>
 		This plugin enables ALM Octane to retrieve and display Bamboo build pipelines and synchronize test results with Bamboo.
 	</description>
@@ -27,8 +27,8 @@
 	<developers>
 		<developer>
 			<name>Michael Seldin</name>
-			<email>michael.seldin@hpe.com</email>
-			<organization>HPE</organization>
+			<email>michael.seldin@microfocus.com</email>
+			<organization>Microfocus</organization>
 			<roles>
 				<role>Global owner and maintainer</role>
 			</roles>
@@ -36,8 +36,8 @@
 		<developer>
 			<id>lazara3</id>
 			<name>Ayellet Lazar</name>
-			<email>ayellet.lazar@hpe.com</email>
-			<organization>HPE</organization>
+			<email>ayellet.lazar@microfocus.com</email>
+			<organization>Microfocus</organization>
 		</developer>
 	</developers>
 
