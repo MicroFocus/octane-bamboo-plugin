@@ -35,7 +35,7 @@
 id="octaneConfigurationForm"
 submitLabelKey='global.buttons.update']
 [@ui.bambooSection title="ALM Octane Server Configuration"]
-[@ww.textfield name='octaneUrl' label='Location' required='true' description='Location of the HPE ALM Octane application' /]
+[@ww.textfield name='octaneUrl' label='Location' required='true' description='Location of the ALM Octane application' /]
 [@ww.textfield name="accessKey" label='Client ID'  required='true' description='Client ID used for logging into the ALM Octane server'/]
 [@ww.password name="apiSecret" label='Client secret'  showPassword="true" required='true' description='Client secret used for logging into the ALM Octane server'/]
 [@ww.textfield name="userName" label='Bamboo user'  required='true' description='The account that will run jobs for ALM Octane (must have build plan permissions).'/]
