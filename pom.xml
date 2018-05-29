@@ -5,16 +5,16 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.hpe.adm.octane.ciplugins</groupId>
 	<artifactId>bamboo-ci-plugin</artifactId>
-	<version>1.0-SNAPSHOT</version>
+	<version>1.3-SNAPSHOT</version>
 	<packaging>atlassian-plugin</packaging>
 
 	<name>ALM Octane Bamboo CI Plugin</name>
 	<description>
 		This plugin enables ALM Octane to retrieve and display Bamboo build pipelines and synchronize test results with Bamboo.
 	</description>
-	<url>https://github.com/HPSoftware/octane-bamboo-plugin</url>
+	<url>https://github.com/MicroFocus/octane-bamboo-plugin</url>
 	<organization>
-		<name>HPE</name>
+		<name>MicroFocus</name>
 	</organization>
 	<licenses>
 		<license>
@@ -42,9 +42,9 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:ssh://github.com/HPSoftware/octane-bamboo-plugin.git</connection>
-		<developerConnection>scm:git:ssh://github.com/HPSoftware/octane-bamboo-plugin.git</developerConnection>
-		<url>https://github.com/HPSoftware/octane-bamboo-plugin</url>
+		<connection>scm:git:ssh://github.com/MicroFocus/octane-bamboo-plugin.git</connection>
+		<developerConnection>scm:git:ssh://github.com/MicroFocus/octane-bamboo-plugin.git</developerConnection>
+		<url>https://github.com/MicroFocus/octane-bamboo-plugin</url>
 		<tag>HEAD</tag>
 	</scm>
 
