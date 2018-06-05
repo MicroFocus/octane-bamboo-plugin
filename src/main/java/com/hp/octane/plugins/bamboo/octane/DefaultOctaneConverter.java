@@ -247,7 +247,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 		}
 
 		TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
-				.setDuration(Math.round(Double.valueOf(testResult.getDuration()))).setPackageName(packageName)
+				.setDuration(Math.round(Double.valueOf(testResult.getDurationMs()))).setPackageName(packageName)
 				.setResult(result).setStarted(startTime).setTestName(testName);
 		if (result == TestRunResult.FAILED) {
 			TestRunError error = dtoFactoryInstance.newDTO(TestRunError.class)

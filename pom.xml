@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.hpe.adm.octane.ciplugins</groupId>
 	<artifactId>bamboo-ci-plugin</artifactId>
-	<version>1.3-SNAPSHOT</version>
+	<version>1.4-SNAPSHOT</version>
 	<packaging>atlassian-plugin</packaging>
 
 	<name>ALM Octane Bamboo CI Plugin</name>
@@ -62,8 +62,8 @@
 		<maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
 		<maven.compiler.plugin.version>1.7</maven.compiler.plugin.version>
 		<maven-source-plugin.version>2.2.1</maven-source-plugin.version>
-		<bamboo.version>5.13.0.1</bamboo.version>
-		<bamboo.data.version>5.13.0.1</bamboo.data.version>
+		<bamboo.version>6.5.0</bamboo.version>
+		<bamboo.data.version>6.5.0</bamboo.data.version>
 		<amps.version>5.1.11</amps.version>
 		<plugin.testrunner.version>1.2.3</plugin.testrunner.version>
 		<atlassian.spring.scanner.version>1.2.13</atlassian.spring.scanner.version>
