@@ -14,7 +14,7 @@
 	</description>
 	<url>https://github.com/MicroFocus/octane-bamboo-plugin</url>
 	<organization>
-		<name>MicroFocus</name>
+		<name>Micro Focus</name>
 	</organization>
 	<licenses>
 		<license>
@@ -28,7 +28,7 @@
 		<developer>
 			<name>Michael Seldin</name>
 			<email>michael.seldin@microfocus.com</email>
-			<organization>Microfocus</organization>
+			<organization>Micro Focus</organization>
 			<roles>
 				<role>Global owner and maintainer</role>
 			</roles>
