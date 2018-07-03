@@ -1,7 +1,18 @@
+![MICROFOCUS LOGO](https://upload.wikimedia.org/wikipedia/commons/4/4e/MicroFocus_logo_blue.png)
+
+Project status: [![Build status](https://ci.appveyor.com/api/projects/status/l7452nnv54r65owo/branch/master?svg=true)](https://ci.appveyor.com/project/m-seldin/octane-bamboo-plugin/branch/master)
+
+Master release status: [![Build status](https://ci.appveyor.com/api/projects/status/l7452nnv54r65owo/branch/master?svg=true)](https://ci.appveyor.com/project/m-seldin/octane-bamboo-plugin/branch/master)
+
+## Relevent links
+-	**Download the most recent LTS version of the plugin** at [Bamboo plugins marketplace](https://marketplace.atlassian.com/apps/1216770/hpe-alm-octane-bamboo-ci-plugin?hosting=server&tab=overview)
+-	**Check the open issues (and add new issues)** at [Github issues](https://github.com/MicroFocus/octane-bamboo-plugin/issues)
+
+
 # ALM Octane Bamboo CI plugin
 This plugin integrates ALM Octane with Bamboo, enabling ALM Octane to display Bamboo build pipelines and track build and test run results.
 
-##Installation instructions
+## Installation instructions
 
 1. Click the Administration cogwheel button and select Add-ons from the menu.
 2. Click Pause server to pause the server while you install a new add on, to avoid adverse effects on currently running builds.
@@ -39,9 +50,9 @@ For example, in this URL, the shared space ID is 1002:  http://myServer.myCompan
 For details, see Integrate with your CI server in the ALM Octane Help.
 
 
-###Required fields information:
+### Required fields information:
 
-####Location
+#### Location
 The URL of the ALM Octane server, using its fully qualified domain name (FQDN).
 
 Use the following format (port number is optional):
@@ -55,11 +66,11 @@ In this URL, the shared space ID is 1002:
 
 **Tip: You can copy the URL from the address bar of the browser in which you opened ALM Octane.**
 
-#####Client ID
+##### Client ID
 The API access Client ID that the plugin should use to connect to ALM Octane.
-#####Client secret
+##### Client secret
 The Client secret that the plugin should use to connect to ALM Octane.
-#####Bamboo user
+##### Bamboo user
 The Bamboo CI server user account that will run jobs at ALM Octane's request.
 
 **Caution:**  
