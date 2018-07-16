@@ -72,4 +72,12 @@
   <rest name="Octane Rest Resource" i18n-name-key="octane-rest-resource.name" key="octane-rest-resource" path="/octane" version="1.0">
     <description key="octane-rest-resource.description">Octane Rest</description>
   </rest>
+  <taskType key="octaneUftTestDiscovery" name="ALM Octane UFT Test Discovery"
+            class="com.hp.octane.plugins.bamboo.octane.uft.UftDiscoveryTask">
+    <description>Scan UFT repository and discover existing UFT tests and data tables</description>
+    <category name="test"/>
+    <resource type="download" name="icon" location="images/octane.png"/>
+    <resource type="freemarker" name="edit" location="templates/uftDiscovery.ftl"/>
+    <configuration class="com.hp.octane.plugins.bamboo.octane.uft.UftDiscoveryTaskConfigurator"/>
+  </taskType>
 </atlassian-plugin>
