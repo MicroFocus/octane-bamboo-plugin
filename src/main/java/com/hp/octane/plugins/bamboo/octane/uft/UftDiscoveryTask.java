@@ -16,27 +16,18 @@
 package com.hp.octane.plugins.bamboo.octane.uft;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
-import com.atlassian.bamboo.plan.Plan;
-import com.atlassian.bamboo.plan.PlanManager;
-import com.atlassian.bamboo.plan.artifact.ArtifactDefinition;
-import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionImpl;
-import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionManager;
-import com.atlassian.bamboo.plan.cache.ImmutableJob;
 import com.atlassian.bamboo.task.*;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.api.EntitiesService;
 import com.hp.octane.integrations.uft.UftTestDiscoveryUtils;
 import com.hp.octane.integrations.uft.UftTestDispatchUtils;
-import com.hp.octane.integrations.uft.items.*;
+import com.hp.octane.integrations.uft.items.CustomLogger;
+import com.hp.octane.integrations.uft.items.JobRunContext;
+import com.hp.octane.integrations.uft.items.UftTestDiscoveryResult;
 import org.jetbrains.annotations.NotNull;
 
 import javax.xml.bind.JAXBException;
-import java.io.EOFException;
 import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class UftDiscoveryTask implements TaskType {
     public static String WORKSPACE_ID_PARAM = "workspaceId";
@@ -44,7 +35,6 @@ public class UftDiscoveryTask implements TaskType {
 
     public static String RESULT_FOLDER = "_discovery_results";
     public static String RESULT_FILE_NAME_PREFIX = "uft_discovery_result_build_";
-
 
 
     @Override

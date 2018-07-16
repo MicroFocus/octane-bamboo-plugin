@@ -16,7 +16,6 @@
 
 package com.hp.octane.plugins.bamboo.octane.uft;
 
-import com.atlassian.bamboo.build.BuildDefinitionManager;
 import com.atlassian.bamboo.build.Job;
 import com.atlassian.bamboo.build.PlanCreationDeniedException;
 import com.atlassian.bamboo.build.creation.*;
@@ -39,7 +38,8 @@ import com.atlassian.bamboo.repository.RepositoryConfigurationService;
 import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
 import com.atlassian.bamboo.repository.svn.v2.configurator.SvnConfigurationConstants;
 import com.atlassian.bamboo.security.EncryptionService;
-import com.atlassian.bamboo.task.*;
+import com.atlassian.bamboo.task.TaskDefinition;
+import com.atlassian.bamboo.task.TaskDefinitionImpl;
 import com.atlassian.bamboo.trigger.TriggerConfigurationService;
 import com.atlassian.bamboo.trigger.TriggerModuleDescriptor;
 import com.atlassian.bamboo.trigger.TriggerTypeManager;
@@ -88,15 +88,9 @@ public class UftManager {
     private ChainCreationService chainCreationService;
     private CredentialsManager credentialsManager;
     private EncryptionService encryptionService;
-    private PlanExecutionManager planExecManager;
     private PlanManager planManager;
     private ProjectManager projectManager;
     private JobCreationService jobCreationService;
-    private TaskConfigurationService taskConfigurationService;
-    private TaskManager taskManager;
-    private BuildDefinitionManager buildDefinitionManager;
-
-
     private TriggerTypeManager triggerTypeManager;
     private TriggerConfigurationService triggerConfigurationService;
 
@@ -133,18 +127,15 @@ public class UftManager {
         chainCreationService = ComponentLocator.getComponent(ChainCreationService.class);
         credentialsManager = ComponentLocator.getComponent(CredentialsManager.class);
         encryptionService = ComponentLocator.getComponent(EncryptionService.class);
-        planExecManager = ComponentLocator.getComponent(PlanExecutionManager.class);
         planManager = ComponentLocator.getComponent(PlanManager.class);
         projectManager = ComponentLocator.getComponent(ProjectManager.class);
         repositoryDefinitionManager = ComponentLocator.getComponent(RepositoryDefinitionManager.class);
         vcsRepositoryConfigurationService = ComponentLocator.getComponent(VcsRepositoryConfigurationService.class);
         vcsRepositoryManager = ComponentLocator.getComponent(VcsRepositoryManager.class);
         jobCreationService = ComponentLocator.getComponent(JobCreationService.class);
-        taskConfigurationService = ComponentLocator.getComponent(TaskConfigurationService.class);
+
         triggerTypeManager = ComponentLocator.getComponent(TriggerTypeManager.class);
         triggerConfigurationService = ComponentLocator.getComponent(TriggerConfigurationService.class);
-        buildDefinitionManager = ComponentLocator.getComponent(BuildDefinitionManager.class);
-        taskManager = ComponentLocator.getComponent(TaskManager.class);
     }
 
     public OctaneResponse upsertCredentials(CredentialsInfo credentialsInfo) {
@@ -193,7 +184,7 @@ public class UftManager {
                     CredentialsData cred = credentialsManager.createCredentials(credentialTypeModuleDescriptor, createCredentialName(credentialsInfo.getUsername(), true), confMap);
                     result.setBody(Long.toString(cred.getId()));
                 } catch (Exception e) {
-                    result.setStatus(org.apache.http.HttpStatus.SC_INTERNAL_SERVER_ERROR);
+                    result.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
                     result.setBody("Failed to create credentials " + e.getMessage());
                     Log.error("Failed to create credentials " + e.getMessage(), e);
                 }
@@ -227,40 +218,31 @@ public class UftManager {
         String key = createBuildKey(discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
         String name = String.format("UFT test discovery - Connection ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
+        //DEFINE CHAIN
         final Map<String, Object> context = new HashMap<>();
         context.put(PlanCreationService.EXISTING_PROJECT_KEY, project.getKey());
         context.put(ChainCreationService.CHAIN_KEY, key);
         context.put(ChainCreationService.CHAIN_NAME, name);
         context.put(ChainCreationService.CHAIN_DESCRIPTION, description);
-
-
         context.put("linkedRepositoryAccessOption", RepositoryConfigurationService.LinkedRepositoryAccess.ALL_USERS.name());
         context.put("repositoryTypeOption", "LINKED");
         context.put("selectedRepository", linkedRepository.getId());
         ActionParametersMap apm = new ActionParametersMapImpl(context);
-
         final BuildConfiguration buildConfiguration = new BuildConfiguration();
         BuildConfigurationActionHelper.copyParamsToBuildConfiguration(apm, buildConfiguration);
-
         String buildKey = chainCreationService.createPlan(buildConfiguration, apm, PlanCreationService.EnablePlan.ENABLED);
+
+        //CREATE JOBS AND TASKS
         PlanKey jobKey = createDefaultJobAndTasks(buildConfiguration, buildKey, discoveryInfo);
         Plan job = planManager.getPlanByKey(jobKey);
 
-
-        /*taskConfigurationService.deleteTask(jobPlanKey,1);
-        HashMap<String,String> conf = new HashMap<>();
-        conf.put("cleanCheckout","");
-        conf.put("selectedRepository_0","defaultRepository");
-        conf.put("checkoutDir_0" ,"src");
-        TaskDefinition newDef = this.taskConfigurationService.editTask(jobPlanKey, 1, "Checkout Default Repository",true, conf, new TaskRootDirectorySelector());
-        */
-
+        //CREATE TRIGGER
         PlanKey planKey = PlanKeys.getPlanKey(buildKey);
         Plan plan = planManager.getPlanByKey(planKey);
-
         PlanRepositoryLink repositoryLink = repositoryDefinitionManager.getPlanRepositoryLinks(plan).get(0);
         createPollTrigger(planKey, repositoryLink.getRepositoryDataEntity().getId());
 
+        //SEND CREATION EVENT
         chainCreationService.triggerCreationCompleteEvents(planKey);
         return plan;
     }
@@ -311,11 +293,11 @@ public class UftManager {
     private VcsRepositoryData getLinkedRepository(SCMRepository scmRepository, String sharedCredentialsId, BambooUser impersonatedUser) {
         VcsRepositoryData result = null;
         String repositoryName = UFT_INTEGRATION_PREFIX + "_" + scmRepository.getUrl().trim().replaceAll("[<>:\"/\\|?*]", "_");
-        String repositoryNameLowerCase = repositoryName.toLowerCase();
+
         //try to find existing
         List<VcsRepositoryData> repositories = repositoryDefinitionManager.getLinkedRepositories();
         for (VcsRepositoryData data : repositories) {
-            if (data.getName().toLowerCase().equals(repositoryNameLowerCase)) {
+            if (data.getName().equalsIgnoreCase(repositoryName)) {
                 result = data;
                 break;
             }
