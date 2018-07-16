@@ -36,6 +36,7 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
 import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
+import com.hp.octane.integrations.dto.executor.CredentialsInfo;
 import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
 import com.hp.octane.integrations.dto.executor.TestConnectivityInfo;
 import com.hp.octane.integrations.dto.executor.TestSuiteExecutionInfo;
@@ -44,11 +45,11 @@ import com.hp.octane.integrations.dto.general.CIPluginInfo;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
-import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.spi.CIPluginServicesBase;
 import com.hp.octane.integrations.util.CIPluginSDKUtils;
+import com.hp.octane.integrations.util.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import org.acegisecurity.acls.Permission;
@@ -61,8 +62,8 @@ import java.util.*;
 import java.util.concurrent.Callable;
 
 public class BambooPluginServices extends CIPluginServicesBase {
-	private static final Logger log = LoggerFactory.getLogger(BambooPluginServices.class);
-	private static final String PLUGIN_VERSION = "1.0.0-SNAPSHOT";
+    private static final Logger log = LoggerFactory.getLogger(BambooPluginServices.class);
+    private static final String PLUGIN_VERSION = "1.0.0-SNAPSHOT";
 
     private CachedPlanManager planMan;
 
@@ -71,7 +72,6 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
     private PluginSettingsFactory settingsFactory;
-    private UftManager uftManager;
 
     public BambooPluginServices(PluginSettingsFactory settingsFactory) {
         super();
@@ -129,22 +129,19 @@ public class BambooPluginServices extends CIPluginServicesBase {
         return DTOFactory.getInstance().newDTO(CIPluginInfo.class).setVersion(PLUGIN_VERSION);
     }
 
-    public CIProxyConfiguration getProxyConfiguration(String targetHost) {
+    @Override
+    public CIProxyConfiguration getProxyConfiguration(URL targetUrl) {
         log.info("get proxy configuration");
         CIProxyConfiguration result = null;
-        try {
-            URL targetHostUrl = new URL(targetHost);
-            if (isProxyNeeded(targetHostUrl)) {
-                log.info("proxy is required for host " + targetHost);
-                String protocol = targetHostUrl.getProtocol();
 
-                return CONVERTER.getProxyCconfiguration(getProxyProperty(protocol + ".proxyHost", null),
-                        Integer.parseInt(getProxyProperty(protocol + ".proxyPort", null)),
-                        System.getProperty(protocol + ".proxyUser", ""),
-                        System.getProperty(protocol + ".proxyPassword", ""));
-            }
-        } catch (MalformedURLException e) {
-            log.error("Invalid url", e);
+        if (isProxyNeeded(targetUrl)) {
+            log.info("proxy is required for host " + targetUrl.getHost());
+            String protocol = targetUrl.getProtocol();
+
+            return CONVERTER.getProxyCconfiguration(getProxyProperty(protocol + ".proxyHost", null),
+                    Integer.parseInt(getProxyProperty(protocol + ".proxyPort", null)),
+                    System.getProperty(protocol + ".proxyUser", ""),
+                    System.getProperty(protocol + ".proxyPassword", ""));
         }
         return result;
     }
@@ -159,7 +156,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
         String proxyHost = getProxyProperty(targetHostUrl.getProtocol() + ".proxyHost", "");
         String nonProxyHostsStr = getProxyProperty(targetHostUrl.getProtocol() + ".nonProxyHosts", "");
 
-        if (proxyHost != null && !proxyHost.isEmpty() && !CIPluginSDKUtils.isNonProxyHost(targetHostUrl.getHost(), nonProxyHostsStr)) {
+        if (SdkStringUtils.isNotEmpty(proxyHost) && !CIPluginSDKUtils.isNonProxyHost(targetHostUrl.getHost(), nonProxyHostsStr)) {
             result = true;
         }
 
@@ -237,8 +234,25 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
     @Override
-    public OctaneResponse checkRepositoryConnectivity(TestConnectivityInfo testConnectivityInfo) {
-        return getUftManager().checkRepositoryConnectivity(testConnectivityInfo);
+    public OctaneResponse checkRepositoryConnectivity(final TestConnectivityInfo testConnectivityInfo) {
+        final Callable<OctaneResponse> impersonated = impService.runAsUser(getRunAsUser(), new Callable<OctaneResponse>() {
+            public OctaneResponse call() {
+                return getUftManager().checkRepositoryConnectivity(testConnectivityInfo);
+            }
+        });
+
+        return execute(impersonated);
+    }
+
+    @Override
+    public OctaneResponse upsertCredentials(final CredentialsInfo credentialsInfo) {
+        final Callable<OctaneResponse> impersonated = impService.runAsUser(getRunAsUser(), new Callable<OctaneResponse>() {
+            public OctaneResponse call() {
+                return getUftManager().upsertCredentials(credentialsInfo);
+            }
+        });
+
+        return execute(impersonated);
     }
 
     @Override
@@ -246,6 +260,18 @@ public class BambooPluginServices extends CIPluginServicesBase {
         final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
             public Void call() {
                 getUftManager().runTestDiscovery(discoveryInfo, getRunAsUser());
+                return null;
+            }
+        });
+
+        execute(impersonated);
+    }
+
+    @Override
+    public void deleteExecutor(final String id) {
+        final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
+            public Void call() {
+                getUftManager().deleteExecutor(id);
                 return null;
             }
         });
@@ -264,11 +290,9 @@ public class BambooPluginServices extends CIPluginServicesBase {
         execute(impersonated);
     }
 
+
     private UftManager getUftManager() {
-        if (uftManager == null) {
-            uftManager = new UftManager();
-        }
-        return uftManager;
+        return UftManager.getInstance();
     }
 
     private <V> V execute(Callable<V> callable) {

@@ -62,8 +62,8 @@
 		<maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
 		<maven.compiler.plugin.version>1.7</maven.compiler.plugin.version>
 		<maven-source-plugin.version>2.2.1</maven-source-plugin.version>
-		<bamboo.version>6.5.0</bamboo.version>
-		<bamboo.data.version>6.5.0</bamboo.data.version>
+		<bamboo.version>6.4.2</bamboo.version>
+		<bamboo.data.version>6.4.2</bamboo.data.version>
 		<amps.version>5.1.11</amps.version>
 		<plugin.testrunner.version>1.2.3</plugin.testrunner.version>
 		<atlassian.spring.scanner.version>1.2.13</atlassian.spring.scanner.version>
@@ -75,7 +75,7 @@
 		<matching.obj>jarfile_batch_sign_local_timestamp</matching.obj>
 		<file.name>${project.artifactId}-${project.version}.jar</file.name>
 		<shaded.file.name>${project.artifactId}-${project.version}-shaded.jar</shaded.file.name>
-		<integrations.sdk.version>1.5.6</integrations.sdk.version>
+		<integrations.sdk.version>1.5.23</integrations.sdk.version>
 		<nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
 	</properties>
 
