@@ -168,8 +168,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
         log.info("get ci server info");
         String instanceId = String.valueOf(settings.get(OctaneConfigurationKeys.UUID));
 
-        String baseUrl = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class)
-                .getAdministrationConfiguration().getBaseUrl();
+        String baseUrl = getBambooServerBaseUrl();
         String runAsUser = getRunAsUser();
         return CONVERTER.getServerInfo(baseUrl, instanceId, runAsUser);
     }
@@ -313,5 +312,11 @@ public class BambooPluginServices extends CIPluginServicesBase {
             }
             throw runtimeException;
         }
+    }
+
+    public static String getBambooServerBaseUrl(){
+        String baseUrl = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class)
+                .getAdministrationConfiguration().getBaseUrl();
+        return baseUrl;
     }
 }

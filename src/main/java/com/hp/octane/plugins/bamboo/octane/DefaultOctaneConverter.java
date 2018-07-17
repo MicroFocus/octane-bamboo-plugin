@@ -30,6 +30,7 @@ import com.atlassian.bamboo.repository.Repository;
 import com.atlassian.bamboo.repository.svn.SvnRepository;
 import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.resultsummary.ImmutableResultsSummary;
+import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.v2.build.BuildChanges;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import com.hp.octane.integrations.dto.DTOFactory;
@@ -59,6 +60,8 @@ import com.hp.octane.integrations.dto.tests.TestRunError;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import org.apache.commons.lang.StringUtils;
 
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -238,6 +241,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 
 			if (HPRunnerType.UFT.equals(runnerType)) { /*for example : a/b/c/d/uftTestName => package name = a/b/c/d and testName = uftTestName*/
 				packageName = "";
+                simpleName = "";//class name in octane
 				int packageSplitter = testName.lastIndexOf("\\");
 				if (packageSplitter > 0) {
 					packageName = testName.substring(0, packageSplitter);
@@ -257,8 +261,43 @@ public class DefaultOctaneConverter implements DTOConverter {
 			}
 			testRun.setError(error);
 		}
+
+        String externalReport = null;
+        if (HPRunnerType.UFT.equals(runnerType)) {
+            externalReport = getExternalReportForUft(buildContext, testName);
+        }
+
+        if (StringUtils.isNotEmpty(externalReport)) {
+            testRun.setExternalReportUrl(externalReport);
+        }
 		return testRun;
 	}
+
+    private String getExternalReportForUft(com.atlassian.bamboo.v2.build.BuildContext buildContext, String testName) {
+        try {
+            String baseUrl = BambooPluginServices.getBambooServerBaseUrl();
+            String planName = buildContext.getParentBuildContext().getTypedPlanKey().getKey();
+            String jobName = buildContext.getResultKey().getEntityKey().getKey().substring(planName.length() + 1);//planName-JobName
+            int buildId = buildContext.getResultKey().getResultNumber();
+            int taskDefinitionOrder = 0;
+            for (TaskDefinition td : buildContext.getBuildDefinition().getTaskDefinitions()) {
+                taskDefinitionOrder++;
+                if (td.getPluginKey().equals(HPRunnerTypeUtils.UFT_FS_PLUGIN_KEY)) {
+                    break;
+                }
+            }
+            //example of link : http://localhost:8085/artifact/PR1-EXECT/JOB1/build-12/Micro-Focus-Tasks-Artifact-Definition/UFT_Build_12/002_File_System_Execution/Octane_3/Report.html
+            // template =  "<baseUrl>/artifact/<planName>/<jobName>/build-<buildId>/Micro-Focus-Tasks-Artifact-Definition/UFT_Build_<buildId>/<taskDefinitionOrder>_File_System_Execution/<testName>/Report.html ";
+            String externalReportUrl = String.format("%s/artifact/%s/%s/build-%s/Micro-Focus-Tasks-Artifact-Definition/UFT_Build_%s/%03d_File_System_Execution/%s/Report.html",
+                    baseUrl, planName, jobName, buildId, buildId, taskDefinitionOrder, testName);
+            URL url = new URL(externalReportUrl);
+            URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+            String result = uri.toURL().toString();
+            return result;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
 	@Override
 	public CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType, long startTime,

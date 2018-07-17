@@ -18,11 +18,7 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.task.runtime.RuntimeTaskDefinition;
-import com.hp.octane.integrations.dto.DTOFactory;
-import com.hp.octane.integrations.dto.tests.TestField;
-import org.apache.commons.lang3.StringUtils;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -30,10 +26,11 @@ import java.util.List;
  */
 public class HPRunnerTypeUtils {
 
+    public static String UFT_FS_PLUGIN_KEY = "com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask";
     public static HPRunnerType getHPRunnerType(List<RuntimeTaskDefinition> taskDefinitions) {
         try {
             for (RuntimeTaskDefinition definition : taskDefinitions) {
-                if (definition.getPluginKey().equals("com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask")) {
+                if (definition.getPluginKey().equals(UFT_FS_PLUGIN_KEY)) {
                     return HPRunnerType.UFT;
                 }
             }
