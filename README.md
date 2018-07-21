@@ -4,7 +4,7 @@ Project status: [![Build status](https://ci.appveyor.com/api/projects/status/l74
 
 Master release status: [![Build status](https://ci.appveyor.com/api/projects/status/l7452nnv54r65owo/branch/master?svg=true)](https://ci.appveyor.com/project/m-seldin/octane-bamboo-plugin/branch/master)
 
-## Relevent links
+## Relevant links
 -	**Download the most recent LTS version of the plugin** at [Bamboo plugins marketplace](https://marketplace.atlassian.com/apps/1216770/hpe-alm-octane-bamboo-ci-plugin?hosting=server&tab=overview)
 -	**Check the open issues (and add new issues)** at [Github issues](https://github.com/MicroFocus/octane-bamboo-plugin/issues)
 
