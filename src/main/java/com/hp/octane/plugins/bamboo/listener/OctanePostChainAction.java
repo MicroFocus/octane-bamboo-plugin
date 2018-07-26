@@ -82,7 +82,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                         (event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
                         PhaseType.INTERNAL);
                 if (HPRunnerType.UFT.equals(runnerType)) {
-                    UftManager.addUftParametersToEvent(ciEvent, event.getContext());
+                    UftManager.getInstance().addUftParametersToEvent(ciEvent, event.getContext());
                 }
 
                 OctaneSDK.getInstance().getEventsService().publishEvent(ciEvent);

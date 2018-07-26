@@ -67,7 +67,19 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
 				for (ChainStage chainStage : chain.getStages()) {
 					for (Job job : chainStage.getJobs()) {
 						Plan plan = planManager.getPlanByKey(job.getPlanKey());
-						UftManager.getInstance().completeDiscoveryJob(plan);
+						boolean updated = UftManager.getInstance().registerArtifactForDiscovery((Job)plan);
+
+						//update execution artifact
+						if(updated){
+							Chain executionChain = UftManager.getInstance().findExecutionPlan(UftManager.getInstance().getMainProject());
+							for (ChainStage executionChainStage : executionChain.getStages()) {
+								for (Job executionJob : executionChainStage.getJobs()) {
+									Plan myPlan = planManager.getPlanByKey(executionJob.getPlanKey());
+									UftManager.getInstance().registerArtifactForExecution((Job)myPlan);
+								}
+							}
+						}
+						return;
 					}
 				}
 			}

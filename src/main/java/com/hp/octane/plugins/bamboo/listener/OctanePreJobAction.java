@@ -55,7 +55,7 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 
 		HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
 		if(HPRunnerType.UFT.equals(runnerType)){
-			UftManager.addUftParametersToEvent(event, buildContext);
+			UftManager.getInstance().addUftParametersToEvent(event, buildContext);
 		}
 
 		OctaneSDK.getInstance().getEventsService().publishEvent(event);

@@ -19,6 +19,7 @@ package com.hp.octane.plugins.bamboo.octane.uft;
 import com.atlassian.bamboo.build.Job;
 import com.atlassian.bamboo.build.PlanCreationDeniedException;
 import com.atlassian.bamboo.build.creation.*;
+import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.collections.ActionParametersMap;
 import com.atlassian.bamboo.credentials.CredentialTypeModuleDescriptor;
 import com.atlassian.bamboo.credentials.CredentialsData;
@@ -27,6 +28,8 @@ import com.atlassian.bamboo.fieldvalue.TaskConfigurationUtils;
 import com.atlassian.bamboo.plan.*;
 import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionImpl;
 import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionManager;
+import com.atlassian.bamboo.plan.cache.CachedPlanManager;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plugins.git.GitAuthenticationType;
 import com.atlassian.bamboo.plugins.git.GitPasswordCredentialsSource;
 import com.atlassian.bamboo.plugins.git.v2.configurator.GitConfigurationConstants;
@@ -46,6 +49,7 @@ import com.atlassian.bamboo.trigger.TriggerTypeManager;
 import com.atlassian.bamboo.user.BambooUser;
 import com.atlassian.bamboo.user.BambooUserManager;
 import com.atlassian.bamboo.utils.error.ErrorCollection;
+import com.atlassian.bamboo.variable.VariableConfigurationService;
 import com.atlassian.bamboo.variable.VariableDefinitionContext;
 import com.atlassian.bamboo.vcs.configuration.PartialVcsRepositoryData;
 import com.atlassian.bamboo.vcs.configuration.PartialVcsRepositoryDataBuilder;
@@ -71,6 +75,7 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.scm.SCMRepository;
 import com.hp.octane.integrations.dto.scm.SCMType;
+import com.hp.octane.integrations.uft.UftExecutionUtils;
 import com.hp.octane.integrations.util.SdkStringUtils;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
@@ -88,11 +93,15 @@ public class UftManager {
     private ChainCreationService chainCreationService;
     private CredentialsManager credentialsManager;
     private EncryptionService encryptionService;
+    private CachedPlanManager cachedPlanManager;
+
     private PlanManager planManager;
+    private PlanExecutionManager planExecutionManager;
     private ProjectManager projectManager;
     private JobCreationService jobCreationService;
     private TriggerTypeManager triggerTypeManager;
     private TriggerConfigurationService triggerConfigurationService;
+    private VariableConfigurationService variableConfigurationService;
 
     private RepositoryDefinitionManager repositoryDefinitionManager;
     private VcsRepositoryManager vcsRepositoryManager;
@@ -103,14 +112,19 @@ public class UftManager {
 
     private static String USERNAME_PASSWORD_PLUGIN_KEY = "com.atlassian.bamboo.plugin.sharedCredentials:usernamePasswordCredentials";
     private static String DISCOVERY_TASK_PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin:octaneUftTestDiscovery";
+    private static String EXECUTION_TASK_PLUGIN_KEY = "com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask";
+
     private static final String TRIGGER_POLLING_PLUGIN_KEY = "com.atlassian.bamboo.triggers.atlassian-bamboo-triggers:poll";
     public static final String PROJECT_KEY = "UOI";
     public static final String DISCOVERY_KEY_PREFIX = "DISCOVERY";
+    public static final String EXECUTOR_KEY = "UFTEXECUTOR";
 
     private static final Logger log = LoggerFactory.getLogger(UftManager.class);
 
     public static final String SUITE_ID_PARAMETER = "suiteId";
     public static final String SUITE_RUN_ID_PARAMETER = "suiteRunId";
+    public static final String TESTS_TO_RUN_PARAMETER = "testsToRun";
+
 
     private static final String UFT_INTEGRATION_PREFIX = "UFT";
 
@@ -128,6 +142,8 @@ public class UftManager {
         credentialsManager = ComponentLocator.getComponent(CredentialsManager.class);
         encryptionService = ComponentLocator.getComponent(EncryptionService.class);
         planManager = ComponentLocator.getComponent(PlanManager.class);
+        cachedPlanManager = ComponentLocator.getComponent(CachedPlanManager.class);
+        planExecutionManager = ComponentLocator.getComponent(PlanExecutionManager.class);
         projectManager = ComponentLocator.getComponent(ProjectManager.class);
         repositoryDefinitionManager = ComponentLocator.getComponent(RepositoryDefinitionManager.class);
         vcsRepositoryConfigurationService = ComponentLocator.getComponent(VcsRepositoryConfigurationService.class);
@@ -136,6 +152,7 @@ public class UftManager {
 
         triggerTypeManager = ComponentLocator.getComponent(TriggerTypeManager.class);
         triggerConfigurationService = ComponentLocator.getComponent(TriggerConfigurationService.class);
+        variableConfigurationService = ComponentLocator.getComponent(VariableConfigurationService.class);
     }
 
     public OctaneResponse upsertCredentials(CredentialsInfo credentialsInfo) {
@@ -201,7 +218,7 @@ public class UftManager {
         return credentialsName;
     }
 
-    private Project getMainProject() {
+    public Project getMainProject() {
 
         String name = "UftOctaneIntegration";
         String desc = "This project was created by the Micro Focus Octane plugin for managing execution of UFT tests and integration with Octane.";
@@ -213,28 +230,19 @@ public class UftManager {
         return project;
     }
 
-    private Plan getDiscoveryPlan(Project project, DiscoveryInfo discoveryInfo, VcsRepositoryData linkedRepository) throws PlanCreationDeniedException {
+    private Plan buildDiscoveryPlan(Project project, DiscoveryInfo discoveryInfo, VcsRepositoryData linkedRepository) throws PlanCreationDeniedException {
         String description = String.format("This plan was created by the Micro Focus plugin for discovery of UFT tests. It is associated with ALM Octane testing tool connection #%s.", discoveryInfo.getExecutorId());
-        String key = createBuildKey(discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
+        String key = createDiscoveryBuildKey(discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
         String name = String.format("UFT test discovery - Connection ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
-        //DEFINE CHAIN
-        final Map<String, Object> context = new HashMap<>();
-        context.put(PlanCreationService.EXISTING_PROJECT_KEY, project.getKey());
-        context.put(ChainCreationService.CHAIN_KEY, key);
-        context.put(ChainCreationService.CHAIN_NAME, name);
-        context.put(ChainCreationService.CHAIN_DESCRIPTION, description);
-        context.put("linkedRepositoryAccessOption", RepositoryConfigurationService.LinkedRepositoryAccess.ALL_USERS.name());
-        context.put("repositoryTypeOption", "LINKED");
-        context.put("selectedRepository", linkedRepository.getId());
-        ActionParametersMap apm = new ActionParametersMapImpl(context);
         final BuildConfiguration buildConfiguration = new BuildConfiguration();
-        BuildConfigurationActionHelper.copyParamsToBuildConfiguration(apm, buildConfiguration);
-        String buildKey = chainCreationService.createPlan(buildConfiguration, apm, PlanCreationService.EnablePlan.ENABLED);
+        String buildKey = createChain(project, linkedRepository, key, description, name, buildConfiguration);
 
-        //CREATE JOBS AND TASKS
-        PlanKey jobKey = createDefaultJobAndTasks(buildConfiguration, buildKey, discoveryInfo);
-        Plan job = planManager.getPlanByKey(jobKey);
+        //create, default checkout task is configured in JobCreationServiceImpl.createDefaultCheckoutTask
+        ActionParametersMap actionParametersMap = configureDefaultStageAndJob(buildConfiguration, buildKey);
+        configureDiscoveryTask(buildConfiguration, discoveryInfo);
+        List<PlanKey> jobKeys = this.jobCreationService.createJobAndBranches(buildConfiguration, actionParametersMap, PlanCreationService.EnablePlan.ENABLED);
+        PlanKey jobKey = jobKeys.get(0);
 
         //CREATE TRIGGER
         PlanKey planKey = PlanKeys.getPlanKey(buildKey);
@@ -259,6 +267,20 @@ public class UftManager {
         TaskConfigurationUtils.addTaskDefinitionsToConfig(tasks, buildConfiguration, TaskConfigurationUtils.TASK_PREFIX);
     }
 
+    private void configureExecutionTask(BuildConfiguration buildConfiguration) {
+        //discovery, example from com.atlassian.bamboo.build.creation.JobCreationServiceImpl.createDefaultCheckoutTask
+        LinkedList<TaskDefinition> tasks = new LinkedList(TaskConfigurationUtils.getTaskDefinitionsFromConfig("buildTasks.", buildConfiguration));
+        TaskDefinition executionTask = new TaskDefinitionImpl(TaskConfigurationUtils.getUniqueId(tasks), EXECUTION_TASK_PLUGIN_KEY,
+                "UFT Executor", true, new HashMap());
+        executionTask.getConfiguration().put("testPathInput", "${bamboo.testsToRun}");
+        executionTask.getConfiguration().put("publishMode", "RunFromFileSystemTask.publishMode.always");
+        executionTask.getConfiguration().put("taskName","File_System_Execution");
+
+        tasks.add(executionTask);
+        buildConfiguration.clearTree(TaskConfigurationUtils.TASK_CONFIG_ROOT);
+        TaskConfigurationUtils.addTaskDefinitionsToConfig(tasks, buildConfiguration, TaskConfigurationUtils.TASK_PREFIX);
+    }
+
     private void createPollTrigger(PlanKey planKey, long repositoryId) {
         TriggerModuleDescriptor triggerDescriptor = triggerTypeManager.getTriggerDescriptor(TRIGGER_POLLING_PLUGIN_KEY);
         Map<String, String> configuration = new HashMap<>();
@@ -272,7 +294,8 @@ public class UftManager {
         triggerConfigurationService.createTrigger(planKey, triggerDescriptor, "Polling trigger", true, new HashSet<>(Arrays.asList(repositoryId)), configuration, triggerConditionsConfiguration);
     }
 
-    private PlanKey createDefaultJobAndTasks(BuildConfiguration buildConfiguration, String buildKey, DiscoveryInfo discoveryInfo) throws PlanCreationDeniedException {
+    @NotNull
+    private ActionParametersMap configureDefaultStageAndJob(BuildConfiguration buildConfiguration, String buildKey) {
         //set configuration fro default job
         ActionParametersMap actionParametersMap = new ActionParametersMapImpl(new HashMap());
         JobParamMapHelper.setBuildKey(actionParametersMap, buildKey);
@@ -281,13 +304,7 @@ public class UftManager {
         JobParamMapHelper.setStageName(actionParametersMap, "Default Stage");
         JobParamMapHelper.setExistingStage(actionParametersMap, JobCreationConstants.NEW_STAGE_MARKER);
         buildConfiguration.setProperty("inheritRepository", "true");
-
-        //add configuration of discovery task
-        configureDiscoveryTask(buildConfiguration, discoveryInfo);
-
-        //create, default checkout task is configured in JobCreationServiceImpl.createDefaultCheckoutTask
-        List<PlanKey> jobKeys = this.jobCreationService.createJobAndBranches(buildConfiguration, actionParametersMap, PlanCreationService.EnablePlan.ENABLED);
-        return jobKeys.get(0);
+        return actionParametersMap;
     }
 
     private VcsRepositoryData getLinkedRepository(SCMRepository scmRepository, String sharedCredentialsId, BambooUser impersonatedUser) {
@@ -419,14 +436,68 @@ public class UftManager {
             BambooUser bambooUser = bambooUserManager.getBambooUser(impersonatedUser);
             Project project = getMainProject();
             VcsRepositoryData linkedRepository = getLinkedRepository(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), bambooUser);
-            Plan plan = getDiscoveryPlan(project, discoveryInfo, linkedRepository);
+            buildDiscoveryPlan(project, discoveryInfo, linkedRepository);
+            getOrBuildExecutionPlan(project, linkedRepository);
         } catch (Exception e) {
             throw new RuntimeException((e));
         }
     }
 
+    public Chain findExecutionPlan(Project project) {
+        List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
+        for (TopLevelPlan plan : plans) {
+            if (plan.getBuildKey().equalsIgnoreCase(EXECUTOR_KEY)) {
+                return plan;
+            }
+        }
+        return null;
+    }
+
+    private Plan getOrBuildExecutionPlan(Project project, VcsRepositoryData linkedRepository) throws PlanCreationDeniedException {
+
+        Plan plan = findExecutionPlan(project);
+        if (plan != null) {
+            return plan;
+        }
+        //NOT FOUND Plan - Need to create
+
+        String description = "This plan was created by the Micro Focus plugin for execution of UFT tests";
+        String name = "UFT test executor";
+        final BuildConfiguration buildConfiguration = new BuildConfiguration();
+        String buildKey = createChain(project, linkedRepository, EXECUTOR_KEY, description, name, buildConfiguration);
+
+        //CREATE JOBS AND TASKS
+        ActionParametersMap actionParametersMap = configureDefaultStageAndJob(buildConfiguration, buildKey);
+        configureExecutionTask(buildConfiguration);
+        //create, default checkout task is configured in JobCreationServiceImpl.createDefaultCheckoutTask
+        List<PlanKey> jobKeys = this.jobCreationService.createJobAndBranches(buildConfiguration, actionParametersMap, PlanCreationService.EnablePlan.ENABLED);
+
+        PlanKey planKey = PlanKeys.getPlanKey(buildKey);
+        plan = planManager.getPlanByKey(planKey);
+
+        createVariablesForExecution((Chain)plan);
+        //SEND CREATION EVENT
+        chainCreationService.triggerCreationCompleteEvents(planKey);
+        return plan;
+    }
+
+    private String createChain(Project project, VcsRepositoryData linkedRepository, String chainKey, String chainDescription, String chainName, BuildConfiguration buildConfiguration) throws PlanCreationDeniedException {
+        //DEFINE CHAIN
+        final Map<String, Object> context = new HashMap<>();
+        context.put(PlanCreationService.EXISTING_PROJECT_KEY, project.getKey());
+        context.put(ChainCreationService.CHAIN_KEY, chainKey);
+        context.put(ChainCreationService.CHAIN_NAME, chainName);
+        context.put(ChainCreationService.CHAIN_DESCRIPTION, chainDescription);
+        context.put("linkedRepositoryAccessOption", RepositoryConfigurationService.LinkedRepositoryAccess.ALL_USERS.name());
+        context.put("repositoryTypeOption", "LINKED");
+        context.put("selectedRepository", linkedRepository.getId());
+        ActionParametersMap apm = new ActionParametersMapImpl(context);
+        BuildConfigurationActionHelper.copyParamsToBuildConfiguration(apm, buildConfiguration);
+        return chainCreationService.createPlan(buildConfiguration, apm, PlanCreationService.EnablePlan.ENABLED);
+    }
+
     public void deleteExecutor(String id) {
-        String buildKeyPrefix = createBuildKey(id, "");
+        String buildKeyPrefix = createDiscoveryBuildKey(id, "");
         Project project = getMainProject();
         List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
         for (TopLevelPlan plan : plans) {
@@ -436,27 +507,39 @@ public class UftManager {
         }
     }
 
-    private String createBuildKey(String executorId, String executorLogicalName) {
+    private String createDiscoveryBuildKey(String executorId, String executorLogicalName) {
         return String.format("%s%sLOGICAL%s", DISCOVERY_KEY_PREFIX, executorId, executorLogicalName);
     }
 
     public void runTestSuiteExecution(TestSuiteExecutionInfo testSuiteExecutionInfo, String impersonatedUser) {
+        ImmutableChain chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey("UOI-UFTEXECUTOR"), ImmutableChain.class);
+        if (chain == null) {
+            throw new RuntimeException("Execution job is not found");
+        }
 
+        BambooUser user = bambooUserManager.getBambooUser(impersonatedUser);
+        Map<String, String> variables = new HashMap<>();
+        variables.put(SUITE_ID_PARAMETER, testSuiteExecutionInfo.getSuiteId());
+        variables.put(SUITE_RUN_ID_PARAMETER, testSuiteExecutionInfo.getSuiteRunId());
+        variables.put(TESTS_TO_RUN_PARAMETER, UftExecutionUtils.convertToMtbxContent(testSuiteExecutionInfo.getTests(), "${bamboo.build.working.directory}"));
+        ExecutionRequestResult result = planExecutionManager.startManualExecution(chain, user, new HashMap<String, String>(), variables);
     }
 
-    public static void addUftParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
+    public void addUftParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
         try {
             Map<String, VariableDefinitionContext> variables = buildContext.getVariableContext().getEffectiveVariables();
             List<CIParameter> parameters = new ArrayList<>();
 
-            if (variables.containsKey(SUITE_ID_PARAMETER)) {
+            if (variables.containsKey(SUITE_ID_PARAMETER) && SdkStringUtils.isNotEmpty(variables.get(SUITE_ID_PARAMETER).getValue())) {
                 String value = variables.get(SUITE_ID_PARAMETER).getValue();
                 parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
+
+                if (variables.containsKey(UftManager.SUITE_RUN_ID_PARAMETER)) {
+                    value = variables.get(UftManager.SUITE_RUN_ID_PARAMETER).getValue();
+                    parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_RUN_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
+                }
             }
-            if (variables.containsKey(UftManager.SUITE_RUN_ID_PARAMETER)) {
-                String value = variables.get(UftManager.SUITE_RUN_ID_PARAMETER).getValue();
-                parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_RUN_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
-            }
+
             if (!parameters.isEmpty()) {
                 ciEvent.setParameters(parameters);
             }
@@ -465,18 +548,24 @@ public class UftManager {
         }
     }
 
-    public boolean completeDiscoveryJob(Plan plan) {
-        boolean executed = registerArtifact((Job) plan);
-        return executed;
+    public boolean registerArtifactForDiscovery(@NotNull Job job) {
+        String name = "UFT discovery result";
+        String pattern = "**/" + UftDiscoveryTask.RESULT_FILE_NAME_PREFIX + "${bamboo.buildNumber}*";
+        return registerArtifactDefinition(job, name, pattern);
+
     }
 
-    private boolean registerArtifact(@NotNull Job job) {
+    public boolean registerArtifactForExecution(@NotNull Job job) {
+        String name = "Micro Focus Tasks Artifact Definition";
+        String pattern = "UFT_Build_${bamboo.buildNumber}/**";
+        return registerArtifactDefinition(job, name, pattern);
 
+    }
+
+    private boolean registerArtifactDefinition(@NotNull Job job, String name, String pattern) {
         ArtifactDefinitionManager artifactDefinitionManager = ComponentLocator.getComponent(ArtifactDefinitionManager.class);
-        String name = "UFT discovery result";
-        String ARTIFACT_COPY_PATTERN = "**/" + UftDiscoveryTask.RESULT_FILE_NAME_PREFIX + "${bamboo.buildNumber}*";
         if (artifactDefinitionManager.findArtifactDefinition(job, name) == null) {
-            ArtifactDefinitionImpl artifactDefinition = new ArtifactDefinitionImpl(name, "", ARTIFACT_COPY_PATTERN);
+            ArtifactDefinitionImpl artifactDefinition = new ArtifactDefinitionImpl(name, "", pattern);
             artifactDefinition.setProducerJob(job);
             artifactDefinitionManager.saveArtifactDefinition(artifactDefinition);
             return true;
@@ -484,7 +573,20 @@ public class UftManager {
         } else {
             return false;
         }
+    }
 
+    private void createVariablesForExecution(@NotNull Chain chain) {
+        createVariables(chain, TESTS_TO_RUN_PARAMETER, "");
+        createVariables(chain, SUITE_ID_PARAMETER, "");
+        createVariables(chain, SUITE_RUN_ID_PARAMETER, "");
+    }
+
+    private void createVariables(@NotNull Chain chain, String key, @NotNull String value) {
+        try {
+            variableConfigurationService.createPlanVariable(chain, key, value);
+        } catch (Exception e) {
+            log.warn(String.format("Failed to add variable <%s> to chain <%s>", key, chain.getName()));
+        }
     }
 
 

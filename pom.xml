@@ -75,7 +75,7 @@
 		<matching.obj>jarfile_batch_sign_local_timestamp</matching.obj>
 		<file.name>${project.artifactId}-${project.version}.jar</file.name>
 		<shaded.file.name>${project.artifactId}-${project.version}-shaded.jar</shaded.file.name>
-		<integrations.sdk.version>1.5.23</integrations.sdk.version>
+		<integrations.sdk.version>1.5.24</integrations.sdk.version>
 		<nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
 	</properties>
 

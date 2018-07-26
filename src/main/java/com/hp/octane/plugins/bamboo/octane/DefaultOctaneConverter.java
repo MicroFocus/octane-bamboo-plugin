@@ -279,17 +279,16 @@ public class DefaultOctaneConverter implements DTOConverter {
             String planName = buildContext.getParentBuildContext().getTypedPlanKey().getKey();
             String jobName = buildContext.getResultKey().getEntityKey().getKey().substring(planName.length() + 1);//planName-JobName
             int buildId = buildContext.getResultKey().getResultNumber();
-            int taskDefinitionOrder = 0;
+            long taskId = 0;
             for (TaskDefinition td : buildContext.getBuildDefinition().getTaskDefinitions()) {
-                taskDefinitionOrder++;
                 if (td.getPluginKey().equals(HPRunnerTypeUtils.UFT_FS_PLUGIN_KEY)) {
-                    break;
+					taskId = td.getId();
                 }
             }
             //example of link : http://localhost:8085/artifact/PR1-EXECT/JOB1/build-12/Micro-Focus-Tasks-Artifact-Definition/UFT_Build_12/002_File_System_Execution/Octane_3/Report.html
-            // template =  "<baseUrl>/artifact/<planName>/<jobName>/build-<buildId>/Micro-Focus-Tasks-Artifact-Definition/UFT_Build_<buildId>/<taskDefinitionOrder>_File_System_Execution/<testName>/Report.html ";
+            // template =  "<baseUrl>/artifact/<planName>/<jobName>/build-<buildId>/Micro-Focus-Tasks-Artifact-Definition/UFT_Build_<buildId>/<taskId>_File_System_Execution/<testName>/Report.html ";
             String externalReportUrl = String.format("%s/artifact/%s/%s/build-%s/Micro-Focus-Tasks-Artifact-Definition/UFT_Build_%s/%03d_File_System_Execution/%s/Report.html",
-                    baseUrl, planName, jobName, buildId, buildId, taskDefinitionOrder, testName);
+                    baseUrl, planName, jobName, buildId, buildId, taskId, testName);
             URL url = new URL(externalReportUrl);
             URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
             String result = uri.toURL().toString();
