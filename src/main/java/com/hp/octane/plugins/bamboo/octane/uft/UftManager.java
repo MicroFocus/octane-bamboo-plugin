@@ -120,7 +120,7 @@ public class UftManager {
     private static final String TRIGGER_POLLING_PLUGIN_KEY = "com.atlassian.bamboo.triggers.atlassian-bamboo-triggers:poll";
     public static final String PROJECT_KEY = "UOI";
     public static final String DISCOVERY_KEY_PREFIX = "DISCOVERY";
-    public static final String EXECUTOR_KEY = "UFTEXECUTOR";
+    public static final String EXECUTOR_PREFIX_KEY = "UFTEXECUTOR";
 
     private static final Logger log = LoggerFactory.getLogger(UftManager.class);
 
@@ -140,7 +140,6 @@ public class UftManager {
     private UftManager() {
 
         bambooUserManager = ComponentLocator.getComponent(BambooUserManager.class);
-
         chainCreationService = ComponentLocator.getComponent(ChainCreationService.class);
         credentialsManager = ComponentLocator.getComponent(CredentialsManager.class);
         encryptionService = ComponentLocator.getComponent(EncryptionService.class);
@@ -214,6 +213,94 @@ public class UftManager {
         }
 
         return result;
+    }
+
+    public OctaneResponse checkRepositoryConnectivity(TestConnectivityInfo testConnectivityInfo) {
+        OctaneResponse result = DTOFactory.getInstance().newDTO(OctaneResponse.class);
+        if (testConnectivityInfo.getScmRepository() == null || SdkStringUtils.isEmpty(testConnectivityInfo.getScmRepository().getUrl())) {
+            result.setStatus(HttpStatus.SC_BAD_REQUEST);
+            result.setBody("Missing input for testing");
+        } else {
+
+            try {
+                PartialVcsRepositoryData vcsRepositoryData = createRepositoryData("tempRepositoryForTestingConnectivity", testConnectivityInfo.getScmRepository(), testConnectivityInfo.getUsername(), testConnectivityInfo.getPassword(), testConnectivityInfo.getCredentialsId());
+                VcsRepositoryModuleDescriptor vcsDescriptor = vcsRepositoryManager.getVcsRepositoryModuleDescriptor(vcsRepositoryData.getPluginKey());
+                ErrorCollection errors = vcsDescriptor.getConnectionTester().testConnection(vcsRepositoryData.getCompleteData(), 1, TimeUnit.MINUTES);
+                if (errors.getErrorMessages().isEmpty()) {
+                    result.setStatus(HttpStatus.SC_OK);
+                } else {
+                    result.setStatus(HttpStatus.SC_FORBIDDEN);
+                    result.setBody(errors.getErrorMessages().iterator().next());//set only first exception
+                }
+            } catch (Exception e) {
+                result.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+                result.setBody("Exception occurred : " + e.getMessage());
+            }
+        }
+        return result;
+    }
+
+    public void runTestDiscovery(DiscoveryInfo discoveryInfo, String impersonatedUser) {
+        try {
+            BambooUser bambooUser = bambooUserManager.getBambooUser(impersonatedUser);
+            Project project = getMainProject();
+            VcsRepositoryData linkedRepository = getLinkedRepository(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), bambooUser);
+            buildDiscoveryPlan(project, discoveryInfo, linkedRepository);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to runTestDiscovery : " + e.getMessage(), e);
+        }
+    }
+
+    public void deleteExecutor(String id) {
+        String buildKeyPrefix = createDiscoveryBuildKey(id, "");
+        Project project = getMainProject();
+        List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
+        for (TopLevelPlan plan : plans) {
+            if (plan.getBuildKey().startsWith(buildKeyPrefix)) {
+                planManager.markPlansForDeletion(plan.getPlanKey());
+            }
+        }
+    }
+
+    public void runTestSuiteExecution(TestSuiteExecutionInfo testSuiteExecutionInfo, String impersonatedUser) {
+        //ImmutableChain chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey("UOI-UFTEXECUTOR"), ImmutableChain.class);
+        BambooUser user = bambooUserManager.getBambooUser(impersonatedUser);
+        ImmutableChain chain;
+        try {
+            chain = getOrBuildExecutionChain(testSuiteExecutionInfo.getScmRepository(), testSuiteExecutionInfo.getScmRepositoryCredentialsId(), user);
+        } catch (PlanCreationDeniedException e) {
+            throw new RuntimeException("Failed to create execution chain : " + e.getMessage(), e);
+        }
+
+
+        Map<String, String> variables = new HashMap<>();
+        variables.put(SUITE_ID_PARAMETER, testSuiteExecutionInfo.getSuiteId());
+        variables.put(SUITE_RUN_ID_PARAMETER, testSuiteExecutionInfo.getSuiteRunId());
+        variables.put(TESTS_TO_RUN_PARAMETER, UftExecutionUtils.convertToMtbxContent(testSuiteExecutionInfo.getTests(), "${bamboo.build.working.directory}"));
+        ExecutionRequestResult result = planExecutionManager.startManualExecution(chain, user, new HashMap<String, String>(), variables);
+    }
+
+    public void addUftParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
+        try {
+            Map<String, VariableDefinitionContext> variables = buildContext.getVariableContext().getEffectiveVariables();
+            List<CIParameter> parameters = new ArrayList<>();
+
+            if (variables.containsKey(SUITE_ID_PARAMETER) && SdkStringUtils.isNotEmpty(variables.get(SUITE_ID_PARAMETER).getValue())) {
+                String value = variables.get(SUITE_ID_PARAMETER).getValue();
+                parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
+
+                if (variables.containsKey(UftManager.SUITE_RUN_ID_PARAMETER)) {
+                    value = variables.get(UftManager.SUITE_RUN_ID_PARAMETER).getValue();
+                    parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_RUN_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
+                }
+            }
+
+            if (!parameters.isEmpty()) {
+                ciEvent.setParameters(parameters);
+            }
+        } catch (Exception e) {
+            //do nothing - try/catch just to be on safe side for all other plans
+        }
     }
 
     private String createCredentialName(String username, boolean creation) {
@@ -304,7 +391,6 @@ public class UftManager {
         triggerConfigurationService.createTrigger(planKey, triggerDescriptor, "Polling trigger", true, new HashSet<>(Arrays.asList(repositoryId)), configuration, triggerConditionsConfiguration);
     }
 
-    @NotNull
     private ActionParametersMap configureDefaultStageAndJob(BuildConfiguration buildConfiguration, String buildKey) {
         //set configuration fro default job
         ActionParametersMap actionParametersMap = new ActionParametersMapImpl(new HashMap());
@@ -317,9 +403,13 @@ public class UftManager {
         return actionParametersMap;
     }
 
+    private String replaceSpecialCharactersInUrl(String url) {
+        return url.trim().replaceAll("[<>:\"/\\|?*{}@&%!;~]", "_");
+    }
+
     private VcsRepositoryData getLinkedRepository(SCMRepository scmRepository, String sharedCredentialsId, BambooUser impersonatedUser) {
         VcsRepositoryData result = null;
-        String repositoryName = UFT_INTEGRATION_PREFIX + "_" + scmRepository.getUrl().trim().replaceAll("[<>:\"/\\|?*]", "_");
+        String repositoryName = UFT_INTEGRATION_PREFIX + "_" + replaceSpecialCharactersInUrl(scmRepository.getUrl());
 
         //try to find existing
         List<VcsRepositoryData> repositories = repositoryDefinitionManager.getLinkedRepositories();
@@ -335,31 +425,6 @@ public class UftManager {
             PartialVcsRepositoryData vcsRepositoryData = createRepositoryData(repositoryName, scmRepository, null, null, sharedCredentialsId);
             PartialVcsRepositoryData temp = vcsRepositoryConfigurationService.createLinkedRepository(vcsRepositoryData, impersonatedUser, RepositoryConfigurationService.LinkedRepositoryAccess.ALL_USERS);
             result = temp.getCompleteData();
-        }
-        return result;
-    }
-
-    public OctaneResponse checkRepositoryConnectivity(TestConnectivityInfo testConnectivityInfo) {
-        OctaneResponse result = DTOFactory.getInstance().newDTO(OctaneResponse.class);
-        if (testConnectivityInfo.getScmRepository() == null || SdkStringUtils.isEmpty(testConnectivityInfo.getScmRepository().getUrl())) {
-            result.setStatus(HttpStatus.SC_BAD_REQUEST);
-            result.setBody("Missing input for testing");
-        } else {
-
-            try {
-                PartialVcsRepositoryData vcsRepositoryData = createRepositoryData("tempRepositoryForTestingConnectivity", testConnectivityInfo.getScmRepository(), testConnectivityInfo.getUsername(), testConnectivityInfo.getPassword(), testConnectivityInfo.getCredentialsId());
-                VcsRepositoryModuleDescriptor vcsDescriptor = vcsRepositoryManager.getVcsRepositoryModuleDescriptor(vcsRepositoryData.getPluginKey());
-                ErrorCollection errors = vcsDescriptor.getConnectionTester().testConnection(vcsRepositoryData.getCompleteData(), 1, TimeUnit.MINUTES);
-                if (errors.getErrorMessages().isEmpty()) {
-                    result.setStatus(HttpStatus.SC_OK);
-                } else {
-                    result.setStatus(HttpStatus.SC_FORBIDDEN);
-                    result.setBody(errors.getErrorMessages().iterator().next());//set only first exception
-                }
-            } catch (Exception e) {
-                result.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-                result.setBody("Exception occurred : " + e.getMessage());
-            }
         }
         return result;
     }
@@ -441,40 +506,22 @@ public class UftManager {
 
     }
 
-    public void runTestDiscovery(DiscoveryInfo discoveryInfo, String impersonatedUser) {
-        try {
-            BambooUser bambooUser = bambooUserManager.getBambooUser(impersonatedUser);
-            Project project = getMainProject();
-            VcsRepositoryData linkedRepository = getLinkedRepository(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), bambooUser);
-            buildDiscoveryPlan(project, discoveryInfo, linkedRepository);
-            getOrBuildExecutionChain(project, linkedRepository);
-        } catch (Exception e) {
-            throw new RuntimeException((e));
-        }
-    }
+    private ImmutableChain getOrBuildExecutionChain(SCMRepository scmRepository, String scmRepositoryCredentialsId, BambooUser bambooUser) throws PlanCreationDeniedException {
 
-    private Chain findExecutionChain(Project project) {
-        List<TopLevelPlan> plans = planManager.getPlansByProject(project, TopLevelPlan.class);
-        for (TopLevelPlan plan : plans) {
-            if (plan.getBuildKey().equalsIgnoreCase(EXECUTOR_KEY)) {
-                return plan;
-            }
-        }
-        return null;
-    }
-
-    private Chain getOrBuildExecutionChain(Project project, VcsRepositoryData linkedRepository) throws PlanCreationDeniedException {
-
-        Chain chain = findExecutionChain(project);
+        VcsRepositoryData linkedRepository = getLinkedRepository(scmRepository, scmRepositoryCredentialsId, bambooUser);
+        String chainKeyStr = EXECUTOR_PREFIX_KEY + linkedRepository.getId();
+        String chainPlanKeyStr = PROJECT_KEY + "-" + chainKeyStr;
+        ImmutableChain chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey(chainPlanKeyStr), ImmutableChain.class);
         if (chain != null) {
             return chain;
         }
-        //NOT FOUND Plan - Need to create
 
-        String description = "This plan was created by the Micro Focus plugin for execution of UFT tests";
-        String name = "UFT test executor";
+        //NOT FOUND Plan - Need to create
+        String description = "This plan was created by the Micro Focus plugin for execution UFT tests from repository " + scmRepository.getUrl();
+        String name = "UFT test executor for " + replaceSpecialCharactersInUrl(scmRepository.getUrl());
+
         final BuildConfiguration buildConfiguration = new BuildConfiguration();
-        String chainBuildKeyStr = createChain(project, linkedRepository, EXECUTOR_KEY, description, name, buildConfiguration);
+        String chainBuildKeyStr = createChain(getMainProject(), linkedRepository, chainKeyStr, description, name, buildConfiguration);
 
         //CREATE JOBS AND TASKS
         ActionParametersMap actionParametersMap = configureDefaultStageAndJob(buildConfiguration, chainBuildKeyStr);
@@ -484,18 +531,20 @@ public class UftManager {
 
 
         PlanKey chainKey = PlanKeys.getPlanKey(chainBuildKeyStr);
-        chain = planManager.getPlanByKeyIfOfType(chainKey, Chain.class);
+        Chain createdChain = planManager.getPlanByKeyIfOfType(chainKey, Chain.class);
 
         //add variables to chain
-        createVariablesForExecution(chain);
+        createVariablesForExecution(createdChain);
 
         //add artifact definition and requirements for job
-        Job job = chain.getAllStages().get(0).getJobs().iterator().next();
+        Job job = createdChain.getAllStages().get(0).getJobs().iterator().next();
         registerArtifactForExecution(job);
         createRequirementsForExecution(job.getPlanKey());
 
         //SEND CREATION EVENT
         chainCreationService.triggerCreationCompleteEvents(chainKey);
+
+        chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey(chainPlanKeyStr), ImmutableChain.class);
         return chain;
     }
 
@@ -523,56 +572,8 @@ public class UftManager {
         return chainCreationService.createPlan(buildConfiguration, apm, PlanCreationService.EnablePlan.ENABLED);
     }
 
-    public void deleteExecutor(String id) {
-        String buildKeyPrefix = createDiscoveryBuildKey(id, "");
-        Project project = getMainProject();
-        List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
-        for (TopLevelPlan plan : plans) {
-            if (plan.getBuildKey().startsWith(buildKeyPrefix)) {
-                planManager.markPlansForDeletion(plan.getPlanKey());
-            }
-        }
-    }
-
     private String createDiscoveryBuildKey(String executorId, String executorLogicalName) {
         return String.format("%s%sLOGICAL%s", DISCOVERY_KEY_PREFIX, executorId, executorLogicalName);
-    }
-
-    public void runTestSuiteExecution(TestSuiteExecutionInfo testSuiteExecutionInfo, String impersonatedUser) {
-        ImmutableChain chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey("UOI-UFTEXECUTOR"), ImmutableChain.class);
-        if (chain == null) {
-            throw new RuntimeException("Execution job is not found");
-        }
-
-        BambooUser user = bambooUserManager.getBambooUser(impersonatedUser);
-        Map<String, String> variables = new HashMap<>();
-        variables.put(SUITE_ID_PARAMETER, testSuiteExecutionInfo.getSuiteId());
-        variables.put(SUITE_RUN_ID_PARAMETER, testSuiteExecutionInfo.getSuiteRunId());
-        variables.put(TESTS_TO_RUN_PARAMETER, UftExecutionUtils.convertToMtbxContent(testSuiteExecutionInfo.getTests(), "${bamboo.build.working.directory}"));
-        ExecutionRequestResult result = planExecutionManager.startManualExecution(chain, user, new HashMap<String, String>(), variables);
-    }
-
-    public void addUftParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
-        try {
-            Map<String, VariableDefinitionContext> variables = buildContext.getVariableContext().getEffectiveVariables();
-            List<CIParameter> parameters = new ArrayList<>();
-
-            if (variables.containsKey(SUITE_ID_PARAMETER) && SdkStringUtils.isNotEmpty(variables.get(SUITE_ID_PARAMETER).getValue())) {
-                String value = variables.get(SUITE_ID_PARAMETER).getValue();
-                parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
-
-                if (variables.containsKey(UftManager.SUITE_RUN_ID_PARAMETER)) {
-                    value = variables.get(UftManager.SUITE_RUN_ID_PARAMETER).getValue();
-                    parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_RUN_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
-                }
-            }
-
-            if (!parameters.isEmpty()) {
-                ciEvent.setParameters(parameters);
-            }
-        } catch (Exception e) {
-            //do nothing - try/catch just to be on safe side for all other plans
-        }
     }
 
     private boolean registerArtifactForDiscovery(@NotNull Job job) {
