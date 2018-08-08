@@ -81,7 +81,6 @@ import com.hp.octane.integrations.uft.UftExecutionUtils;
 import com.hp.octane.integrations.util.SdkStringUtils;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
-import org.jfree.util.Log;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +122,6 @@ public class UftManager {
     public static final String EXECUTOR_PREFIX_KEY = "UFTEXECUTOR";
 
     private static final Logger log = LoggerFactory.getLogger(UftManager.class);
-
     public static final String SUITE_ID_PARAMETER = "suiteId";
     public static final String SUITE_RUN_ID_PARAMETER = "suiteRunId";
     public static final String TESTS_TO_RUN_PARAMETER = "testsToRun";
@@ -176,7 +174,7 @@ public class UftManager {
                 } catch (Exception e) {
                     result.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
                     result.setBody("Failed to update credentials " + e.getMessage());
-                    Log.error("Failed to update credentials " + e.getMessage(), e);
+                    log.error("Failed to update credentials " + e.getMessage(), e);
                 }
             }
         } else if (SdkStringUtils.isNotEmpty(credentialsInfo.getUsername()) && credentialsInfo.getPassword() != null) {
@@ -207,7 +205,7 @@ public class UftManager {
                 } catch (Exception e) {
                     result.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
                     result.setBody("Failed to create credentials " + e.getMessage());
-                    Log.error("Failed to create credentials " + e.getMessage(), e);
+                    log.error("Failed to create credentials " + e.getMessage(), e);
                 }
             }
         }
@@ -216,6 +214,7 @@ public class UftManager {
     }
 
     public OctaneResponse checkRepositoryConnectivity(TestConnectivityInfo testConnectivityInfo) {
+        log.info("checkRepositoryConnectivity");
         OctaneResponse result = DTOFactory.getInstance().newDTO(OctaneResponse.class);
         if (testConnectivityInfo.getScmRepository() == null || SdkStringUtils.isEmpty(testConnectivityInfo.getScmRepository().getUrl())) {
             result.setStatus(HttpStatus.SC_BAD_REQUEST);
@@ -242,6 +241,7 @@ public class UftManager {
 
     public void runTestDiscovery(DiscoveryInfo discoveryInfo, String impersonatedUser) {
         try {
+            log.info("Creating TestDiscovery plan for " + discoveryInfo.getScmRepository().getUrl());
             BambooUser bambooUser = bambooUserManager.getBambooUser(impersonatedUser);
             Project project = getMainProject();
             VcsRepositoryData linkedRepository = getLinkedRepository(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), bambooUser);
@@ -252,6 +252,7 @@ public class UftManager {
     }
 
     public void deleteExecutor(String id) {
+        log.info("deleteExecutor " + id);
         String buildKeyPrefix = createDiscoveryBuildKey(id, "");
         Project project = getMainProject();
         List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
@@ -268,8 +269,10 @@ public class UftManager {
         ImmutableChain chain;
         try {
             chain = getOrBuildExecutionChain(testSuiteExecutionInfo.getScmRepository(), testSuiteExecutionInfo.getScmRepositoryCredentialsId(), user);
-        } catch (PlanCreationDeniedException e) {
-            throw new RuntimeException("Failed to create execution chain : " + e.getMessage(), e);
+        } catch (Exception e) {
+            String msg = "Failed to create execution chain : " + e.getMessage();
+            log.error(msg);
+            throw new RuntimeException(msg, e);
         }
 
 
@@ -517,6 +520,7 @@ public class UftManager {
         }
 
         //NOT FOUND Plan - Need to create
+        log.warn("Creating execution plan on scm repository " + scmRepository.getUrl());
         String description = "This plan was created by the Micro Focus plugin for execution UFT tests from repository " + scmRepository.getUrl();
         String name = "UFT test executor for " + replaceSpecialCharactersInUrl(scmRepository.getUrl());
 

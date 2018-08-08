@@ -104,9 +104,9 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
     public OctaneConfiguration getOctaneConfiguration() {
-        log.info("getOctaneConfiguration");
+        log.debug("getOctaneConfiguration");
         OctaneConfiguration result = null;
-        PluginSettings settings = settingsFactory.createGlobalSettings();
+        PluginSettings settings = getPluginSettings();
         if (settings.get(OctaneConfigurationKeys.OCTANE_URL) != null && settings.get(OctaneConfigurationKeys.ACCESS_KEY) != null) {
             String url = String.valueOf(settings.get(OctaneConfigurationKeys.OCTANE_URL));
             String accessKey = String.valueOf(settings.get(OctaneConfigurationKeys.ACCESS_KEY));
@@ -125,13 +125,13 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
     public CIPluginInfo getPluginInfo() {
-        log.info("get plugin info");
+        log.debug("get plugin info");
         return DTOFactory.getInstance().newDTO(CIPluginInfo.class).setVersion(PLUGIN_VERSION);
     }
 
     @Override
     public CIProxyConfiguration getProxyConfiguration(URL targetUrl) {
-        log.info("get proxy configuration");
+        log.debug("get proxy configuration");
         CIProxyConfiguration result = null;
 
         if (isProxyNeeded(targetUrl)) {
@@ -164,9 +164,8 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
     public CIServerInfo getServerInfo() {
-        PluginSettings settings = settingsFactory.createGlobalSettings();
-        log.info("get ci server info");
-        String instanceId = String.valueOf(settings.get(OctaneConfigurationKeys.UUID));
+        log.debug("get ci server info");
+        String instanceId = String.valueOf(getPluginSettings().get(OctaneConfigurationKeys.UUID));
 
         String baseUrl = getBambooServerBaseUrl();
         String runAsUser = getRunAsUser();
@@ -214,7 +213,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
             }
         });
 
-        execute(impersonated);
+        execute(impersonated, "runPipeline");
     }
 
     private boolean isUserHasPermission(Permission permissionType, BambooUser user, ImmutableChain chain) {
@@ -228,8 +227,16 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
     private String getRunAsUser() {
-        PluginSettings settings = settingsFactory.createGlobalSettings();
-        return String.valueOf(settings.get(OctaneConfigurationKeys.IMPERSONATION_USER));
+        return String.valueOf(getPluginSettings().get(OctaneConfigurationKeys.IMPERSONATION_USER));
+    }
+
+    private PluginSettings getPluginSettings() {
+        try {
+            return settingsFactory.createGlobalSettings();
+        } catch (Exception e) {//can occur then proxy object is destroyed on plugin redeployment
+            settingsFactory = ComponentLocator.getComponent(PluginSettingsFactory.class);
+            return settingsFactory.createGlobalSettings();
+        }
     }
 
     @Override
@@ -240,7 +247,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
             }
         });
 
-        return execute(impersonated);
+        return execute(impersonated, "checkRepositoryConnectivity");
     }
 
     @Override
@@ -251,7 +258,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
             }
         });
 
-        return execute(impersonated);
+        return execute(impersonated, "upsertCredentials");
     }
 
     @Override
@@ -263,7 +270,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
             }
         });
 
-        execute(impersonated);
+        execute(impersonated, "runTestDiscovery");
     }
 
     @Override
@@ -275,7 +282,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
             }
         });
 
-        execute(impersonated);
+        execute(impersonated, "deleteExecutor");
     }
 
     @Override
@@ -286,7 +293,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
                 return null;
             }
         });
-        execute(impersonated);
+        execute(impersonated, "runTestSuiteExecution");
     }
 
 
@@ -294,16 +301,17 @@ public class BambooPluginServices extends CIPluginServicesBase {
         return UftManager.getInstance();
     }
 
-    private <V> V execute(Callable<V> callable) {
-        log.info("Impersonated call");
+    private <V> V execute(Callable<V> callable, String actionName) {
+        log.info("Impersonated call : " + actionName);
 
         Callable<V> impersonated = impService.runAsUser(getRunAsUser(), callable);
         try {
             return impersonated.call();
         } catch (PermissionException e) {
+            log.warn("PermissionException : " + e.getMessage());
             throw e;
         } catch (Throwable e) {
-            log.info("Error impersonating : " + e.getMessage(), e);
+            log.warn("Failed to execute " + actionName + " : " + e.getMessage(), e);
             RuntimeException runtimeException = null;
             if (e instanceof RuntimeException) {
                 runtimeException = (RuntimeException) e;
@@ -314,7 +322,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
         }
     }
 
-    public static String getBambooServerBaseUrl(){
+    public static String getBambooServerBaseUrl() {
         String baseUrl = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class)
                 .getAdministrationConfiguration().getBaseUrl();
         return baseUrl;
