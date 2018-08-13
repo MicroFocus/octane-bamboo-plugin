@@ -87,40 +87,49 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
                 OctaneSDK.getInstance().getEventsService().publishEvent(ciEvent);
             }
+
+            //send test results
             String identifier = planKey.getKey();
-            List<TestRun> testRuns = new ArrayList<>();
-            if (results.getFailedTestResults() != null) {
-                for (TestResults currentTestResult : results.getFailedTestResults()) {
-                    testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.FAILED,
-                            results.getTasksStartDate().getTime()));
-                }
-            }
-            if (results.getSkippedTestResults() != null) {
-                for (TestResults currentTestResult : results.getSkippedTestResults()) {
-                    testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.SKIPPED,
-                            results.getTasksStartDate().getTime()));
-                }
-            }
-            if (results.getSuccessfulTestResults() != null) {
-                for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
-                    testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.PASSED,
-                            results.getTasksStartDate().getTime()));
-                }
-            }
             String build = PlanKeys.getPlanResultKey(identifier, planResultKey.getBuildNumber()).getKey();
-            log.info("Pushing test results for " + identifier + " build " + planResultKey.getKey());
             BuildContext context = CONVERTER.getBuildContext(
                     String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
                     identifier,
                     build);
-            List<TestField> testFields = runnerType.getTestFields();
-            TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
-                    .setBuildContext(context).setTestFields(testFields);
             try {
-                // TODO check if synchronous test results push is a good idea
-                OctaneSDK.getInstance().getTestsService().pushTestsResult(testsResult);
+                if (OctaneSDK.getInstance().getTestsService().isTestsResultRelevant(context.getServerId(), context.getJobId())) {
+                    List<TestRun> testRuns = new ArrayList<>();
+                    if (results.getFailedTestResults() != null) {
+                        for (TestResults currentTestResult : results.getFailedTestResults()) {
+                            testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.FAILED,
+                                    results.getTasksStartDate().getTime()));
+                        }
+                    }
+                    if (results.getSkippedTestResults() != null) {
+                        for (TestResults currentTestResult : results.getSkippedTestResults()) {
+                            testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.SKIPPED,
+                                    results.getTasksStartDate().getTime()));
+                        }
+                    }
+                    if (results.getSuccessfulTestResults() != null) {
+                        for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
+                            testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.PASSED,
+                                    results.getTasksStartDate().getTime()));
+                        }
+                    }
+
+                    List<TestField> testFields = runnerType.getTestFields();
+                    TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
+                            .setBuildContext(context).setTestFields(testFields);
+
+
+                    // TODO check if synchronous test results push is a good idea
+                    if (testsResult.getTestRuns().size() > 0) {
+                        log.info("Pushing test results for " + identifier + " build " + planResultKey.getKey());
+                        OctaneSDK.getInstance().getTestsService().pushTestsResult(testsResult);
+                    }
+                }
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(String.format("Failed to send test results %s - %s : %s ", context.getJobId(), context.getBuildId(), e.getMessage()), e);
             }
         }
     }
