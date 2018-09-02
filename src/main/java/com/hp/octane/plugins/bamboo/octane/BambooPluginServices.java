@@ -274,6 +274,17 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
     @Override
+    public PipelineNode createExecutor(DiscoveryInfo discoveryInfo) {
+        final Callable<PipelineNode> impersonated = impService.runAsUser(getRunAsUser(), new Callable<PipelineNode>() {
+            public PipelineNode call() {
+                PipelineNode node = getUftManager().createExecutor(discoveryInfo, getRunAsUser());
+                return node;
+            }
+        });
+        return execute(impersonated, "createExecutor");
+    }
+
+    @Override
     public void deleteExecutor(final String id) {
         final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
             public Void call() {

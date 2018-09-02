@@ -30,6 +30,7 @@ import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionImpl;
 import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionManager;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
+import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.bamboo.plugins.git.GitAuthenticationType;
 import com.atlassian.bamboo.plugins.git.GitPasswordCredentialsSource;
 import com.atlassian.bamboo.plugins.git.v2.configurator.GitConfigurationConstants;
@@ -69,16 +70,16 @@ import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hp.octane.integrations.dto.events.CIEvent;
-import com.hp.octane.integrations.dto.executor.CredentialsInfo;
-import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
-import com.hp.octane.integrations.dto.executor.TestConnectivityInfo;
-import com.hp.octane.integrations.dto.executor.TestSuiteExecutionInfo;
+import com.hp.octane.integrations.dto.executor.*;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
+import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.scm.SCMRepository;
 import com.hp.octane.integrations.dto.scm.SCMType;
-import com.hp.octane.integrations.uft.UftExecutionUtils;
+import com.hp.octane.integrations.executor.converters.MfUftConverter;
 import com.hp.octane.integrations.util.SdkStringUtils;
+import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -115,6 +116,7 @@ public class UftManager {
     private static String USERNAME_PASSWORD_PLUGIN_KEY = "com.atlassian.bamboo.plugin.sharedCredentials:usernamePasswordCredentials";
     private static String DISCOVERY_TASK_PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin:octaneUftTestDiscovery";
     private static String EXECUTION_TASK_PLUGIN_KEY = "com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask";
+    private static String CONVERTER_TASK_PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin:octaneTestFrameworkConverter";
 
     private static final String TRIGGER_POLLING_PLUGIN_KEY = "com.atlassian.bamboo.triggers.atlassian-bamboo-triggers:poll";
     public static final String PROJECT_KEY = "UOI";
@@ -279,8 +281,24 @@ public class UftManager {
         Map<String, String> variables = new HashMap<>();
         variables.put(SUITE_ID_PARAMETER, testSuiteExecutionInfo.getSuiteId());
         variables.put(SUITE_RUN_ID_PARAMETER, testSuiteExecutionInfo.getSuiteRunId());
-        variables.put(TESTS_TO_RUN_PARAMETER, UftExecutionUtils.convertToMtbxContent(testSuiteExecutionInfo.getTests(), "${bamboo.build.working.directory}"));
+        variables.put(TESTS_TO_RUN_PARAMETER, buildTestInRawFormat(testSuiteExecutionInfo));
         ExecutionRequestResult result = planExecutionManager.startManualExecution(chain, user, new HashMap<String, String>(), variables);
+    }
+
+    private String buildTestInRawFormat(TestSuiteExecutionInfo testSuiteExecutionInfo) {
+        StringBuilder sbTests = new StringBuilder();
+        String testSplitter = "";
+        sbTests.append("v1:");
+
+        for (TestExecutionInfo info : testSuiteExecutionInfo.getTests()) {
+            sbTests.append(testSplitter);
+            sbTests.append(info.getPackageName() == null ? "" : info.getPackageName()).append("||").append(info.getTestName());
+            if (StringUtils.isNotEmpty(info.getDataTable())) {
+                sbTests.append("|").append(MfUftConverter.DATA_TABLE_PARAMETER).append("=").append(info.getDataTable());
+            }
+            testSplitter = ";";
+        }
+        return sbTests.toString();
     }
 
     public void addUftParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
@@ -370,13 +388,22 @@ public class UftManager {
     private void configureExecutionTask(BuildConfiguration buildConfiguration) {
         //discovery, example from com.atlassian.bamboo.build.creation.JobCreationServiceImpl.createDefaultCheckoutTask
         LinkedList<TaskDefinition> tasks = new LinkedList(TaskConfigurationUtils.getTaskDefinitionsFromConfig("buildTasks.", buildConfiguration));
-        TaskDefinition executionTask = new TaskDefinitionImpl(TaskConfigurationUtils.getUniqueId(tasks), EXECUTION_TASK_PLUGIN_KEY,
+
+        //CONVERT task
+        TaskDefinition convertTask = new TaskDefinitionImpl(1, CONVERTER_TASK_PLUGIN_KEY,
+                "Uft test converter", true, new HashMap());
+        convertTask.getConfiguration().put("framework", "uft");
+        convertTask.getConfiguration().put("taskName", "Uft_test_converter");
+        tasks.add(convertTask);
+
+        //EXECUTION task
+        TaskDefinition executionTask = new TaskDefinitionImpl(2, EXECUTION_TASK_PLUGIN_KEY,
                 "UFT Executor", true, new HashMap());
-        executionTask.getConfiguration().put("testPathInput", "${bamboo.testsToRun}");
+        executionTask.getConfiguration().put("testPathInput", "${bamboo.testsToRunConverted}");
         executionTask.getConfiguration().put("publishMode", "RunFromFileSystemTask.publishMode.always");
         executionTask.getConfiguration().put("taskName", "File_System_Execution");
-
         tasks.add(executionTask);
+
         buildConfiguration.clearTree(TaskConfigurationUtils.TASK_CONFIG_ROOT);
         TaskConfigurationUtils.addTaskDefinitionsToConfig(tasks, buildConfiguration, TaskConfigurationUtils.TASK_PREFIX);
     }
@@ -620,5 +647,18 @@ public class UftManager {
         }
     }
 
+    public PipelineNode createExecutor(DiscoveryInfo discoveryInfo, String runAsUser) {
+        BambooUser user = bambooUserManager.getBambooUser(runAsUser);
+        try {
+            ImmutableChain chain = getOrBuildExecutionChain(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), user);
+            //ImmutableTopLevelPlan plan = cachedPlanManager.getPlanByKey(chain.getPlanKey(), ImmutableTopLevelPlan.class);
+            //return DefaultOctaneConverter.getInstance().getRootPipelineNodeFromTopLevelPlan(plan);
 
+            return DefaultOctaneConverter.getInstance().getRootPipelineNodeFromTopLevelPlan((ImmutableTopLevelPlan) chain);
+        } catch (Exception e) {
+            String msg = "Failed to createExecutor : " + e.getMessage();
+            log.error(msg);
+            throw new RuntimeException(msg, e);
+        }
+    }
 }

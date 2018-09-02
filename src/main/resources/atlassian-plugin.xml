@@ -80,4 +80,12 @@
     <resource type="freemarker" name="edit" location="templates/uftDiscovery.ftl"/>
     <configuration class="com.hp.octane.plugins.bamboo.octane.uft.UftDiscoveryTaskConfigurator"/>
   </taskType>
+  <taskType key="octaneTestFrameworkConverter" name="ALM Octane testing framework converter"
+            class="com.hp.octane.plugins.bamboo.octane.executor.TestFrameworkConverterTask">
+    <description>Support execution of automated tests from ALM Octane</description>
+    <category name="test"/>
+    <resource type="download" name="icon" location="images/octane.png"/>
+    <resource type="freemarker" name="edit" location="templates/testFrameworkConverter.ftl"/>
+    <configuration class="com.hp.octane.plugins.bamboo.octane.executor.TestFrameworkConverterConfigurator"/>
+  </taskType>
 </atlassian-plugin>
