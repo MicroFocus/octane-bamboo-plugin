@@ -204,6 +204,22 @@ public class BambooPluginServices extends CIPluginServicesBase {
                 if (!isUserHasPermission(BambooPermission.BUILD, user, chain)) {
                     throw new PermissionException(403);
                 }
+
+                if (SdkStringUtils.isNotEmpty(parameters)) {
+                    /*JSONObject bodyJSON = JSONObject.fromObject(parameters);
+
+                    //  delay
+                    if (bodyJSON.has("delay") && bodyJSON.get("delay") != null) {
+                        delay = bodyJSON.getInt("delay");
+                    }
+
+                    //  parameters
+                    if (bodyJSON.has("parameters") && bodyJSON.get("parameters") != null) {
+                        JSONArray paramsJSON = bodyJSON.getJSONArray("parameters");
+                        parametersAction = new ParametersAction(createParameters(project, paramsJSON));
+                    }*/
+                }
+
                 ExecutionRequestResult result = planExecMan.startManualExecution(chain, user, new HashMap<String, String>(), new HashMap<String, String>());
                 if (result.getErrors().getTotalErrors() > 0) {
                     throw new ConfigurationException(504);
@@ -296,7 +312,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
         execute(impersonated, "deleteExecutor");
     }
 
-    @Override
+    /*@Override
     public void runTestSuiteExecution(final TestSuiteExecutionInfo testSuiteExecutionInfo) {
         final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
             public Void call() {
@@ -305,7 +321,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
             }
         });
         execute(impersonated, "runTestSuiteExecution");
-    }
+    }*/
 
 
     private UftManager getUftManager() {

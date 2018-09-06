@@ -120,7 +120,7 @@ public class UftManager {
 
     private static final String TRIGGER_POLLING_PLUGIN_KEY = "com.atlassian.bamboo.triggers.atlassian-bamboo-triggers:poll";
     public static final String PROJECT_KEY = "UOI";
-    public static final String DISCOVERY_KEY_PREFIX = "DISCOVERY";
+    public static final String DISCOVERY_PREFIX_KEY = "UFTDISCOVERY";
     public static final String EXECUTOR_PREFIX_KEY = "UFTEXECUTOR";
 
     private static final Logger log = LoggerFactory.getLogger(UftManager.class);
@@ -255,50 +255,15 @@ public class UftManager {
 
     public void deleteExecutor(String id) {
         log.info("deleteExecutor " + id);
-        String buildKeyPrefix = createDiscoveryBuildKey(id, "");
+        String discoveryKeyPrefix = createChainBuildKey(DISCOVERY_PREFIX_KEY, id, "");
+        String executionKeyPrefix = createChainBuildKey(EXECUTOR_PREFIX_KEY, id, "");
         Project project = getMainProject();
         List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
         for (TopLevelPlan plan : plans) {
-            if (plan.getBuildKey().startsWith(buildKeyPrefix)) {
+            if (plan.getBuildKey().startsWith(discoveryKeyPrefix) || plan.getBuildKey().startsWith(executionKeyPrefix)) {
                 planManager.markPlansForDeletion(plan.getPlanKey());
             }
         }
-    }
-
-    public void runTestSuiteExecution(TestSuiteExecutionInfo testSuiteExecutionInfo, String impersonatedUser) {
-        //ImmutableChain chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey("UOI-UFTEXECUTOR"), ImmutableChain.class);
-        BambooUser user = bambooUserManager.getBambooUser(impersonatedUser);
-        ImmutableChain chain;
-        try {
-            chain = getOrBuildExecutionChain(testSuiteExecutionInfo.getScmRepository(), testSuiteExecutionInfo.getScmRepositoryCredentialsId(), user);
-        } catch (Exception e) {
-            String msg = "Failed to create execution chain : " + e.getMessage();
-            log.error(msg);
-            throw new RuntimeException(msg, e);
-        }
-
-
-        Map<String, String> variables = new HashMap<>();
-        variables.put(SUITE_ID_PARAMETER, testSuiteExecutionInfo.getSuiteId());
-        variables.put(SUITE_RUN_ID_PARAMETER, testSuiteExecutionInfo.getSuiteRunId());
-        variables.put(TESTS_TO_RUN_PARAMETER, buildTestInRawFormat(testSuiteExecutionInfo));
-        ExecutionRequestResult result = planExecutionManager.startManualExecution(chain, user, new HashMap<String, String>(), variables);
-    }
-
-    private String buildTestInRawFormat(TestSuiteExecutionInfo testSuiteExecutionInfo) {
-        StringBuilder sbTests = new StringBuilder();
-        String testSplitter = "";
-        sbTests.append("v1:");
-
-        for (TestExecutionInfo info : testSuiteExecutionInfo.getTests()) {
-            sbTests.append(testSplitter);
-            sbTests.append(info.getPackageName() == null ? "" : info.getPackageName()).append("||").append(info.getTestName());
-            if (StringUtils.isNotEmpty(info.getDataTable())) {
-                sbTests.append("|").append(MfUftConverter.DATA_TABLE_PARAMETER).append("=").append(info.getDataTable());
-            }
-            testSplitter = ";";
-        }
-        return sbTests.toString();
     }
 
     public void addUftParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
@@ -344,9 +309,9 @@ public class UftManager {
     }
 
     private Plan buildDiscoveryPlan(Project project, DiscoveryInfo discoveryInfo, VcsRepositoryData linkedRepository) throws PlanCreationDeniedException {
-        String description = String.format("This plan was created by the Micro Focus plugin for discovery of UFT tests. It is associated with ALM Octane testing tool connection #%s.", discoveryInfo.getExecutorId());
-        String key = createDiscoveryBuildKey(discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
-        String name = String.format("UFT test discovery - Connection ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
+        String description = String.format("This plan was created by the Micro Focus plugin for discovery of UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
+        String key = createChainBuildKey(DISCOVERY_PREFIX_KEY, discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
+        String name = String.format("UFT test discovery - Test Runner ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
         final BuildConfiguration buildConfiguration = new BuildConfiguration();
         String chainBuildKeyStr = createChain(project, linkedRepository, key, description, name, buildConfiguration);
@@ -536,20 +501,14 @@ public class UftManager {
 
     }
 
-    private ImmutableChain getOrBuildExecutionChain(SCMRepository scmRepository, String scmRepositoryCredentialsId, BambooUser bambooUser) throws PlanCreationDeniedException {
 
-        VcsRepositoryData linkedRepository = getLinkedRepository(scmRepository, scmRepositoryCredentialsId, bambooUser);
-        String chainKeyStr = EXECUTOR_PREFIX_KEY + linkedRepository.getId();
-        String chainPlanKeyStr = PROJECT_KEY + "-" + chainKeyStr;
-        ImmutableChain chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey(chainPlanKeyStr), ImmutableChain.class);
-        if (chain != null) {
-            return chain;
-        }
+    private ImmutableChain createExecutorChain(DiscoveryInfo discoveryInfo, BambooUser bambooUser) throws PlanCreationDeniedException {
+        VcsRepositoryData linkedRepository = getLinkedRepository(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), bambooUser);
+        String chainKeyStr = createChainBuildKey(EXECUTOR_PREFIX_KEY, discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
-        //NOT FOUND Plan - Need to create
-        log.warn("Creating execution plan on scm repository " + scmRepository.getUrl());
-        String description = "This plan was created by the Micro Focus plugin for execution UFT tests from repository " + scmRepository.getUrl();
-        String name = "UFT test executor for " + replaceSpecialCharactersInUrl(scmRepository.getUrl());
+        log.warn("Creating execution plan for test runner " + discoveryInfo.getExecutorId());
+        String description = String.format("This plan was created by the Micro Focus plugin for execution UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
+        String name = String.format("UFT test executor - Test Runner ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
         final BuildConfiguration buildConfiguration = new BuildConfiguration();
         String chainBuildKeyStr = createChain(getMainProject(), linkedRepository, chainKeyStr, description, name, buildConfiguration);
@@ -575,7 +534,9 @@ public class UftManager {
         //SEND CREATION EVENT
         chainCreationService.triggerCreationCompleteEvents(chainKey);
 
-        chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey(chainPlanKeyStr), ImmutableChain.class);
+        //RETURN
+        String fullPlanKeyStr = PROJECT_KEY + "-" + chainKeyStr;
+        ImmutableChain chain = cachedPlanManager.getPlanByKey(PlanKeys.getPlanKey(fullPlanKeyStr), ImmutableChain.class);
         return chain;
     }
 
@@ -603,8 +564,8 @@ public class UftManager {
         return chainCreationService.createPlan(buildConfiguration, apm, PlanCreationService.EnablePlan.ENABLED);
     }
 
-    private String createDiscoveryBuildKey(String executorId, String executorLogicalName) {
-        return String.format("%s%sLOGICAL%s", DISCOVERY_KEY_PREFIX, executorId, executorLogicalName);
+    private String createChainBuildKey(String prefix, String executorId, String executorLogicalName) {
+        return String.format("%s%sLOGICAL%s", prefix, executorId, executorLogicalName).toUpperCase();
     }
 
     private boolean registerArtifactForDiscovery(@NotNull Job job) {
@@ -650,10 +611,7 @@ public class UftManager {
     public PipelineNode createExecutor(DiscoveryInfo discoveryInfo, String runAsUser) {
         BambooUser user = bambooUserManager.getBambooUser(runAsUser);
         try {
-            ImmutableChain chain = getOrBuildExecutionChain(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), user);
-            //ImmutableTopLevelPlan plan = cachedPlanManager.getPlanByKey(chain.getPlanKey(), ImmutableTopLevelPlan.class);
-            //return DefaultOctaneConverter.getInstance().getRootPipelineNodeFromTopLevelPlan(plan);
-
+            ImmutableChain chain = createExecutorChain(discoveryInfo, user);
             return DefaultOctaneConverter.getInstance().getRootPipelineNodeFromTopLevelPlan((ImmutableTopLevelPlan) chain);
         } catch (Exception e) {
             String msg = "Failed to createExecutor : " + e.getMessage();

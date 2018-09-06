@@ -33,6 +33,7 @@ import com.atlassian.bamboo.resultsummary.ImmutableResultsSummary;
 import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.v2.build.BuildChanges;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
+import com.atlassian.bamboo.variable.VariableDefinition;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.causes.CIEventCauseType;
@@ -43,6 +44,7 @@ import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.general.CIServerTypes;
+import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
 import com.hp.octane.integrations.dto.scm.SCMChange;
@@ -215,6 +217,16 @@ public class DefaultOctaneConverter implements DTOConverter {
 		for (ImmutableTopLevelPlan plan : plans) {
 			PipelineNode node = DTOFactory.getInstance().newDTO(PipelineNode.class).setJobCiId(getRootJobCiId(plan))
 					.setName(plan.getName());
+
+			//add parameters
+			List<VariableDefinition> varDefinitions = plan.getEffectiveVariables();
+			if (!varDefinitions.isEmpty()) {
+				List<CIParameter> params = new ArrayList<>();
+				node.setParameters(params);
+				for (VariableDefinition def : varDefinitions) {
+					params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()));
+				}
+			}
 			nodes.add(node);
 		}
 
