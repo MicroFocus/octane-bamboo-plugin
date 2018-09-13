@@ -32,6 +32,7 @@ import java.io.File;
 public class UftDiscoveryTask implements TaskType {
     public static String WORKSPACE_ID_PARAM = "workspaceId";
     public static String SCM_REPOSITORY_ID_PARAM = "scmRepositoryId";
+    public static String TEST_RUNNER_ID_PARAM = "testRunnerId";
 
     public static String RESULT_FOLDER = "_discovery_results";
     public static String RESULT_FILE_NAME_PREFIX = "uft_discovery_result_build_";
@@ -51,6 +52,7 @@ public class UftDiscoveryTask implements TaskType {
         if (OctaneSDK.getInstance().getConfigurationService().isConfigurationValid()) {
             result.setWorkspaceId(taskContext.getConfigurationMap().get(WORKSPACE_ID_PARAM));
             result.setScmRepositoryId(taskContext.getConfigurationMap().get(SCM_REPOSITORY_ID_PARAM));
+            result.setTestRunnerId(taskContext.getConfigurationMap().get(TEST_RUNNER_ID_PARAM));
             result.setFullScan(true);
 
             EntitiesService entitiesService = OctaneSDK.getInstance().getEntitiesService();

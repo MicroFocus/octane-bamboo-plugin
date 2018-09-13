@@ -30,6 +30,7 @@ public class UftDiscoveryTaskConfigurator extends AbstractTaskConfigurator {
         super.populateContextForEdit(context, taskDefinition);
         context.put(UftDiscoveryTask.WORKSPACE_ID_PARAM, taskDefinition.getConfiguration().get(UftDiscoveryTask.WORKSPACE_ID_PARAM));
         context.put(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, taskDefinition.getConfiguration().get(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM));
+        context.put(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, taskDefinition.getConfiguration().get(UftDiscoveryTask.TEST_RUNNER_ID_PARAM));
     }
 
     @Override
@@ -38,6 +39,7 @@ public class UftDiscoveryTaskConfigurator extends AbstractTaskConfigurator {
 
         config.put(UftDiscoveryTask.WORKSPACE_ID_PARAM, params.getString(UftDiscoveryTask.WORKSPACE_ID_PARAM));
         config.put(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, params.getString(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM));
+        config.put(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, params.getString(UftDiscoveryTask.TEST_RUNNER_ID_PARAM));
 
         return config;
     }
@@ -47,6 +49,7 @@ public class UftDiscoveryTaskConfigurator extends AbstractTaskConfigurator {
         super.validate(params, errorCollection);
         validateNumericalValue(UftDiscoveryTask.WORKSPACE_ID_PARAM, params.getString(UftDiscoveryTask.WORKSPACE_ID_PARAM), errorCollection);
         validateNumericalValue(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, params.getString(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM), errorCollection);
+        validateNumericalValue(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, params.getString(UftDiscoveryTask.TEST_RUNNER_ID_PARAM), errorCollection);
     }
 
     private void validateNumericalValue(String field, String value, ErrorCollection errorCollection) {

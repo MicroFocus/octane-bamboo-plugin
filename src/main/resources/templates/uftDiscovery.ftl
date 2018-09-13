@@ -15,4 +15,5 @@
 --]
 
 [@ww.textfield name='workspaceId' label='Octane workspace' required='true' description='Set the workspace to assign discovered tests to.' /]
+[@ww.textfield name='testRunnerId' label='Octane test runner id' required='true' description='Set test runner id that will be assigned to discovered tests.' /]
 [@ww.textfield name='scmRepositoryId' label='Octane scm repository id' required='true' description='Set scm repository id that will be assigned to discovered tests.' /]

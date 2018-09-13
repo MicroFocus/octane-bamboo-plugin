@@ -312,17 +312,6 @@ public class BambooPluginServices extends CIPluginServicesBase {
         execute(impersonated, "deleteExecutor");
     }
 
-    /*@Override
-    public void runTestSuiteExecution(final TestSuiteExecutionInfo testSuiteExecutionInfo) {
-        final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
-            public Void call() {
-                getUftManager().runTestSuiteExecution(testSuiteExecutionInfo, getRunAsUser());
-                return null;
-            }
-        });
-        execute(impersonated, "runTestSuiteExecution");
-    }*/
-
 
     private UftManager getUftManager() {
         return UftManager.getInstance();

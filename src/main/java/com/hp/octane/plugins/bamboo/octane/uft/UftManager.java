@@ -260,7 +260,7 @@ public class UftManager {
         Project project = getMainProject();
         List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
         for (TopLevelPlan plan : plans) {
-            if (plan.getBuildKey().startsWith(discoveryKeyPrefix) || plan.getBuildKey().startsWith(executionKeyPrefix)) {
+            if (plan.getBuildKey().startsWith(discoveryKeyPrefix) /*|| plan.getBuildKey().startsWith(executionKeyPrefix)*/) {
                 planManager.markPlansForDeletion(plan.getPlanKey());
             }
         }
@@ -344,6 +344,7 @@ public class UftManager {
         TaskDefinition discoveryTask = new TaskDefinitionImpl(TaskConfigurationUtils.getUniqueId(tasks), DISCOVERY_TASK_PLUGIN_KEY,
                 "Discover UFT tests and data tables", true, new HashMap());
         discoveryTask.getConfiguration().put(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, discoveryInfo.getScmRepositoryId());
+        discoveryTask.getConfiguration().put(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, discoveryInfo.getExecutorId());
         discoveryTask.getConfiguration().put(UftDiscoveryTask.WORKSPACE_ID_PARAM, discoveryInfo.getWorkspaceId());
         tasks.add(discoveryTask);
         buildConfiguration.clearTree(TaskConfigurationUtils.TASK_CONFIG_ROOT);
