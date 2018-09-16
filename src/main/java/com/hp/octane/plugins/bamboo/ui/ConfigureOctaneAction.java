@@ -115,7 +115,7 @@ public class ConfigureOctaneAction extends BambooActionSupport implements Initia
 
 	public void afterPropertiesSet() throws Exception {
 		try {
-			OctaneSDK.init(new BambooPluginServices(settingsFactory));
+			BambooPluginServices.getInstance().setSettingsFactory(settingsFactory);
 		} catch (IllegalStateException ise) {
 			logger.warn("failed to init SDK, more than a single init?", ise);
 		}

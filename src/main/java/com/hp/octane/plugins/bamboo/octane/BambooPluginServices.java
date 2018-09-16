@@ -28,6 +28,7 @@ import com.atlassian.bamboo.security.BambooPermissionManager;
 import com.atlassian.bamboo.security.acegi.acls.BambooPermission;
 import com.atlassian.bamboo.user.BambooUser;
 import com.atlassian.bamboo.user.BambooUserManager;
+import com.atlassian.plugin.PluginAccessor;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
@@ -64,7 +65,8 @@ import java.util.concurrent.Callable;
 
 public class BambooPluginServices extends CIPluginServicesBase {
     private static final Logger log = LoggerFactory.getLogger(BambooPluginServices.class);
-    private static final String PLUGIN_VERSION = "1.5";
+    private final String pluginVersion;
+    public static String PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin";
 
     private CachedPlanManager planMan;
 
@@ -73,13 +75,29 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
     private PluginSettingsFactory settingsFactory;
+    private static BambooPluginServices instance = new BambooPluginServices();
 
-    public BambooPluginServices(PluginSettingsFactory settingsFactory) {
+    private BambooPluginServices() {
         super();
-        this.settingsFactory = settingsFactory;
         this.planExecMan = ComponentLocator.getComponent(PlanExecutionManager.class);
         this.planMan = ComponentLocator.getComponent(CachedPlanManager.class);
         this.impService = ComponentLocator.getComponent(ImpersonationService.class);
+        pluginVersion = ComponentLocator.getComponent(PluginAccessor.class).getPlugin(PLUGIN_KEY).getPluginInformation().getVersion();
+    }
+
+    public static BambooPluginServices getInstance() {
+        return instance;
+    }
+
+    public synchronized void setSettingsFactory(PluginSettingsFactory settingsFactory) {
+        if (settingsFactory == null) {
+            throw new IllegalArgumentException("received settingsFactory = null");
+        }
+        boolean sdkInitRequired = (this.settingsFactory == null);
+        this.settingsFactory = settingsFactory;
+        if (sdkInitRequired) {
+            OctaneSDK.init(this);
+        }
     }
 
     // return null as we don't have file storage available
@@ -127,7 +145,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
     public CIPluginInfo getPluginInfo() {
         log.debug("get plugin info");
-        return DTOFactory.getInstance().newDTO(CIPluginInfo.class).setVersion(PLUGIN_VERSION);
+        return DTOFactory.getInstance().newDTO(CIPluginInfo.class).setVersion(pluginVersion);
     }
 
     @Override
@@ -185,7 +203,6 @@ public class BambooPluginServices extends CIPluginServicesBase {
         ImmutableTopLevelPlan plan = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline), ImmutableTopLevelPlan.class);
         return CONVERTER.getSnapshot(plan, plan.getLatestResultsSummary());
     }
-
 
     public void runPipeline(final String pipeline, final String parametersJson) {
         // TODO implement parameters conversion

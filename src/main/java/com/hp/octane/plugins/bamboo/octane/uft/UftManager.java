@@ -76,10 +76,9 @@ import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.scm.SCMRepository;
 import com.hp.octane.integrations.dto.scm.SCMType;
-import com.hp.octane.integrations.executor.converters.MfUftConverter;
 import com.hp.octane.integrations.util.SdkStringUtils;
+import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -114,9 +113,9 @@ public class UftManager {
     private static String CREDENTIALS_PASSWORD_FIELD = "password";
 
     private static String USERNAME_PASSWORD_PLUGIN_KEY = "com.atlassian.bamboo.plugin.sharedCredentials:usernamePasswordCredentials";
-    private static String DISCOVERY_TASK_PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin:octaneUftTestDiscovery";
+    private static String DISCOVERY_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY +":octaneUftTestDiscovery";
     private static String EXECUTION_TASK_PLUGIN_KEY = "com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask";
-    private static String CONVERTER_TASK_PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin:octaneTestFrameworkConverter";
+    private static String CONVERTER_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY + ":octaneTestFrameworkConverter";
 
     private static final String TRIGGER_POLLING_PLUGIN_KEY = "com.atlassian.bamboo.triggers.atlassian-bamboo-triggers:poll";
     public static final String PROJECT_KEY = "UOI";
