@@ -39,10 +39,11 @@ import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hp.octane.integrations.dto.executor.CredentialsInfo;
 import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
 import com.hp.octane.integrations.dto.executor.TestConnectivityInfo;
-import com.hp.octane.integrations.dto.executor.TestSuiteExecutionInfo;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIPluginInfo;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
+import com.hp.octane.integrations.dto.parameters.CIParameter;
+import com.hp.octane.integrations.dto.parameters.CIParameters;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
@@ -63,7 +64,7 @@ import java.util.concurrent.Callable;
 
 public class BambooPluginServices extends CIPluginServicesBase {
     private static final Logger log = LoggerFactory.getLogger(BambooPluginServices.class);
-    private static final String PLUGIN_VERSION = "1.0.0-SNAPSHOT";
+    private static final String PLUGIN_VERSION = "1.5";
 
     private CachedPlanManager planMan;
 
@@ -186,7 +187,7 @@ public class BambooPluginServices extends CIPluginServicesBase {
     }
 
 
-    public void runPipeline(final String pipeline, final String parameters) {
+    public void runPipeline(final String pipeline, final String parametersJson) {
         // TODO implement parameters conversion
         // only execute runnable plans
         log.info("starting pipeline run");
@@ -205,22 +206,17 @@ public class BambooPluginServices extends CIPluginServicesBase {
                     throw new PermissionException(403);
                 }
 
-                if (SdkStringUtils.isNotEmpty(parameters)) {
-                    /*JSONObject bodyJSON = JSONObject.fromObject(parameters);
+                HashMap<String, String> variables = new HashMap<>();
+                HashMap<String, String> params = new HashMap<>();
+                if (SdkStringUtils.isNotEmpty(parametersJson)) {
 
-                    //  delay
-                    if (bodyJSON.has("delay") && bodyJSON.get("delay") != null) {
-                        delay = bodyJSON.getInt("delay");
+                    CIParameters parameters = DTOFactory.getInstance().dtoFromJson(parametersJson, CIParameters.class);
+                    for (CIParameter param : parameters.getParameters()) {
+                        variables.put(param.getName(), param.getValue().toString());
                     }
-
-                    //  parameters
-                    if (bodyJSON.has("parameters") && bodyJSON.get("parameters") != null) {
-                        JSONArray paramsJSON = bodyJSON.getJSONArray("parameters");
-                        parametersAction = new ParametersAction(createParameters(project, paramsJSON));
-                    }*/
                 }
 
-                ExecutionRequestResult result = planExecMan.startManualExecution(chain, user, new HashMap<String, String>(), new HashMap<String, String>());
+                ExecutionRequestResult result = planExecMan.startManualExecution(chain, user, params, variables);
                 if (result.getErrors().getTotalErrors() > 0) {
                     throw new ConfigurationException(504);
                 }

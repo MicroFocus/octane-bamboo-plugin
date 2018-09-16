@@ -597,8 +597,8 @@ public class UftManager {
 
     private void createVariablesForExecution(@NotNull Chain chain) {
         createVariables(chain, TESTS_TO_RUN_PARAMETER, "");
-        createVariables(chain, SUITE_ID_PARAMETER, "");
-        createVariables(chain, SUITE_RUN_ID_PARAMETER, "");
+        //createVariables(chain, SUITE_ID_PARAMETER, "");
+        //createVariables(chain, SUITE_RUN_ID_PARAMETER, "");
     }
 
     private void createVariables(@NotNull Chain chain, String key, @NotNull String value) {
