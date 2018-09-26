@@ -431,6 +431,9 @@ public class UftManager {
             pluginKey = "com.atlassian.bamboo.plugins.atlassian-bamboo-plugin-git:gitv2";
             serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_REPOSITORY_URL, scmRepository.getUrl());
             serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_BRANCH, "master");
+            serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_USE_SHALLOW_CLONES, Boolean.toString(true));
+            serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_FETCH_WHOLE_REPOSITORY, Boolean.toString(false));
+
             if (SdkStringUtils.isNotEmpty(credentialsId)) { //existing credentials
                 serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.PASSWORD.name());
                 serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_CREDENTIALS_SOURCE, GitPasswordCredentialsSource.SHARED_CREDENTIALS.name());
