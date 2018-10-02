@@ -298,7 +298,7 @@ public class UftManager {
     private Project getMainProject() {
 
         String name = "UftOctaneIntegration";
-        String desc = "This project was created by the Micro Focus Octane plugin for managing execution of UFT tests and integration with Octane.";
+        String desc = "This project was created by the Micro Focus Octane plugin for managing execution of UFT tests and integration with ALM Octane.";
         Project project = projectManager.getProjectByKey(PROJECT_KEY);
         if (project == null) {
             project = projectManager.createProject(PROJECT_KEY, name, desc);
@@ -510,7 +510,7 @@ public class UftManager {
         String chainKeyStr = createChainBuildKey(EXECUTOR_PREFIX_KEY, discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
         log.warn("Creating execution plan for test runner " + discoveryInfo.getExecutorId());
-        String description = String.format("This plan was created by the Micro Focus plugin for execution UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
+        String description = String.format("This plan was created by the Micro Focus plugin for execution of UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
         String name = String.format("UFT test executor - Test Runner ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
         final BuildConfiguration buildConfiguration = new BuildConfiguration();
