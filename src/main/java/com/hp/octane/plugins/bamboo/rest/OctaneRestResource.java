@@ -78,11 +78,11 @@ public class OctaneRestResource {
                 return "Bamboo user is required";
             }
             if (!IsUserExist(userName)) {
-                return "Bamboo user does not exist\n";
+                return "Bamboo user does not exist";
             }
 
-            if(!isUserAuthorized(userName)){
-                return "Bamboo user misconfigured or doesn't have enough permissions";
+            if(!hasPermission(userName)){
+                return "Bamboo user doesn't have enough permissions";
             }
 
             OctaneConfiguration config = OctaneSDK.getInstance().getConfigurationService().buildConfiguration(octaneUrl, accessKey, apiSecret);
@@ -108,7 +108,7 @@ public class OctaneRestResource {
         }
     }
 
-    private boolean isUserAuthorized(String userName) {
+    private boolean hasPermission(String userName) {
         PlanManager planManager = ComponentLocator.getComponent(PlanManager.class);
         List<Chain> plans = planManager.getAllPlans(Chain.class);
         if (plans.isEmpty()) {
