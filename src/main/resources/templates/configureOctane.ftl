@@ -10,7 +10,7 @@
                 // clear children
                 p.textContent ='';
                 var t = document.createTextNode(this.responseText);
-                if (this.responseText.toLocaleLowerCase().includes("success")) {
+                if (this.responseText && this.responseText.toLocaleLowerCase().indexOf("success") >= 0 ) {
                     p.style.color = "green";
                 }
                 else {
