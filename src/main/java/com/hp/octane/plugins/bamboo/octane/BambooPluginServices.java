@@ -32,10 +32,9 @@ import com.atlassian.plugin.PluginAccessor;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
-import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.CIPluginServices;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
-import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hp.octane.integrations.dto.executor.CredentialsInfo;
 import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
@@ -49,9 +48,8 @@ import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
-import com.hp.octane.integrations.spi.CIPluginServicesBase;
-import com.hp.octane.integrations.util.CIPluginSDKUtils;
-import com.hp.octane.integrations.util.SdkStringUtils;
+import com.hp.octane.integrations.utils.CIPluginSDKUtils;
+import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import org.acegisecurity.acls.Permission;
@@ -59,11 +57,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.net.*;
-import java.util.*;
+import java.net.URL;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Callable;
 
-public class BambooPluginServices extends CIPluginServicesBase {
+public class BambooPluginServices extends CIPluginServices {
     private static final Logger log = LoggerFactory.getLogger(BambooPluginServices.class);
     private final String pluginVersion;
     public static String PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin";
@@ -75,29 +76,12 @@ public class BambooPluginServices extends CIPluginServicesBase {
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
     private PluginSettingsFactory settingsFactory;
-    private static BambooPluginServices instance = new BambooPluginServices();
 
-    private BambooPluginServices() {
-        super();
+    public BambooPluginServices() {
         this.planExecMan = ComponentLocator.getComponent(PlanExecutionManager.class);
         this.planMan = ComponentLocator.getComponent(CachedPlanManager.class);
         this.impService = ComponentLocator.getComponent(ImpersonationService.class);
         pluginVersion = ComponentLocator.getComponent(PluginAccessor.class).getPlugin(PLUGIN_KEY).getPluginInformation().getVersion();
-    }
-
-    public static BambooPluginServices getInstance() {
-        return instance;
-    }
-
-    public synchronized void setSettingsFactory(PluginSettingsFactory settingsFactory) {
-        if (settingsFactory == null) {
-            throw new IllegalArgumentException("received settingsFactory = null");
-        }
-        boolean sdkInitRequired = (this.settingsFactory == null);
-        this.settingsFactory = settingsFactory;
-        if (sdkInitRequired) {
-            OctaneSDK.init(this);
-        }
     }
 
     // return null as we don't have file storage available
@@ -120,19 +104,6 @@ public class BambooPluginServices extends CIPluginServicesBase {
             log.error("Error while retrieving top level plans", e);
         }
         return CONVERTER.getRootJobsList(Collections.<ImmutableTopLevelPlan>emptyList());
-    }
-
-    public OctaneConfiguration getOctaneConfiguration() {
-        log.debug("getOctaneConfiguration");
-        OctaneConfiguration result = null;
-        PluginSettings settings = getPluginSettings();
-        if (settings.get(OctaneConfigurationKeys.OCTANE_URL) != null && settings.get(OctaneConfigurationKeys.ACCESS_KEY) != null) {
-            String url = String.valueOf(settings.get(OctaneConfigurationKeys.OCTANE_URL));
-            String accessKey = String.valueOf(settings.get(OctaneConfigurationKeys.ACCESS_KEY));
-            String secret = String.valueOf(settings.get(OctaneConfigurationKeys.API_SECRET));
-            result = OctaneSDK.getInstance().getConfigurationService().buildConfiguration(url, accessKey, secret);
-        }
-        return result;
     }
 
     public PipelineNode getPipeline(String pipelineId) {

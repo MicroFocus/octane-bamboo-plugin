@@ -43,7 +43,7 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
                 PhaseType.INTERNAL);
 
-        OctaneSDK.getInstance().getEventsService().publishEvent(event);
+        OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
     }
 
 }

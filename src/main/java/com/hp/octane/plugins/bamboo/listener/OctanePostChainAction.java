@@ -48,115 +48,117 @@ import java.util.Arrays;
 import java.util.List;
 
 public class OctanePostChainAction extends BaseListener implements PostChainAction {
-    private final PluginSettingsFactory settingsFactory;
+	private final PluginSettingsFactory settingsFactory;
 
-    public OctanePostChainAction(PluginSettingsFactory settingsFactory) {
-        this.settingsFactory = settingsFactory;
-    }
+	public OctanePostChainAction(PluginSettingsFactory settingsFactory) {
+		this.settingsFactory = settingsFactory;
+	}
 
-    @EventListener
-    @HibernateEventListenerAspect
-    public void handle(BuildContextEvent event) {
-        // TODO move this listener into OctanePostJobAction
-        log.info("Build context event " + event.getClass().getSimpleName());
-        if (event instanceof PostBuildCompletedEvent) {
-            HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(event.getContext().getRuntimeTaskDefinitions());
-            CurrentBuildResult results = event.getContext().getBuildResult();
-            PlanKey planKey = event.getPlanKey();
-            PlanResultKey planResultKey = event.getPlanResultKey();
-            {
-                CIEventCause cause = CONVERTER.getCauseWithDetails(
-                        event.getContext().getParentBuildIdentifier().getBuildResultKey(),
-                        event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
+	@EventListener
+	@HibernateEventListenerAspect
+	public void handle(BuildContextEvent event) {
+		// TODO move this listener into OctanePostJobAction
+		log.info("Build context event " + event.getClass().getSimpleName());
+		if (event instanceof PostBuildCompletedEvent) {
+			HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(event.getContext().getRuntimeTaskDefinitions());
+			CurrentBuildResult results = event.getContext().getBuildResult();
+			PlanKey planKey = event.getPlanKey();
+			PlanResultKey planResultKey = event.getPlanResultKey();
+			{
+				CIEventCause cause = CONVERTER.getCauseWithDetails(
+						event.getContext().getParentBuildIdentifier().getBuildResultKey(),
+						event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
 
-                CIEvent ciEvent = CONVERTER.getEventWithDetails(
-                        planResultKey.getPlanKey().getKey(),
-                        planResultKey.getKey(),
-                        event.getContext().getShortName(),
-                        CIEventType.FINISHED,
-                        event.getContext().getCurrentResult().getTasksStartDate().getTime(),
-                        100,
-                        Arrays.asList(cause),
-                        String.valueOf(planResultKey.getBuildNumber()),
-                        event.getContext().getCurrentResult().getBuildState(),
-                        (event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
-                        PhaseType.INTERNAL);
-                if (HPRunnerType.UFT.equals(runnerType)) {
-                    UftManager.getInstance().addUftParametersToEvent(ciEvent, event.getContext());
-                }
+				CIEvent ciEvent = CONVERTER.getEventWithDetails(
+						planResultKey.getPlanKey().getKey(),
+						planResultKey.getKey(),
+						event.getContext().getShortName(),
+						CIEventType.FINISHED,
+						event.getContext().getCurrentResult().getTasksStartDate().getTime(),
+						100,
+						Arrays.asList(cause),
+						String.valueOf(planResultKey.getBuildNumber()),
+						event.getContext().getCurrentResult().getBuildState(),
+						(event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
+						PhaseType.INTERNAL);
+				if (HPRunnerType.UFT.equals(runnerType)) {
+					UftManager.getInstance().addUftParametersToEvent(ciEvent, event.getContext());
+				}
 
-                OctaneSDK.getInstance().getEventsService().publishEvent(ciEvent);
-            }
+				OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
+			}
 
-            //send test results
-            String identifier = planKey.getKey();
-            String build = PlanKeys.getPlanResultKey(identifier, planResultKey.getBuildNumber()).getKey();
-            BuildContext context = CONVERTER.getBuildContext(
-                    String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
-                    identifier,
-                    build);
-            try {
-                if (OctaneSDK.getInstance().getTestsService().isTestsResultRelevant(context.getServerId(), context.getJobId())) {
-                    List<TestRun> testRuns = new ArrayList<>();
-                    if (results.getFailedTestResults() != null) {
-                        for (TestResults currentTestResult : results.getFailedTestResults()) {
-                            testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.FAILED,
-                                    results.getTasksStartDate().getTime()));
-                        }
-                    }
-                    if (results.getSkippedTestResults() != null) {
-                        for (TestResults currentTestResult : results.getSkippedTestResults()) {
-                            testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.SKIPPED,
-                                    results.getTasksStartDate().getTime()));
-                        }
-                    }
-                    if (results.getSuccessfulTestResults() != null) {
-                        for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
-                            testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.PASSED,
-                                    results.getTasksStartDate().getTime()));
-                        }
-                    }
+			//send test results
+			String identifier = planKey.getKey();
+			String build = PlanKeys.getPlanResultKey(identifier, planResultKey.getBuildNumber()).getKey();
+			BuildContext context = CONVERTER.getBuildContext(
+					String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
+					identifier,
+					build);
 
-                    List<TestField> testFields = runnerType.getTestFields();
-                    TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
-                            .setBuildContext(context).setTestFields(testFields);
+			List<TestRun> testRuns = new ArrayList<>();
+			if (results.getFailedTestResults() != null) {
+				for (TestResults currentTestResult : results.getFailedTestResults()) {
+					testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.FAILED,
+							results.getTasksStartDate().getTime()));
+				}
+			}
+			if (results.getSkippedTestResults() != null) {
+				for (TestResults currentTestResult : results.getSkippedTestResults()) {
+					testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.SKIPPED,
+							results.getTasksStartDate().getTime()));
+				}
+			}
+			if (results.getSuccessfulTestResults() != null) {
+				for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
+					testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.PASSED,
+							results.getTasksStartDate().getTime()));
+				}
+			}
+
+			List<TestField> testFields = runnerType.getTestFields();
+			TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
+					.setBuildContext(context).setTestFields(testFields);
 
 
-                    // TODO check if synchronous test results push is a good idea
-                    if (testsResult.getTestRuns().size() > 0) {
-                        log.info("Pushing test results for " + identifier + " build " + planResultKey.getKey());
-                        OctaneSDK.getInstance().getTestsService().pushTestsResult(testsResult);
-                    }
-                }
-            } catch (IOException e) {
-                log.error(String.format("Failed to send test results %s - %s : %s ", context.getJobId(), context.getBuildId(), e.getMessage()), e);
-            }
-        }
-    }
+			// TODO check if synchronous test results push is a good idea
+			if (testsResult.getTestRuns().size() > 0) {
+				log.info("Pushing test results for " + identifier + " build " + planResultKey.getKey());
+				OctaneSDK.getClients().forEach(client -> {
+					try {
+						client.getTestsService().pushTestsResult(testsResult, context.getJobId(), context.getBuildId());
+					} catch (IOException e) {
+						log.error(String.format("Failed to send test results %s - %s : %s ", context.getJobId(), context.getBuildId(), e.getMessage()), e);
 
-    public void execute(Chain chain, ChainResultsSummary chainResultsSummary, ChainExecution chainExecution) throws Exception {
-        log.info("Chain " + chain.getName() + " completed with result "
-                + chainResultsSummary.getBuildState().toString());
-        log.info("Build identifier " + chainExecution.getBuildIdentifier().getBuildResultKey() + " chain id "
-                + chain.getKey());
-        List<CIEventCause> causes = new ArrayList<>();
-        CIEvent event = CONVERTER.getEventWithDetails(
-                chain.getPlanKey().getKey(),
-                chainExecution.getBuildIdentifier().getBuildResultKey(),
-                chain.getName(),
-                CIEventType.FINISHED,
-                chainExecution.getStartTime() != null ? chainExecution.getStartTime().getTime() : chainExecution.getQueueTime().getTime(),
-                chainResultsSummary.getDuration(),
-                causes,
-                String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
-                chainResultsSummary.getBuildState(),
-                chainResultsSummary.getProcessingDuration(),//System.currentTimeMillis(),
-                PhaseType.INTERNAL);
+					}
+				});
+			}
+		}
+	}
+
+	public void execute(Chain chain, ChainResultsSummary chainResultsSummary, ChainExecution chainExecution) throws Exception {
+		log.info("Chain " + chain.getName() + " completed with result "
+				+ chainResultsSummary.getBuildState().toString());
+		log.info("Build identifier " + chainExecution.getBuildIdentifier().getBuildResultKey() + " chain id "
+				+ chain.getKey());
+		List<CIEventCause> causes = new ArrayList<>();
+		CIEvent ciEvent = CONVERTER.getEventWithDetails(
+				chain.getPlanKey().getKey(),
+				chainExecution.getBuildIdentifier().getBuildResultKey(),
+				chain.getName(),
+				CIEventType.FINISHED,
+				chainExecution.getStartTime() != null ? chainExecution.getStartTime().getTime() : chainExecution.getQueueTime().getTime(),
+				chainResultsSummary.getDuration(),
+				causes,
+				String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
+				chainResultsSummary.getBuildState(),
+				chainResultsSummary.getProcessingDuration(),//System.currentTimeMillis(),
+				PhaseType.INTERNAL);
 
 //		event.setResult((chainResultsSummary.getBuildState() == BuildState.SUCCESS) ? CIBuildResult.SUCCESS : CIBuildResult.FAILURE);
-        // TODO pushing finished type event with null duration results in http
-        // 400, octane rest api could be more verbose to specify the reason
+		// TODO pushing finished type event with null duration results in http
+		// 400, octane rest api could be more verbose to specify the reason
 //		event.setDuration(System.currentTimeMillis() - chainExecution.getQueueTime().getTime());
-        OctaneSDK.getInstance().getEventsService().publishEvent(event);
-    }
+		OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
+	}
 }
