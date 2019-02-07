@@ -26,8 +26,8 @@ import com.hp.octane.integrations.uft.items.JobRunContext;
 import com.hp.octane.integrations.uft.items.UftTestDiscoveryResult;
 import org.jetbrains.annotations.NotNull;
 
-import javax.xml.bind.JAXBException;
 import java.io.File;
+import java.io.IOException;
 
 public class UftDiscoveryTask implements TaskType {
     public static String WORKSPACE_ID_PARAM = "workspaceId";
@@ -77,7 +77,7 @@ public class UftDiscoveryTask implements TaskType {
             try {
                 result.writeToFile(reportXmlFile);
                 buildLogger.addBuildLogEntry("Final result file is saved in " + reportXmlFile.getAbsolutePath());
-            } catch (JAXBException e) {
+            } catch (IOException e) {
                 buildLogger.addBuildLogEntry(String.format("Failed to save final result file  " + reportXmlFile.getAbsolutePath() + " : " + e.getMessage()));
             }
         } else {

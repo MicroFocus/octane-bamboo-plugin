@@ -88,50 +88,11 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 				OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
 			}
 
-			//send test results
-			String identifier = planKey.getKey();
-			String build = PlanKeys.getPlanResultKey(identifier, planResultKey.getBuildNumber()).getKey();
-			BuildContext context = CONVERTER.getBuildContext(
-					String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
-					identifier,
-					build);
-
-			List<TestRun> testRuns = new ArrayList<>();
-			if (results.getFailedTestResults() != null) {
-				for (TestResults currentTestResult : results.getFailedTestResults()) {
-					testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.FAILED,
-							results.getTasksStartDate().getTime()));
-				}
-			}
-			if (results.getSkippedTestResults() != null) {
-				for (TestResults currentTestResult : results.getSkippedTestResults()) {
-					testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.SKIPPED,
-							results.getTasksStartDate().getTime()));
-				}
-			}
-			if (results.getSuccessfulTestResults() != null) {
-				for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
-					testRuns.add(CONVERTER.getTestRunFromTestResult(event.getContext(), runnerType, currentTestResult, TestRunResult.PASSED,
-							results.getTasksStartDate().getTime()));
-				}
-			}
-
-			List<TestField> testFields = runnerType.getTestFields();
-			TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
-					.setBuildContext(context).setTestFields(testFields);
-
-
-			// TODO check if synchronous test results push is a good idea
-			if (testsResult.getTestRuns().size() > 0) {
-				log.info("Pushing test results for " + identifier + " build " + planResultKey.getKey());
-				OctaneSDK.getClients().forEach(client -> {
-					try {
-						client.getTestsService().pushTestsResult(testsResult, context.getJobId(), context.getBuildId());
-					} catch (IOException e) {
-						log.error(String.format("Failed to send test results %s - %s : %s ", context.getJobId(), context.getBuildId(), e.getMessage()), e);
-
-					}
-				});
+			if ((results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
+					(results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
+					(results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty())) {
+				OctaneSDK.getClients().forEach(client ->
+						client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
 			}
 		}
 	}
