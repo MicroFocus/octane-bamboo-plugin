@@ -76,7 +76,7 @@ import com.hp.octane.integrations.dto.parameters.CIParameterType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.scm.SCMRepository;
 import com.hp.octane.integrations.dto.scm.SCMType;
-import com.hp.octane.integrations.util.SdkStringUtils;
+import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import org.apache.http.HttpStatus;

@@ -230,7 +230,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 			nodes.add(node);
 		}
 
-		jobsList.setJobs(nodes.toArray(new PipelineNode[nodes.size()]));
+		jobsList.setJobs(nodes.toArray(new PipelineNode[0]));
 		return jobsList;
 	}
 
@@ -244,7 +244,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 		String packageName = className.substring(0,
 				className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0));
 		String testName = testResult.getActualMethodName();
-		if (buildContext.getCheckoutLocation() != null && buildContext.getCheckoutLocation().size() == 1) {
+		if (buildContext.getCheckoutLocation().size() == 1) {
 			String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
 			if (testName.startsWith(checkoutDir)) {
 				testName = testName.substring(checkoutDir.length());

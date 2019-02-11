@@ -18,7 +18,7 @@ package com.hp.octane.plugins.bamboo.octane.uft;
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.task.*;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.api.EntitiesService;
+import com.hp.octane.integrations.services.entities.EntitiesService;
 import com.hp.octane.integrations.uft.UftTestDiscoveryUtils;
 import com.hp.octane.integrations.uft.UftTestDispatchUtils;
 import com.hp.octane.integrations.uft.items.CustomLogger;
@@ -26,8 +26,8 @@ import com.hp.octane.integrations.uft.items.JobRunContext;
 import com.hp.octane.integrations.uft.items.UftTestDiscoveryResult;
 import org.jetbrains.annotations.NotNull;
 
-import javax.xml.bind.JAXBException;
 import java.io.File;
+import java.io.IOException;
 
 public class UftDiscoveryTask implements TaskType {
     public static String WORKSPACE_ID_PARAM = "workspaceId";
@@ -48,14 +48,14 @@ public class UftDiscoveryTask implements TaskType {
         UftTestDiscoveryResult result = UftTestDiscoveryUtils.doFullDiscovery(checkoutLocation);
         buildLogger.addBuildLogEntry(String.format("Found %s tests", result.getAllTests().size()));
         buildLogger.addBuildLogEntry(String.format("Found %s data tables ", result.getAllScmResourceFiles().size()));
-
-        if (OctaneSDK.getInstance().getConfigurationService().isConfigurationValid()) {
+        //todo OctaneSDK.getClients().get(0) should be replaced for multi shared space support
+        if (OctaneSDK.getClients().get(0).getConfigurationService().isCurrentConfigurationValid()) {
             result.setWorkspaceId(taskContext.getConfigurationMap().get(WORKSPACE_ID_PARAM));
             result.setScmRepositoryId(taskContext.getConfigurationMap().get(SCM_REPOSITORY_ID_PARAM));
             result.setTestRunnerId(taskContext.getConfigurationMap().get(TEST_RUNNER_ID_PARAM));
             result.setFullScan(true);
 
-            EntitiesService entitiesService = OctaneSDK.getInstance().getEntitiesService();
+            EntitiesService entitiesService = OctaneSDK.getClients().get(0).getEntitiesService();
             UftTestDispatchUtils.prepareDispatchingForFullSync(entitiesService, result);
 
 
@@ -77,7 +77,7 @@ public class UftDiscoveryTask implements TaskType {
             try {
                 result.writeToFile(reportXmlFile);
                 buildLogger.addBuildLogEntry("Final result file is saved in " + reportXmlFile.getAbsolutePath());
-            } catch (JAXBException e) {
+            } catch (IOException e) {
                 buildLogger.addBuildLogEntry(String.format("Failed to save final result file  " + reportXmlFile.getAbsolutePath() + " : " + e.getMessage()));
             }
         } else {

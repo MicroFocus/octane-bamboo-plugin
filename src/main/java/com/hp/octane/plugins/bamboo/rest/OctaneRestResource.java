@@ -24,9 +24,13 @@ import com.atlassian.bamboo.user.BambooUser;
 import com.atlassian.bamboo.user.BambooUserManager;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
+import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
+import com.hp.octane.plugins.bamboo.octane.MqmProject;
+import com.hp.octane.plugins.bamboo.octane.utils.Utils;
+import org.acegisecurity.acls.Permission;
 import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,102 +44,117 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
 import java.io.IOException;
-import org.acegisecurity.acls.Permission;
 import java.util.List;
+import java.util.UUID;
+
 
 @Provider
 @Path("/testconnection")
 public class OctaneRestResource {
-    private static final Logger log = LoggerFactory.getLogger(OctaneRestResource.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+	private static final Logger log = LoggerFactory.getLogger(OctaneRestResource.class);
+	private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    @POST
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response testConfiguration(String body) throws IOException {
-        OctaneConnectionDTO dto = objectMapper.readValue(body, OctaneConnectionDTO.class);
-        return Response.ok(tryToConnect(dto)).build();
-    }
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response testConfiguration(String body) throws IOException {
+		OctaneConnectionDTO dto = objectMapper.readValue(body, OctaneConnectionDTO.class);
+		return Response.ok(tryToConnect(dto)).build();
+	}
 
-    private String tryToConnect(OctaneConnectionDTO dto) {
-        try {
-            String octaneUrl = dto.getOctaneUrl();
-            String accessKey = dto.getAccessKey();
-            String apiSecret = dto.getApiSecret();
-            String userName = dto.getUserName();
-            if (octaneUrl == null || octaneUrl.isEmpty()) {
-                return "Location URL is required";
-            }
-            if (accessKey == null || accessKey.isEmpty()) {
-                return "Client ID is required";
-            }
+	private String tryToConnect(OctaneConnectionDTO dto) {
+		try {
+			String octaneUrl = dto.getOctaneUrl();
+			String accessKey = dto.getAccessKey();
+			String apiSecret = dto.getApiSecret();
+			String userName = dto.getUserName();
+			if (octaneUrl == null || octaneUrl.isEmpty()) {
+				return "Location URL is required";
+			}
+			if (accessKey == null || accessKey.isEmpty()) {
+				return "Client ID is required";
+			}
 
-            if (apiSecret == null || apiSecret.isEmpty()) {
-                return "Client Secret is required";
-            }
+			if (apiSecret == null || apiSecret.isEmpty()) {
+				return "Client Secret is required";
+			}
 
-            if(userName == null || userName.isEmpty()){
-                return "Bamboo user is required";
-            }
-            if (!IsUserExist(userName)) {
-                return "Bamboo user does not exist";
-            }
+			if (userName == null || userName.isEmpty()) {
+				return "Bamboo user is required";
+			}
+			if (!IsUserExist(userName)) {
+				return "Bamboo user does not exist";
+			}
 
-            if(!hasPermission(userName)){
-                return "Bamboo user doesn't have enough permissions";
-            }
+			if (!hasPermission(userName)) {
+				return "Bamboo user doesn't have enough permissions";
+			}
+			MqmProject mqmProject = Utils.parseUiLocation(octaneUrl);
+			if (mqmProject.hasError()) {
+				return mqmProject.getErrorMsg();
+			}
+			OctaneConfiguration testedOctaneConfiguration = new OctaneConfiguration(UUID.randomUUID().toString(),
+					mqmProject.getLocation(),
+					mqmProject.getSharedSpace());
+			testedOctaneConfiguration.setClient(accessKey);
+			testedOctaneConfiguration.setSecret(apiSecret);
+			OctaneResponse result;
 
-            OctaneConfiguration config = OctaneSDK.getInstance().getConfigurationService().buildConfiguration(octaneUrl, accessKey, apiSecret);
-            OctaneResponse result = OctaneSDK.getInstance().getConfigurationService().validateConfiguration(config);
-            if (result.getStatus() == HttpStatus.SC_OK) {
-                return "Success";
-            } else if (result.getStatus() == HttpStatus.SC_UNAUTHORIZED) {
-                return "You are unauthorized";
-            } else if (result.getStatus() == HttpStatus.SC_FORBIDDEN) {
-                return "Connection Forbidden";
+			result = OctaneSDK.testOctaneConfiguration(testedOctaneConfiguration.getUrl(),
+					testedOctaneConfiguration.getSharedSpace(),
+					testedOctaneConfiguration.getClient(),
+					testedOctaneConfiguration.getSecret(),
+					BambooPluginServices.class);
 
-            } else if (result.getStatus() == HttpStatus.SC_NOT_FOUND) {
-                return "URL not found";
-            }
-            return "Error validating octane config";
+			if (result.getStatus() == HttpStatus.SC_OK) {
+				return "Success";
+			} else if (result.getStatus() == HttpStatus.SC_UNAUTHORIZED) {
+				return "You are unauthorized";
+			} else if (result.getStatus() == HttpStatus.SC_FORBIDDEN) {
+				return "Connection Forbidden";
 
-        } catch(SSLHandshakeException e){
-            log.error("Exception at tryToConnect", e);
-            return e.getMessage();
-        } catch (Exception e) {
-            log.error("Exception at tryToConnect", e);
-            return "Error validating octane config";
-        }
-    }
+			} else if (result.getStatus() == HttpStatus.SC_NOT_FOUND) {
+				return "URL not found";
+			}
+			return "Error validating octane config";
 
-    private boolean hasPermission(String userName) {
-        PlanManager planManager = ComponentLocator.getComponent(PlanManager.class);
-        List<Chain> plans = planManager.getAllPlans(Chain.class);
-        if (plans.isEmpty()) {
-            log.info("Server does not have any plan to run");
-            return true;
-        }
-        boolean hasPermission;
-        for (Chain chain : plans) {
-            hasPermission = isUserHasPermission(BambooPermission.BUILD, userName, chain);
-            if (hasPermission) {
-                return true;
-            }
-        }
-        return false;
-    }
+		} catch (SSLHandshakeException e) {
+			log.error("Exception at tryToConnect", e);
+			return e.getMessage();
+		} catch (Exception e) {
+			log.error("Exception at tryToConnect", e);
+			return "Error validating octane config";
+		}
+	}
 
-    private boolean isUserHasPermission(Permission permissionType, String user, Chain chain) {
-        BambooPermissionManager permissionManager = ComponentLocator.getComponent(BambooPermissionManager.class);
-        return permissionManager.hasPermission(user, permissionType, chain);
-    }
+	private boolean hasPermission(String userName) {
+		PlanManager planManager = ComponentLocator.getComponent(PlanManager.class);
+		List<Chain> plans = planManager.getAllPlans(Chain.class);
+		if (plans.isEmpty()) {
+			log.info("Server does not have any plan to run");
+			return true;
+		}
+		boolean hasPermission;
+		for (Chain chain : plans) {
+			hasPermission = isUserHasPermission(BambooPermission.BUILD, userName, chain);
+			if (hasPermission) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-    private boolean IsUserExist(String userName) {
-        BambooUserManager bambooUserManager = ComponentLocator.getComponent(com.atlassian.bamboo.user.BambooUserManager.class);
-        BambooUser bambooUser = bambooUserManager.loadUserByUsername(userName);
-        if (bambooUser != null) {
-            return true;
-        }
-        return false;
-    }
+	private boolean isUserHasPermission(Permission permissionType, String user, Chain chain) {
+		BambooPermissionManager permissionManager = ComponentLocator.getComponent(BambooPermissionManager.class);
+		return permissionManager.hasPermission(user, permissionType, chain);
+	}
+
+	private boolean IsUserExist(String userName) {
+		BambooUserManager bambooUserManager = ComponentLocator.getComponent(com.atlassian.bamboo.user.BambooUserManager.class);
+		BambooUser bambooUser = bambooUserManager.loadUserByUsername(userName);
+		if (bambooUser != null) {
+			return true;
+		}
+		return false;
+	}
 }

@@ -58,7 +58,7 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 			UftManager.getInstance().addUftParametersToEvent(event, buildContext);
 		}
 
-		OctaneSDK.getInstance().getEventsService().publishEvent(event);
+		OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
 
 		//create and send SCM event
 		CIEvent scmEvent = CONVERTER.getEventWithDetails(
@@ -73,6 +73,6 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 				CONVERTER.getScmData(buildContext),
 				PhaseType.INTERNAL);
 
-		OctaneSDK.getInstance().getEventsService().publishEvent(scmEvent);
+		OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(scmEvent));
 	}
 }

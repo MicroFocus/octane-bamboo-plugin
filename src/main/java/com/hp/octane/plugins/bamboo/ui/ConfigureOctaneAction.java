@@ -16,21 +16,19 @@
 
 package com.hp.octane.plugins.bamboo.ui;
 
-import org.acegisecurity.AccessDeniedException;
 import com.atlassian.bamboo.security.BambooPermissionManager;
 import com.atlassian.bamboo.ww2.BambooActionSupport;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
-import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
-import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
+import com.hp.octane.plugins.bamboo.octane.utils.Utils;
+import org.acegisecurity.AccessDeniedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 
 import java.util.UUID;
 
-public class ConfigureOctaneAction extends BambooActionSupport implements InitializingBean {
+public class ConfigureOctaneAction extends BambooActionSupport {
 	private static final Logger logger = LoggerFactory.getLogger(ConfigureOctaneAction.class);
 
 	private final PluginSettingsFactory settingsFactory;
@@ -69,7 +67,8 @@ public class ConfigureOctaneAction extends BambooActionSupport implements Initia
 		settings.put(OctaneConfigurationKeys.API_SECRET, apiSecret);
 		settings.put(OctaneConfigurationKeys.IMPERSONATION_USER, userName);
 		addActionMessage("Configuration updated successfully");
-		OctaneSDK.getInstance().getConfigurationService().notifyChange();
+		//todo should be changed for multi shared space
+		Utils.cud(octaneUrl, uuid, accessKey, apiSecret);
 		return SUCCESS;
 	}
 
@@ -111,14 +110,6 @@ public class ConfigureOctaneAction extends BambooActionSupport implements Initia
 
 	public void setUuid(String uuid) {
 		this.uuid = uuid;
-	}
-
-	public void afterPropertiesSet() throws Exception {
-		try {
-			BambooPluginServices.getInstance().setSettingsFactory(settingsFactory);
-		} catch (IllegalStateException ise) {
-			logger.warn("failed to init SDK, more than a single init?", ise);
-		}
 	}
 
 	private void readData() {
