@@ -53,7 +53,6 @@ import com.atlassian.bamboo.utils.error.ErrorCollection;
 import com.atlassian.bamboo.v2.build.requirement.ImmutableRequirement;
 import com.atlassian.bamboo.v2.build.requirement.RequirementService;
 import com.atlassian.bamboo.variable.VariableConfigurationService;
-import com.atlassian.bamboo.variable.VariableDefinitionContext;
 import com.atlassian.bamboo.vcs.configuration.PartialVcsRepositoryData;
 import com.atlassian.bamboo.vcs.configuration.PartialVcsRepositoryDataBuilder;
 import com.atlassian.bamboo.vcs.configuration.VcsRepositoryData;
@@ -69,14 +68,14 @@ import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
-import com.hp.octane.integrations.dto.events.CIEvent;
-import com.hp.octane.integrations.dto.executor.*;
-import com.hp.octane.integrations.dto.parameters.CIParameter;
-import com.hp.octane.integrations.dto.parameters.CIParameterType;
+import com.hp.octane.integrations.dto.executor.CredentialsInfo;
+import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
+import com.hp.octane.integrations.dto.executor.TestConnectivityInfo;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.scm.SCMRepository;
 import com.hp.octane.integrations.dto.scm.SCMType;
 import com.hp.octane.integrations.utils.SdkStringUtils;
+import com.hp.octane.plugins.bamboo.listener.ParametersHelper;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import org.apache.http.HttpStatus;
@@ -113,7 +112,7 @@ public class UftManager {
     private static String CREDENTIALS_PASSWORD_FIELD = "password";
 
     private static String USERNAME_PASSWORD_PLUGIN_KEY = "com.atlassian.bamboo.plugin.sharedCredentials:usernamePasswordCredentials";
-    private static String DISCOVERY_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY +":octaneUftTestDiscovery";
+    private static String DISCOVERY_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY + ":octaneUftTestDiscovery";
     private static String EXECUTION_TASK_PLUGIN_KEY = "com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask";
     private static String CONVERTER_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY + ":octaneTestFrameworkConverter";
 
@@ -123,9 +122,6 @@ public class UftManager {
     public static final String EXECUTOR_PREFIX_KEY = "UFTEXECUTOR";
 
     private static final Logger log = LoggerFactory.getLogger(UftManager.class);
-    public static final String SUITE_ID_PARAMETER = "suiteId";
-    public static final String SUITE_RUN_ID_PARAMETER = "suiteRunId";
-    public static final String TESTS_TO_RUN_PARAMETER = "testsToRun";
 
 
     private static final String UFT_INTEGRATION_PREFIX = "UFT";
@@ -262,29 +258,6 @@ public class UftManager {
             if (plan.getBuildKey().startsWith(discoveryKeyPrefix) /*|| plan.getBuildKey().startsWith(executionKeyPrefix)*/) {
                 planManager.markPlansForDeletion(plan.getPlanKey());
             }
-        }
-    }
-
-    public void addUftParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
-        try {
-            Map<String, VariableDefinitionContext> variables = buildContext.getVariableContext().getEffectiveVariables();
-            List<CIParameter> parameters = new ArrayList<>();
-
-            if (variables.containsKey(SUITE_ID_PARAMETER) && SdkStringUtils.isNotEmpty(variables.get(SUITE_ID_PARAMETER).getValue())) {
-                String value = variables.get(SUITE_ID_PARAMETER).getValue();
-                parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
-
-                if (variables.containsKey(UftManager.SUITE_RUN_ID_PARAMETER)) {
-                    value = variables.get(UftManager.SUITE_RUN_ID_PARAMETER).getValue();
-                    parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_RUN_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
-                }
-            }
-
-            if (!parameters.isEmpty()) {
-                ciEvent.setParameters(parameters);
-            }
-        } catch (Exception e) {
-            //do nothing - try/catch just to be on safe side for all other plans
         }
     }
 
@@ -598,7 +571,7 @@ public class UftManager {
     }
 
     private void createVariablesForExecution(@NotNull Chain chain) {
-        createVariables(chain, TESTS_TO_RUN_PARAMETER, "");
+        createVariables(chain, ParametersHelper.TESTS_TO_RUN_PARAMETER, "");
         //createVariables(chain, SUITE_ID_PARAMETER, "");
         //createVariables(chain, SUITE_RUN_ID_PARAMETER, "");
     }
