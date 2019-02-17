@@ -19,7 +19,10 @@ package com.hp.octane.plugins.bamboo.octane;
 import com.atlassian.bamboo.applinks.ImpersonationService;
 import com.atlassian.bamboo.chains.BuildExecution;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
-import com.atlassian.bamboo.plan.*;
+import com.atlassian.bamboo.plan.ExecutionRequestResult;
+import com.atlassian.bamboo.plan.PlanExecutionManager;
+import com.atlassian.bamboo.plan.PlanKeys;
+import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
@@ -283,12 +286,16 @@ public class BambooPluginServices extends CIPluginServices {
 			}
 		}
 
-		List<TestField> testFields = runnerType.getTestFields();
-		TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
-				.setBuildContext(context).setTestFields(testFields);
+		if (testRuns.isEmpty()) {
+			return null;
+		} else {
+			List<TestField> testFields = runnerType.getTestFields();
+			TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
+					.setBuildContext(context).setTestFields(testFields);
 
-		//  return stream to SDK
-		return dtoFactory.dtoToXmlStream(testsResult);
+			//  return stream to SDK
+			return dtoFactory.dtoToXmlStream(testsResult);
+		}
 	}
 
 	@Override
