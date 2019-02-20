@@ -19,6 +19,7 @@ package com.hp.octane.plugins.bamboo.listener;
 import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.plugins.PreChainAction;
+import com.atlassian.bamboo.v2.build.BuildContext;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
@@ -43,6 +44,8 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
                 PhaseType.INTERNAL);
 
+        BuildContext buildContext = (BuildContext)chainExecution.getBuildIdentifier();
+        ParametersHelper.addParametersToEvent(event, buildContext);
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
     }
 

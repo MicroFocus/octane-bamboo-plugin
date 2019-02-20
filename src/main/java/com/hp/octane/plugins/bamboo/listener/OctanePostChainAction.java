@@ -22,27 +22,21 @@ import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.chains.plugins.PostChainAction;
 import com.atlassian.bamboo.event.HibernateEventListenerAspect;
 import com.atlassian.bamboo.plan.PlanKey;
-import com.atlassian.bamboo.plan.PlanKeys;
 import com.atlassian.bamboo.plan.PlanResultKey;
-import com.atlassian.bamboo.results.tests.TestResults;
+import com.atlassian.bamboo.v2.build.BuildContext;
 import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.bamboo.v2.build.events.BuildContextEvent;
 import com.atlassian.bamboo.v2.build.events.PostBuildCompletedEvent;
 import com.atlassian.event.api.EventListener;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
-import com.hp.octane.integrations.dto.tests.*;
 import com.hp.octane.plugins.bamboo.octane.HPRunnerType;
-import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import com.hp.octane.plugins.bamboo.octane.HPRunnerTypeUtils;
-import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -117,6 +111,9 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 		// TODO pushing finished type event with null duration results in http
 		// 400, octane rest api could be more verbose to specify the reason
 //		event.setDuration(System.currentTimeMillis() - chainExecution.getQueueTime().getTime());
+
+		com.atlassian.bamboo.v2.build.BuildContext buildContext = (BuildContext)chainExecution.getBuildIdentifier();
+		ParametersHelper.addParametersToEvent(ciEvent, buildContext);
 		OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
 	}
 }
