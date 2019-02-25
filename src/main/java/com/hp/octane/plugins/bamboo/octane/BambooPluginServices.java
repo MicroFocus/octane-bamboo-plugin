@@ -254,34 +254,33 @@ public class BambooPluginServices extends CIPluginServices {
 	@Override
 	public InputStream getTestsResult(String jobId, String buildId) {
 		//  retrieve test results by build IDs
-		BuildContext context = CONVERTER.getBuildContext(
-				String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
-				jobId,
-				buildId);
 		List<TestRun> testRuns = new ArrayList<>();
 		PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
 		BuildExecution buildExecution = planExecMan.getJobExecution(planResultKey);
 		if (buildExecution == null) {
-			throw new IllegalStateException("failed to find build execution for " + jobId + " #" + buildId);
+			log.info("failed to find build execution for " + jobId + " #" + buildId);
+			return null;
+			//throw new IllegalStateException("failed to find build execution for " + jobId + " #" + buildId);
 		}
-		HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildExecution.getBuildContext().getRuntimeTaskDefinitions());
-		CurrentBuildResult results = buildExecution.getBuildContext().getBuildResult();
+		com.atlassian.bamboo.v2.build.BuildContext buildContext = buildExecution.getBuildContext();
+		HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
+		CurrentBuildResult results = buildContext.getBuildResult();
 
 		if (results.getFailedTestResults() != null) {
 			for (TestResults currentTestResult : results.getFailedTestResults()) {
-				testRuns.add(CONVERTER.getTestRunFromTestResult(buildExecution.getBuildContext(), runnerType, currentTestResult, TestRunResult.FAILED,
+				testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.FAILED,
 						results.getTasksStartDate().getTime()));
 			}
 		}
 		if (results.getSkippedTestResults() != null) {
 			for (TestResults currentTestResult : results.getSkippedTestResults()) {
-				testRuns.add(CONVERTER.getTestRunFromTestResult(buildExecution.getBuildContext(), runnerType, currentTestResult, TestRunResult.SKIPPED,
+				testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.SKIPPED,
 						results.getTasksStartDate().getTime()));
 			}
 		}
 		if (results.getSuccessfulTestResults() != null) {
 			for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
-				testRuns.add(CONVERTER.getTestRunFromTestResult(buildExecution.getBuildContext(), runnerType, currentTestResult, TestRunResult.PASSED,
+				testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.PASSED,
 						results.getTasksStartDate().getTime()));
 			}
 		}
@@ -290,6 +289,10 @@ public class BambooPluginServices extends CIPluginServices {
 			return null;
 		} else {
 			List<TestField> testFields = runnerType.getTestFields();
+			BuildContext context = CONVERTER.getBuildContext(
+					String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
+					jobId,
+					buildId);
 			TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
 					.setBuildContext(context).setTestFields(testFields);
 
