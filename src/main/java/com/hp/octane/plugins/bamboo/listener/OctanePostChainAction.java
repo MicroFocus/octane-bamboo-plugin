@@ -34,8 +34,7 @@ import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
-import com.hp.octane.plugins.bamboo.octane.HPRunnerType;
-import com.hp.octane.plugins.bamboo.octane.HPRunnerTypeUtils;
+import com.hp.octane.plugins.bamboo.octane.BuildContextCache;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,34 +53,37 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 		// TODO move this listener into OctanePostJobAction
 		log.info("Build context event " + event.getClass().getSimpleName());
 		if (event instanceof PostBuildCompletedEvent) {
-			HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(event.getContext().getRuntimeTaskDefinitions());
 			CurrentBuildResult results = event.getContext().getBuildResult();
+			boolean hasTests = (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
+					(results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
+					(results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty());
 			PlanKey planKey = event.getPlanKey();
 			PlanResultKey planResultKey = event.getPlanResultKey();
-			{
-				CIEventCause cause = CONVERTER.getCauseWithDetails(
-						event.getContext().getParentBuildIdentifier().getBuildResultKey(),
-						event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
 
-				CIEvent ciEvent = CONVERTER.getEventWithDetails(
-						planResultKey.getPlanKey().getKey(),
-						planResultKey.getKey(),
-						event.getContext().getShortName(),
-						CIEventType.FINISHED,
-						event.getContext().getCurrentResult().getTasksStartDate().getTime(),
-						100,
-						Arrays.asList(cause),
-						String.valueOf(planResultKey.getBuildNumber()),
-						event.getContext().getCurrentResult().getBuildState(),
-						(event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
-						PhaseType.INTERNAL);
-				ParametersHelper.addParametersToEvent(ciEvent, event.getContext());
-				OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
-			}
+			CIEventCause cause = CONVERTER.getCauseWithDetails(
+					event.getContext().getParentBuildIdentifier().getBuildResultKey(),
+					event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
 
-			if ((results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
-					(results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
-					(results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty())) {
+			CIEvent ciEvent = CONVERTER.getEventWithDetails(
+					planResultKey.getPlanKey().getKey(),
+					planResultKey.getKey(),
+					event.getContext().getShortName(),
+					CIEventType.FINISHED,
+					event.getContext().getCurrentResult().getTasksStartDate().getTime(),
+					100,
+					Arrays.asList(cause),
+					String.valueOf(planResultKey.getBuildNumber()),
+					event.getContext().getCurrentResult().getBuildState(),
+					(event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
+					PhaseType.INTERNAL);
+			ciEvent.setTestResultExpected(hasTests);
+
+			ParametersHelper.addParametersToEvent(ciEvent, event.getContext());
+			OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
+
+
+			if (hasTests) {
+				BuildContextCache.add(planResultKey.getKey(), event.getContext());
 				OctaneSDK.getClients().forEach(client ->
 						client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
 			}

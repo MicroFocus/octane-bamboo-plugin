@@ -256,13 +256,17 @@ public class BambooPluginServices extends CIPluginServices {
 		//  retrieve test results by build IDs
 		List<TestRun> testRuns = new ArrayList<>();
 		PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
-		BuildExecution buildExecution = planExecMan.getJobExecution(planResultKey);
-		if (buildExecution == null) {
-			log.info("failed to find build execution for " + jobId + " #" + buildId);
-			return null;
-			//throw new IllegalStateException("failed to find build execution for " + jobId + " #" + buildId);
+		com.atlassian.bamboo.v2.build.BuildContext buildContext = BuildContextCache.extract(buildId);
+		if (buildContext == null) {
+			BuildExecution buildExecution = planExecMan.getJobExecution(planResultKey);
+			if (buildExecution == null) {
+				log.info("failed to find build execution for " + jobId + " #" + buildId);
+				return null;
+				//throw new IllegalStateException("failed to find build execution for " + jobId + " #" + buildId);
+			}
+			buildContext = buildExecution.getBuildContext();
 		}
-		com.atlassian.bamboo.v2.build.BuildContext buildContext = buildExecution.getBuildContext();
+
 		HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
 		CurrentBuildResult results = buildContext.getBuildResult();
 
