@@ -36,10 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.SSLHandshakeException;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
@@ -53,6 +50,13 @@ import java.util.UUID;
 public class OctaneRestResource {
 	private static final Logger log = LoggerFactory.getLogger(OctaneRestResource.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
+
+
+	@Path("test")
+	@GET
+	public Response test() throws IOException {
+		return Response.ok().build();
+	}
 
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
