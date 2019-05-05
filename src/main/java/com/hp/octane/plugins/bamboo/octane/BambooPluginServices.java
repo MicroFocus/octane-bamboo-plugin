@@ -198,6 +198,9 @@ public class BambooPluginServices extends CIPluginServices {
 				BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
 				BambooUser user = um.getBambooUser(getRunAsUser());
 				ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline.toUpperCase()), ImmutableChain.class);
+				if (chain == null || chain.isSuspendedFromBuilding()) {
+					throw new ConfigurationException(404);
+				}
 				log.info("plan key is " + chain.getPlanKey().getKey());
 				log.info("build key is " + chain.getBuildKey());
 				log.info("chain key is " + chain.getKey());
