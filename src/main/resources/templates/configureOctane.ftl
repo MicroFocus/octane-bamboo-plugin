@@ -36,21 +36,23 @@ submitLabelKey='global.buttons.update' ]
     [@ui.bambooSection title="ALM Octane Server Configuration"]
         [@ww.textfield name='octaneUrl' label='Location' required='true' description='Location of the ALM Octane application' /]
         [@ww.textfield name="accessKey" label='Client ID'  required='true' description='Client ID used for logging into the ALM Octane server' /]
-        [#--fake unvisible fields- in order to ignore autocomplete
-        https://stackoverflow.com/questions/12374442/chrome-ignores-autocomplete-off
-        https://stackoverflow.com/questions/18306052/autocomplete-off-not-working-on-google-chrome-browser
-        --]
-        <div id="fieldArea_octaneConfigurationForm_fakepasswordremembered" class="field-group"style="display:none">
-            <input type="password" name="fakepasswordremembered" id="octaneConfigurationForm_fakepasswordremembered" class="text password" >
+    [#--fake unvisible fields- in order to ignore autocomplete
+    https://stackoverflow.com/questions/12374442/chrome-ignores-autocomplete-off
+    https://stackoverflow.com/questions/18306052/autocomplete-off-not-working-on-google-chrome-browser
+    --]
+        <div id="fieldArea_octaneConfigurationForm_fakepasswordremembered" class="field-group" style="display:none">
+            <input type="password" name="fakepasswordremembered" id="octaneConfigurationForm_fakepasswordremembered"
+                   class="text password">
         </div>
-        <div id="fieldArea_octaneConfigurationForm_fakeuserName" class="field-group"style="display: none">
-            <input type="text" name="fakeuserName" value="" id="octaneConfigurationForm_fakeuserName" class="text " >
+        <div id="fieldArea_octaneConfigurationForm_fakeuserName" class="field-group" style="display: none">
+            <input type="text" name="fakeuserName" value="" id="octaneConfigurationForm_fakeuserName" class="text ">
         </div>
-        <div id="fieldArea_octaneConfigurationForm_fakepasswordremembered1" class="field-group"style="display: none">
-            <input type="password" name="fakepasswordremembered1" id="octaneConfigurationForm_fakepasswordremembered1" class="text password" >
+        <div id="fieldArea_octaneConfigurationForm_fakepasswordremembered1" class="field-group" style="display: none">
+            <input type="password" name="fakepasswordremembered1" id="octaneConfigurationForm_fakepasswordremembered1"
+                   class="text password">
         </div>
-        <div id="fieldArea_octaneConfigurationForm_fakeuserName1" class="field-group"style="display: none">
-            <input type="text" name="fakeuserName1" value="" id="octaneConfigurationForm_fakeuserName1" class="text " >
+        <div id="fieldArea_octaneConfigurationForm_fakeuserName1" class="field-group" style="display: none">
+            <input type="text" name="fakeuserName1" value="" id="octaneConfigurationForm_fakeuserName1" class="text ">
         </div>
         [@ww.password name="apiSecret" label='Client secret' required='true' description='Client secret used for logging into the ALM Octane server'/]
         [@ww.textfield name="userName" label='Bamboo user' required='true' description='The account that will run jobs for ALM Octane (must have build plan permissions).'/]
