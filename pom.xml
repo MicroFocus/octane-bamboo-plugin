@@ -37,6 +37,12 @@
 			<email>radislav.berkovich@microfocus.com</email>
 			<organization>Micro Focus</organization>
 		</developer>
+		<developer>
+			<id>elishevaHa</id>
+			<name>elisheva halberstam</name>
+			<email>elisheva.halberstam@microfocus.com</email>
+			<organization>Micro Focus</organization>
+		</developer>
 	</developers>
 
 	<scm>
