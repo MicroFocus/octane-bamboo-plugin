@@ -24,6 +24,10 @@ import com.hp.octane.integrations.executor.TestsToRunFramework;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 public class TestFrameworkConverterTask implements TaskType {
@@ -35,6 +39,7 @@ public class TestFrameworkConverterTask implements TaskType {
 
     private final String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
     private final String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
+    private final int BAMBOO_MAX_FIELD_CAPACITY = 4000;
 
     @Override
     public TaskResult execute(@NotNull TaskContext taskContext) throws TaskException {
@@ -67,12 +72,42 @@ public class TestFrameworkConverterTask implements TaskType {
 
         if (!skip) {
             TestsToRunFramework testsToRunFramework = TestsToRunFramework.fromValue(framework);
+            buildLogger.addBuildLogEntry("framework " + framework);
             TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework).convert(rawTests, checkoutDirectory);
             buildLogger.addBuildLogEntry("Found #tests : " + convertResult.getTestsData().size());
             buildLogger.addBuildLogEntry(TESTS_TO_RUN_CONVERTED_PARAMETER + " = " + convertResult.getConvertedTestsString());
-            taskContext.getBuildContext().getVariableContext().addResultVariable(TESTS_TO_RUN_CONVERTED_PARAMETER, convertResult.getConvertedTestsString());
+            buildLogger.addBuildLogEntry(TESTS_TO_RUN_CONVERTED_PARAMETER + " length = " + convertResult.getConvertedTestsString().length());
+            //if framework is uft and converter result more then 4000 ,save to file and save path reference to the file
+
+            String testToRunConverted = convertResult.getConvertedTestsString();
+            if (convertResult.getConvertedTestsString().length() >= BAMBOO_MAX_FIELD_CAPACITY && testsToRunFramework.equals(TestsToRunFramework.MF_UFT)) {
+                File converterResultFile = saveUftTestsToMtbxFile(taskContext, buildLogger, convertResult);
+                testToRunConverted = converterResultFile.getAbsolutePath();
+
+            }
+            taskContext.getBuildContext().getVariableContext().addResultVariable(TESTS_TO_RUN_CONVERTED_PARAMETER, testToRunConverted);
         }
 
         return TaskResultBuilder.newBuilder(taskContext).success().build();
+    }
+
+    private static File saveUftTestsToMtbxFile(@NotNull TaskContext taskContext, BuildLogger buildLogger, TestsToRunConverterResult convertResult) throws TaskException {
+        File converterResultFile = new File(taskContext.getWorkingDirectory(), "Uft_Build_" + taskContext.getBuildContext().getBuildNumber() + ".mtbx");
+
+        try {
+            FileOutputStream fop = new FileOutputStream(converterResultFile);
+            byte[] contentInBytes = convertResult.getConvertedTestsString().replace("${bamboo.build.working.directory}", taskContext.getWorkingDirectory().getAbsolutePath()).getBytes(StandardCharsets.UTF_8);
+
+            fop.write(contentInBytes);
+            fop.flush();
+            fop.close();
+
+            buildLogger.addBuildLogEntry("MTBX file is saved in " + converterResultFile.getAbsolutePath());
+            return converterResultFile;
+        } catch (IOException e) {
+            String msg = String.format("Failed to save MTBX file  " + converterResultFile.getAbsolutePath() + " : " + e.getMessage());
+            buildLogger.addBuildLogEntry(msg);
+            throw new TaskException(msg, e);
+        }
     }
 }
