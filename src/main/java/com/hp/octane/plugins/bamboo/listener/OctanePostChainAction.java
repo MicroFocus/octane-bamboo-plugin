@@ -34,6 +34,7 @@ import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
+import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.plugins.bamboo.octane.BuildContextCache;
 import org.apache.commons.collections.map.HashedMap;
 
@@ -113,7 +114,10 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 chainResultsSummary.getBuildState(),
                 chainResultsSummary.getProcessingDuration(),//System.currentTimeMillis(),
                 PhaseType.INTERNAL);
-        String key= chainExecution.getPlanResultKey().getKey();
+        if(chainExecution.isStopRequested()){
+            ciEvent.setResult(CIBuildResult.ABORTED);
+        }
+        String key = chainExecution.getPlanResultKey().getKey();
         if (testResultExpectedMap.containsKey(key)) {
             ciEvent.setTestResultExpected(testResultExpectedMap.remove(key));
         }
