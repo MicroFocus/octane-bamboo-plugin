@@ -32,6 +32,8 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
     public void populateContextForEdit(Map<String, Object> context, TaskDefinition taskDefinition) {
         super.populateContextForEdit(context, taskDefinition);
         context.put(TestFrameworkConverterTask.FRAMEWORK_PARAMETER, taskDefinition.getConfiguration().get(TestFrameworkConverterTask.FRAMEWORK_PARAMETER));
+        context.put(TestFrameworkConverterTask.CONVERTER_FORMAT, taskDefinition.getConfiguration().get(TestFrameworkConverterTask.CONVERTER_FORMAT));
+        context.put(TestFrameworkConverterTask.CONVERTER_DELIMITER, taskDefinition.getConfiguration().get(TestFrameworkConverterTask.CONVERTER_DELIMITER));
 
         populateContextForLists(context);
     }
@@ -41,6 +43,8 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
     public void populateContextForCreate(@NotNull Map<String, Object> context) {
         super.populateContextForCreate(context);
         context.put(TestFrameworkConverterTask.FRAMEWORK_PARAMETER, "");
+        context.put(TestFrameworkConverterTask.CONVERTER_FORMAT, "");
+        context.put(TestFrameworkConverterTask.CONVERTER_DELIMITER, "");
         populateContextForLists(context);
     }
 
@@ -49,6 +53,8 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
         final Map<String, String> config = super.generateTaskConfigMap(params, previousTaskDefinition);
 
         config.put(TestFrameworkConverterTask.FRAMEWORK_PARAMETER, params.getString(TestFrameworkConverterTask.FRAMEWORK_PARAMETER));
+        config.put(TestFrameworkConverterTask.CONVERTER_FORMAT, params.getString(TestFrameworkConverterTask.CONVERTER_FORMAT));
+        config.put(TestFrameworkConverterTask.CONVERTER_DELIMITER, params.getString(TestFrameworkConverterTask.CONVERTER_DELIMITER));
         return config;
     }
 
