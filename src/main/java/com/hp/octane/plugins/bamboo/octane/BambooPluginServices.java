@@ -20,6 +20,7 @@ import com.atlassian.bamboo.applinks.ImpersonationService;
 import com.atlassian.bamboo.chains.BuildExecution;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
+import com.atlassian.bamboo.fileserver.SystemDirectory;
 import com.atlassian.bamboo.plan.ExecutionRequestResult;
 import com.atlassian.bamboo.plan.PlanExecutionManager;
 import com.atlassian.bamboo.plan.PlanKeys;
@@ -81,6 +82,7 @@ public class BambooPluginServices extends CIPluginServices {
     private ImpersonationService impService;
     private PlanExecutionManager planExecMan;
     private BuildQueueManager buildQueueManager;
+    private boolean allowedOctaneStorageExist = false;
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
     private PluginSettingsFactory settingsFactory;
@@ -93,10 +95,15 @@ public class BambooPluginServices extends CIPluginServices {
         pluginVersion = ComponentLocator.getComponent(PluginAccessor.class).getPlugin(PLUGIN_KEY).getPluginInformation().getVersion();
     }
 
-    // return null as we don't have file storage available
+
     @Override
     public File getAllowedOctaneStorage() {
-        return null;
+        File f = new File(SystemDirectory.getApplicationHome(), "octanePluginContent");
+        if (!allowedOctaneStorageExist) {
+            f.mkdirs();
+            allowedOctaneStorageExist = true;
+        }
+        return f;
     }
 
     @Override
