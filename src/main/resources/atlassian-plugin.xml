@@ -101,4 +101,12 @@
         <resource type="freemarker" name="edit" location="templates/testFrameworkConverter.ftl"/>
         <configuration class="com.hp.octane.plugins.bamboo.octane.executor.TestFrameworkConverterConfigurator"/>
     </taskType>
+    <taskType key="octaneCucumber" name="ALM Octane Cucumber Test Reporter"
+              class="com.hp.octane.plugins.bamboo.octane.gherkin.ALMOctaneCucumberTestReporter">
+        <description>Provide useful information about Cucumber tests results to ALM Octane.</description>
+        <category name="test"/>
+        <resource type="download" name="icon" location="images/octane.png"/>
+        <resource type="freemarker" name="edit" location="templates/ALMOctaneCucumberTestReporter.ftl"/>
+        <configuration class="com.hp.octane.plugins.bamboo.octane.gherkin.ALMOctaneCucumberTestReporterConfigurator"/>
+    </taskType>
 </atlassian-plugin>
