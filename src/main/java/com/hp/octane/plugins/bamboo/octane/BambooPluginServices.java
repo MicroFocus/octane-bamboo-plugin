@@ -65,6 +65,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
@@ -324,6 +326,16 @@ public class BambooPluginServices extends CIPluginServices {
             buildContext = buildExecution.getBuildContext();
         }
 
+
+        String workingDirectory = buildContext.getBuildResult().getCustomBuildData().get("working.directory");
+        File mqmResultFile = new File(workingDirectory + File.separator + "MQM_Result_" + buildContext.getBuildNumber() + File.separator + "mqmTests.xml");
+        if (mqmResultFile.exists()) {
+            try {
+                return new FileInputStream(mqmResultFile.getAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
         CurrentBuildResult results = buildContext.getBuildResult();
 

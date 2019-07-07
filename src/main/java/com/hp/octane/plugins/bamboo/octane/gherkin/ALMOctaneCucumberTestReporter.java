@@ -18,7 +18,7 @@ public class ALMOctaneCucumberTestReporter implements TaskType {
             buildLogger.addBuildLogEntry("***************ALM octane cucumber test reporter task must be final*************");
         }
 
-        File targetDirectory = new File(taskContext.getWorkingDirectory(), "Gherkin_Build_" + taskContext.getBuildContext().getBuildNumber());
+        File targetDirectory = new File(taskContext.getWorkingDirectory(), "MQM_Result_" + taskContext.getBuildContext().getBuildNumber());
         targetDirectory.mkdir();
 
         try {
