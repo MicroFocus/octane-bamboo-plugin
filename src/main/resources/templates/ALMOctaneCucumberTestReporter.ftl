@@ -18,8 +18,7 @@
         background-color: #f0f0f0;
         padding: 1em;
         margin-bottom: 1em;
-        width: 97%;
-        float: left;
+        width: 94%;
         position: relative;
         z-index: 100;
     }

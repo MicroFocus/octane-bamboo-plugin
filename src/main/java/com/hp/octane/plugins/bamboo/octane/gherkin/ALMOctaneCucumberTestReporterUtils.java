@@ -18,7 +18,6 @@ import javax.xml.stream.XMLStreamWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
@@ -27,9 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ALMOctaneCucumberTestReporterUtils {
-    public static String OCTANE_REPORT_XML = "cucumberReportXML";
     public static String GHERKIN_NGA_RESULTS = "OctaneGherkinResults";
-    public static String CUCUMBER_XML_FILE_NAME = "mqmTests";
+    public static String MQM_TESTS_FILE_NAME = "mqmTests";
     public static final String DEFAULT_GLOB = "**/*" + GHERKIN_NGA_RESULTS + ".xml";
 
 
@@ -69,7 +67,7 @@ public class ALMOctaneCucumberTestReporterUtils {
         } //end while
 
         //write new xml file
-        writeXmlFile(targetDirectoryPath, planName, buildNumber, result);
+        writeXmlFile(targetDirectoryPath, planName, buildNumber, result, buildLogger);
     }
 
     private static String generateGherkinResultFileName(int index, String targetDirectoryPath) {
@@ -82,19 +80,18 @@ public class ALMOctaneCucumberTestReporterUtils {
 
     public static void copyTestResults(String targetDirectoryPath, String workingDirectoryPath, String userPattern, BuildLogger buildLogger) throws IOException {
         //collect test result from working directory and move it to build directory
-        addLogEntry(buildLogger,"Collecting Cucumber results");
+        addLogEntry(buildLogger, "Collecting Cucumber results");
         Path startDir = Paths.get(workingDirectoryPath);
         FileSystem fs = FileSystems.getDefault();
 
         if (StringUtils.isEmpty(userPattern)) {
             userPattern = DEFAULT_GLOB;
-            addLogEntry(buildLogger, "Cucumber report XMLs configuration is empty. Using default user pattern : " + DEFAULT_GLOB);
+            addLogEntry(buildLogger, "Cucumber report XMLs configuration is empty. Using default pattern : " + DEFAULT_GLOB);
         }
 
         userPattern = getGlobPaths(userPattern);
         final PathMatcher matcher = fs.getPathMatcher("glob:" + userPattern);
 
-        addLogEntry(buildLogger,"Got result file content that match the pattern '" + userPattern);
         List<Path> finalCollection = new ArrayList<>();
         FileVisitor<Path> matcherVisitor = new SimpleFileVisitor<Path>() {
             @Override
@@ -106,19 +103,23 @@ public class ALMOctaneCucumberTestReporterUtils {
             }
         };
         Files.walkFileTree(startDir, matcherVisitor);
+        addLogEntry(buildLogger, "Search for result files that match the pattern '" + userPattern + "'. Found " + finalCollection.size() + " files.");
 
         int i = 0;
+        addLogEntry(buildLogger, "Copy result files to " + targetDirectoryPath);
         for (Path file : finalCollection) {
             File newGherkinTestResultsFile = new File(generateGherkinResultFileName(i++, targetDirectoryPath));
-            addLogEntry(buildLogger,"Result file copied to" + targetDirectoryPath);
-            addLogEntry(buildLogger,"Copying " + file.getFileName() + " to " + targetDirectoryPath + ". New file name on destination will be " + newGherkinTestResultsFile.getName());
+            addLogEntry(buildLogger, "Copying " + file.getFileName() + " to " + newGherkinTestResultsFile.getName());
             FileUtils.copyFile(file.toFile(), newGherkinTestResultsFile);
         }
     }
 
-    private static void writeXmlFile(String targetDirectoryPath, String planName, int buildNumber, List<GherkinTestResult> gherkinTestResults) throws IOException, XMLStreamException {
-        FileOutputStream outputStream = new FileOutputStream(new File(targetDirectoryPath + File.separator + CUCUMBER_XML_FILE_NAME + ".xml"));
-        XMLStreamWriter writer = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8"/*StandardCharsets.UTF_8.name()*/);
+    private static void writeXmlFile(String targetDirectoryPath, String planName, int buildNumber, List<GherkinTestResult> gherkinTestResults, BuildLogger buildLogger) throws IOException, XMLStreamException {
+
+        String mqmFilePath = targetDirectoryPath + File.separator + MQM_TESTS_FILE_NAME + ".xml";
+        addLogEntry(buildLogger, "Creating mqm test result file : " + mqmFilePath);
+        FileOutputStream outputStream = new FileOutputStream(new File(mqmFilePath));
+        XMLStreamWriter writer = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
         writer.writeStartDocument("UTF-8", "1.0");
         writer.writeStartElement("test_result");
         writer.writeStartElement("build");
@@ -219,7 +220,7 @@ public class ALMOctaneCucumberTestReporterUtils {
                     addStep(stepElement);
                 }
 
-                scenarioElement.setAttribute("status", status.name());
+                scenarioElement.setAttribute("status", status.value());
 
                 //for surefire report
                 stepNames.add(name);
@@ -308,7 +309,7 @@ public class ALMOctaneCucumberTestReporterUtils {
             this.attributes = new HashMap<>();
             this.attributes.put("name", name);
             this.attributes.put("duration", String.valueOf(duration));
-            this.attributes.put("status", status.name());
+            this.attributes.put("status", status.value());
             this.contentElement = xmlElement;
         }
 

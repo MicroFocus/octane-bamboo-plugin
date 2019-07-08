@@ -78,6 +78,7 @@ import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.listener.ParametersHelper;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
+import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import org.apache.http.HttpStatus;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -547,27 +548,13 @@ public class UftManager {
     private boolean registerArtifactForDiscovery(@NotNull Job job) {
         String name = "UFT discovery result";
         String pattern = "**/" + UftDiscoveryTask.RESULT_FILE_NAME_PREFIX + "${bamboo.buildNumber}*";
-        return registerArtifactDefinition(job, name, pattern);
-
+        return Utils.registerArtifactDefinition(job, name, pattern);
     }
 
     private boolean registerArtifactForExecution(@NotNull Job job) {
         String name = "Micro Focus Tasks Artifact Definition";
         String pattern = "UFT_Build_${bamboo.buildNumber}/**";
-        return registerArtifactDefinition(job, name, pattern);
-    }
-
-    private boolean registerArtifactDefinition(@NotNull Job job, String name, String pattern) {
-        ArtifactDefinitionManager artifactDefinitionManager = ComponentLocator.getComponent(ArtifactDefinitionManager.class);
-        if (artifactDefinitionManager.findArtifactDefinition(job, name) == null) {
-            ArtifactDefinitionImpl artifactDefinition = new ArtifactDefinitionImpl(name, "", pattern);
-            artifactDefinition.setProducerJob(job);
-            artifactDefinitionManager.saveArtifactDefinition(artifactDefinition);
-            return true;
-
-        } else {
-            return false;
-        }
+        return Utils.registerArtifactDefinition(job, name, pattern);
     }
 
     private void createVariablesForExecution(@NotNull Chain chain) {

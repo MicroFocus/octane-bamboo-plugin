@@ -128,7 +128,7 @@
         background-color: #f0f0f0;
         padding: 1em;
         margin-bottom: 1em;
-        width: 97%;
+        width: 94%;
         float: left;
         display: none;
     }

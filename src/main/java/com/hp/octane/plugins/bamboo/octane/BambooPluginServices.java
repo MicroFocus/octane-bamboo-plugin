@@ -313,6 +313,7 @@ public class BambooPluginServices extends CIPluginServices {
     @Override
     public InputStream getTestsResult(String jobId, String buildId) {
         //  retrieve test results by build IDs
+        InputStream output = null;
         List<TestRun> testRuns = new ArrayList<>();
         PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
         com.atlassian.bamboo.v2.build.BuildContext buildContext = BuildContextCache.extract(buildId);
@@ -328,50 +329,51 @@ public class BambooPluginServices extends CIPluginServices {
 
 
         String workingDirectory = buildContext.getBuildResult().getCustomBuildData().get("working.directory");
-        File mqmResultFile = new File(workingDirectory + File.separator + "MQM_Result_" + buildContext.getBuildNumber() + File.separator + "mqmTests.xml");
+        String mqmResultFilePath = workingDirectory + File.separator + "MQM_Result_" + buildContext.getBuildNumber() + File.separator + "mqmTests.xml";
+        File mqmResultFile = new File(mqmResultFilePath);
         if (mqmResultFile.exists()) {
             try {
-                return new FileInputStream(mqmResultFile.getAbsolutePath());
+                output = new FileInputStream(mqmResultFile.getAbsolutePath());
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error("failed to get test results for  " + jobId + " #" + buildId + " from " + mqmResultFilePath);
             }
-        }
-        HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
-        CurrentBuildResult results = buildContext.getBuildResult();
-
-        if (results.getFailedTestResults() != null) {
-            for (TestResults currentTestResult : results.getFailedTestResults()) {
-                testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.FAILED,
-                        results.getTasksStartDate().getTime()));
-            }
-        }
-        if (results.getSkippedTestResults() != null) {
-            for (TestResults currentTestResult : results.getSkippedTestResults()) {
-                testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.SKIPPED,
-                        results.getTasksStartDate().getTime()));
-            }
-        }
-        if (results.getSuccessfulTestResults() != null) {
-            for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
-                testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.PASSED,
-                        results.getTasksStartDate().getTime()));
-            }
-        }
-
-        if (testRuns.isEmpty()) {
-            return null;
         } else {
-            List<TestField> testFields = runnerType.getTestFields();
-            BuildContext context = CONVERTER.getBuildContext(
-                    String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
-                    jobId,
-                    buildId);
-            TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
-                    .setBuildContext(context).setTestFields(testFields);
+            HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
+            CurrentBuildResult results = buildContext.getBuildResult();
 
-            //  return stream to SDK
-            return dtoFactory.dtoToXmlStream(testsResult);
+            if (results.getFailedTestResults() != null) {
+                for (TestResults currentTestResult : results.getFailedTestResults()) {
+                    testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.FAILED,
+                            results.getTasksStartDate().getTime()));
+                }
+            }
+            if (results.getSkippedTestResults() != null) {
+                for (TestResults currentTestResult : results.getSkippedTestResults()) {
+                    testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.SKIPPED,
+                            results.getTasksStartDate().getTime()));
+                }
+            }
+            if (results.getSuccessfulTestResults() != null) {
+                for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
+                    testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.PASSED,
+                            results.getTasksStartDate().getTime()));
+                }
+            }
+
+            if (!testRuns.isEmpty()) {
+                List<TestField> testFields = runnerType.getTestFields();
+                BuildContext context = CONVERTER.getBuildContext(
+                        String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
+                        jobId,
+                        buildId);
+                TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
+                        .setBuildContext(context).setTestFields(testFields);
+
+                //  return stream to SDK
+                output = dtoFactory.dtoToXmlStream(testsResult);
+            }
         }
+        return output;
     }
 
     @Override
