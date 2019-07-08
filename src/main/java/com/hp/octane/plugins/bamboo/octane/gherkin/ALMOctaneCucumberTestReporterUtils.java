@@ -16,6 +16,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.*;
@@ -116,8 +117,7 @@ public class ALMOctaneCucumberTestReporterUtils {
     }
 
     private static void writeXmlFile(String targetDirectoryPath, String planName, int buildNumber, List<GherkinTestResult> gherkinTestResults) throws IOException, XMLStreamException {
-        OutputStream outputStream = Files.newOutputStream(Paths.get(targetDirectoryPath + File.separator + CUCUMBER_XML_FILE_NAME + ".xml"));
-
+        FileOutputStream outputStream = new FileOutputStream(new File(targetDirectoryPath + File.separator + CUCUMBER_XML_FILE_NAME + ".xml"));
         XMLStreamWriter writer = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8"/*StandardCharsets.UTF_8.name()*/);
         writer.writeStartDocument("UTF-8", "1.0");
         writer.writeStartElement("test_result");
