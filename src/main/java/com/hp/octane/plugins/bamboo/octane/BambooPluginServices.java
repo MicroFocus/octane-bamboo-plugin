@@ -59,6 +59,7 @@ import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
 import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
+import com.hp.octane.plugins.bamboo.octane.gherkin.ALMOctaneCucumberTestReporterConfigurator;
 import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import org.acegisecurity.acls.Permission;
 import org.slf4j.Logger;
@@ -329,11 +330,11 @@ public class BambooPluginServices extends CIPluginServices {
 
 
         String workingDirectory = buildContext.getBuildResult().getCustomBuildData().get("working.directory");
-        String mqmResultFilePath = workingDirectory + File.separator + "MQM_Result_" + buildContext.getBuildNumber() + File.separator + "mqmTests.xml";
+        String mqmResultFilePath = workingDirectory + File.separator + ALMOctaneCucumberTestReporterConfigurator.MQM_RESULT_FOLDER_PREFIX + File.separator +"Build_"+ buildContext.getBuildNumber() + File.separator + "mqmTests.xml";
         File mqmResultFile = new File(mqmResultFilePath);
         if (mqmResultFile.exists()) {
             try {
-                output = new FileInputStream(mqmResultFile.getAbsolutePath());
+                output = mqmResultFile.length() > 0 ? new FileInputStream(mqmResultFile.getAbsolutePath()) : null;
             } catch (IOException e) {
                 log.error("failed to get test results for  " + jobId + " #" + buildId + " from " + mqmResultFilePath);
             }
