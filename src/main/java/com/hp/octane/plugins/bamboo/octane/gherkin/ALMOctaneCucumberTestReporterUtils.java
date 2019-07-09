@@ -31,10 +31,6 @@ public class ALMOctaneCucumberTestReporterUtils {
     public static final String DEFAULT_GLOB = "**/*" + GHERKIN_NGA_RESULTS + ".xml";
 
 
-    private static String getGlobPaths(String s) {
-        return s.contains(",") ? "{" + s + "}" : s;
-    }
-
     public static void createGherkinFiles(String targetDirectoryPath, String planName, int buildNumber, BuildLogger buildLogger) throws Exception {
         List<GherkinTestResult> result = new ArrayList<>();
         int i = 0;
@@ -89,14 +85,15 @@ public class ALMOctaneCucumberTestReporterUtils {
             addLogEntry(buildLogger, "Cucumber report XMLs configuration is empty. Using default pattern : " + DEFAULT_GLOB);
         }
 
-        userPattern = getGlobPaths(userPattern);
+        //https://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystem.html#getPathMatcher(java.lang.String)
+        userPattern = "{" + userPattern + "}";
         final PathMatcher matcher = fs.getPathMatcher("glob:" + userPattern);
-
+        final PathMatcher exclude = fs.getPathMatcher("glob:" + "**/" + ALMOctaneCucumberTestReporterConfigurator.MQM_RESULT_FOLDER_PREFIX + "/**");
         List<Path> finalCollection = new ArrayList<>();
         FileVisitor<Path> matcherVisitor = new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attribs) {
-                if (matcher.matches(file.toAbsolutePath())) {
+                if (matcher.matches(file.toAbsolutePath()) && !exclude.matches(file.toAbsolutePath())) {
                     finalCollection.add(file);
                 }
                 return FileVisitResult.CONTINUE;
@@ -120,22 +117,24 @@ public class ALMOctaneCucumberTestReporterUtils {
         addLogEntry(buildLogger, "Creating mqm test result file : " + mqmFilePath);
         FileOutputStream outputStream = new FileOutputStream(new File(mqmFilePath));
         XMLStreamWriter writer = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
-        writer.writeStartDocument("UTF-8", "1.0");
-        writer.writeStartElement("test_result");
-        writer.writeStartElement("build");
-        writer.writeAttribute("server_id", "to-be-filled-in-SDK");
-        writer.writeAttribute("job_id", planName);
-        writer.writeAttribute("build_id", Integer.toString(buildNumber));
-        writer.writeEndElement(); // build
-        //  writeFields(resultFields);
-        writer.writeStartElement("test_runs");
+        if (!gherkinTestResults.isEmpty()) {
+            writer.writeStartDocument("UTF-8", "1.0");
+            writer.writeStartElement("test_result");
+            writer.writeStartElement("build");
+            writer.writeAttribute("server_id", "to-be-filled-in-SDK");
+            writer.writeAttribute("job_id", planName);
+            writer.writeAttribute("build_id", Integer.toString(buildNumber));
+            writer.writeEndElement(); // build
+            //  writeFields(resultFields);
+            writer.writeStartElement("test_runs");
 
-        for (GherkinTestResult g : gherkinTestResults) {
-            g.writeXmlElement(writer);
+            for (GherkinTestResult g : gherkinTestResults) {
+                g.writeXmlElement(writer);
+            }
+            writer.writeEndElement(); // test_runs
+            writer.writeEndElement(); // test_result
+            writer.writeEndDocument();
         }
-        writer.writeEndElement(); // test_runs
-        writer.writeEndElement(); // test_result
-        writer.writeEndDocument();
         writer.close();
         IOUtils.closeQuietly(outputStream);
     }

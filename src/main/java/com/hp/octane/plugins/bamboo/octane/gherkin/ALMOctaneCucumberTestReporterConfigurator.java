@@ -13,7 +13,7 @@ import java.util.Map;
 public class ALMOctaneCucumberTestReporterConfigurator extends AbstractTaskConfigurator {
 
     public static String CUCUMBER_REPORT_PATTERN_FIELD = "cucumberReportXML";
-    public static String MQM_RESULT_FOLDER_PREFIX = "MQM_Result_";
+    public static String MQM_RESULT_FOLDER_PREFIX = "MQM_Result";
 
     @Override
     public void populateContextForCreate(@NotNull Map<String, Object> context) {
@@ -23,7 +23,7 @@ public class ALMOctaneCucumberTestReporterConfigurator extends AbstractTaskConfi
 
     private boolean registerArtifacts(@NotNull Job job) {
         String name = "MQM test results";
-        String pattern = "**/" + MQM_RESULT_FOLDER_PREFIX + "${bamboo.buildNumber}/*.xml";
+        String pattern = "**/" + MQM_RESULT_FOLDER_PREFIX + "/Build_${bamboo.buildNumber}/*.xml";
         return Utils.registerArtifactDefinition(job, name, pattern);
     }
 
