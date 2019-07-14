@@ -29,7 +29,7 @@
             <ul>
                 <li>(Gradle, Windows) <i>gradle test %bamboo_testsToRunConverted%</i></li>
                 <li>(Protractor, Windows) <i>protractor conf.js --grep="%bamboo_testsToRunConverted%"</i></li>
-                <li>(Surefire, Windows) <i>mvn clean -Dtest=%bamboo_testsToRunConverted% test </i></li>
+                <li>(Surefire, Windows) <i>clean -Dtest=%bamboo_testsToRunConverted% test </i></li>
                 <li>(Failsafe, Linux) <i>mvn clean -Dit.test=bamboo_testsToRunConverted verify</i></li>
             </ul>
         </li>
