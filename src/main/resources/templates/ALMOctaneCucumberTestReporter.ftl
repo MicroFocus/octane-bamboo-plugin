@@ -10,7 +10,7 @@
     <b>This task must be a final task.</b>
 </div>
 
-[@ww.textfield class="text long-field" name='cucumberReportXML' label='Cucumber report XMLs' required='true'/]
+[@ww.textfield class="text long-field" name='cucumberReportXML' label='Cucumber report XMLs' /]
 
 <style type="text/css">
     .toolTip {
