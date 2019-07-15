@@ -26,13 +26,12 @@ import com.atlassian.sal.api.component.ComponentLocator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
+import com.hp.octane.integrations.exceptions.OctaneConnectivityException;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.MqmProject;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import com.hp.octane.plugins.bamboo.ui.ConfigureOctaneAction;
 import org.acegisecurity.acls.Permission;
-import org.apache.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,25 +106,18 @@ public class OctaneRestResource {
             } else {
                 testedOctaneConfiguration.setSecret(apiSecret);
             }
-            OctaneResponse result;
 
-            result = OctaneSDK.testOctaneConfiguration(testedOctaneConfiguration.getUrl(),
-                    testedOctaneConfiguration.getSharedSpace(),
-                    testedOctaneConfiguration.getClient(),
-                    testedOctaneConfiguration.getSecret(),
-                    BambooPluginServices.class);
-
-            if (result.getStatus() == HttpStatus.SC_OK) {
-                return "Success";
-            } else if (result.getStatus() == HttpStatus.SC_UNAUTHORIZED) {
-                return "You are unauthorized";
-            } else if (result.getStatus() == HttpStatus.SC_FORBIDDEN) {
-                return "Connection Forbidden";
-
-            } else if (result.getStatus() == HttpStatus.SC_NOT_FOUND) {
-                return "URL not found";
+            try{
+                OctaneSDK.testAndValidateOctaneConfiguration(testedOctaneConfiguration.getUrl(),
+                        testedOctaneConfiguration.getSharedSpace(),
+                        testedOctaneConfiguration.getClient(),
+                        testedOctaneConfiguration.getSecret(),
+                        BambooPluginServices.class);
+            } catch (OctaneConnectivityException e){
+                return e.getErrorMessageVal();
             }
-            return "Error validating octane config";
+
+            return "Success";
 
         } catch (SSLHandshakeException e) {
             log.error("Exception at tryToConnect", e);
