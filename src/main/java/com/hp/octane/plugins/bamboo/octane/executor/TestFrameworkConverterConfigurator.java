@@ -33,7 +33,6 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
         super.populateContextForEdit(context, taskDefinition);
         context.put(TestFrameworkConverterTask.FRAMEWORK_PARAMETER, taskDefinition.getConfiguration().get(TestFrameworkConverterTask.FRAMEWORK_PARAMETER));
         context.put(TestFrameworkConverterTask.CONVERTER_FORMAT, taskDefinition.getConfiguration().get(TestFrameworkConverterTask.CONVERTER_FORMAT));
-        context.put(TestFrameworkConverterTask.CONVERTER_DELIMITER, taskDefinition.getConfiguration().get(TestFrameworkConverterTask.CONVERTER_DELIMITER));
 
         populateContextForLists(context);
     }
@@ -44,7 +43,6 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
         super.populateContextForCreate(context);
         context.put(TestFrameworkConverterTask.FRAMEWORK_PARAMETER, "");
         context.put(TestFrameworkConverterTask.CONVERTER_FORMAT, "");
-        context.put(TestFrameworkConverterTask.CONVERTER_DELIMITER, "");
         populateContextForLists(context);
     }
 
@@ -54,7 +52,6 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
 
         config.put(TestFrameworkConverterTask.FRAMEWORK_PARAMETER, params.getString(TestFrameworkConverterTask.FRAMEWORK_PARAMETER));
         config.put(TestFrameworkConverterTask.CONVERTER_FORMAT, params.getString(TestFrameworkConverterTask.CONVERTER_FORMAT));
-        config.put(TestFrameworkConverterTask.CONVERTER_DELIMITER, params.getString(TestFrameworkConverterTask.CONVERTER_DELIMITER));
         return config;
     }
 
@@ -65,6 +62,9 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
     private Object getSupportedFrameworks() {
         Map<String, String> map = new HashMap<String, String>();
         for (TestsToRunFramework fr : TestsToRunFramework.values()) {
+            if(TestsToRunFramework.Custom.equals(fr)){
+                continue;
+            }
             map.put(fr.value(), fr.getDesc());
         }
 
