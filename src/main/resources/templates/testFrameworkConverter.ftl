@@ -49,45 +49,47 @@
 </div>
 <hr>
 
-<div class="control">
-    [@ww.textfield name='customConverterFormat' id='customConverterFormat' label='Format' /]
-</div>
-<div class="helpIcon" onclick="javascript: toggle_visibility('helpCustomFormat');">?</div>
-<div id="helpCustomFormat" class="toolTip" >
-    The format used to convert single test received in "testsToRun" parameter to the format of the Custom testing
-    framework, and inject it to the "testsToRunConverted" parameter<br/>
-    The format syntax is:
-    <ul>
-        <li><b>$package</b> - to use the test package name in format</li>
-        <li><b>$class</b> - to use the test class name in format</li>
-        <li><b>$testName</b> - to use the test name in format</li>
-    </ul>
+<div style="display: none;">
+    <div class="control">
+        [@ww.textfield name='customConverterFormat' id='customConverterFormat' label='Format' /]
+    </div>
+    <div class="helpIcon" onclick="javascript: toggle_visibility('helpCustomFormat');">?</div>
+    <div id="helpCustomFormat" class="toolTip">
+        The format used to convert single test received in "testsToRun" parameter to the format of the Custom testing
+        framework, and inject it to the "testsToRunConverted" parameter<br/>
+        The format syntax is:
+        <ul>
+            <li><b>$package</b> - to use the test package name in format</li>
+            <li><b>$class</b> - to use the test class name in format</li>
+            <li><b>$testName</b> - to use the test name in format</li>
+        </ul>
 
-    <br/>For example:<br/><br/>
-    <i>testsToRun</i> parameter received 2 tests semicolon separated: <b>v1:MF.simple.tests|AppTest|testA<i>;</i>MF.simple.tests|App2Test|testSendGet</b><br/>
-    The defined <i>format</i> is: <b>$package.$class#$testName</b><br/>
-    The defined <i>delimiter</i> is: <b> , </b>
-    <ul>
-        <li><b>$package</b> variable will get a name: <i>MF.simple.tests</i></li>
-        <li><b>$class</b> variable will get a name: <i>AppTest</i></li>
-        <li><b>$testName</b> variable will get a name: <i>testAl</i></li>
-    </ul>
-    <br/>The <i>testsToRunConverted</i> will be equal: <b>MF.simple.tests.AppTest#testA,MF.simple.tests.App2Test#testSendGet</b>
+        <br/>For example:<br/><br/>
+        <i>testsToRun</i> parameter received 2 tests semicolon separated: <b>v1:MF.simple.tests|AppTest|testA<i>;</i>MF.simple.tests|App2Test|testSendGet</b><br/>
+        The defined <i>format</i> is: <b>$package.$class#$testName</b><br/>
+        The defined <i>delimiter</i> is: <b> , </b>
+        <ul>
+            <li><b>$package</b> variable will get a name: <i>MF.simple.tests</i></li>
+            <li><b>$class</b> variable will get a name: <i>AppTest</i></li>
+            <li><b>$testName</b> variable will get a name: <i>testAl</i></li>
+        </ul>
+        <br/>The <i>testsToRunConverted</i> will be equal: <b>MF.simple.tests.AppTest#testA,MF.simple.tests.App2Test#testSendGet</b>
 
-</div>
-<hr>
+    </div>
+    <hr>
 
 
-<div class="control">
-    [@ww.textfield name='customConverterDelimiter' id='customConverterDelimiter' label='Delimiter' /]
-</div>
-<div class="helpIcon" onclick="javascript: toggle_visibility('helpCustomDelimiter');">?</div>
-<div id="helpCustomDelimiter" class="toolTip">
-    The delimiter used to separate different tests during conversion to "testsToRun" parameter to the format of the
-    selected testing framework conversion<br/>
+    <div class="control">
+        [@ww.textfield name='customConverterDelimiter' id='customConverterDelimiter' label='Delimiter' /]
+    </div>
+    <div class="helpIcon" onclick="javascript: toggle_visibility('helpCustomDelimiter');">?</div>
+    <div id="helpCustomDelimiter" class="toolTip">
+        The delimiter used to separate different tests during conversion to "testsToRun" parameter to the format of the
+        selected testing framework conversion<br/>
 
-    For usage details look at help for format field
+        For usage details look at help for format field
 
+    </div>
 </div>
 <hr>
 <script>
