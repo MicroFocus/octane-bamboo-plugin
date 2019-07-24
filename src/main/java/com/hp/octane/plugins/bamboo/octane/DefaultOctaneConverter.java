@@ -324,6 +324,12 @@ public class DefaultOctaneConverter implements DTOConverter {
 	}
 
 	@Override
+	public CIEvent getEventWithDetails(String project, CIEventType eventType) {
+		CIEvent event = dtoFactoryInstance.newDTO(CIEvent.class).setEventType(eventType).setProject(project);
+		return event;
+	}
+
+	@Override
 	public CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType,
 	                                   long startTime, long estimatedDuration, List<CIEventCause> causes, String number, PhaseType phaseType) {
 

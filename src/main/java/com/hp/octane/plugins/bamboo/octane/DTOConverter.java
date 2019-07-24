@@ -64,6 +64,8 @@ public interface DTOConverter {
 	CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType,
 								long startTime, long estimatedDuration, List<CIEventCause> causes, String number, BuildState buildState, Long currnetTime, PhaseType phaseType);
 
+	CIEvent getEventWithDetails(String project, CIEventType eventType);
+
 	CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType,
 								long startTime, long estimatedDuration, List<CIEventCause> causes, String number, PhaseType phaseType);
 

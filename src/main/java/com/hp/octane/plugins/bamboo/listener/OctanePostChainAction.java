@@ -122,6 +122,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             ciEvent.setTestResultExpected(testResultExpectedMap.remove(key));
         }
 
+        MultibranchHelper.enrichMultibranchEvent(chain, ciEvent);
 
 //		event.setResult((chainResultsSummary.getBuildState() == BuildState.SUCCESS) ? CIBuildResult.SUCCESS : CIBuildResult.FAILURE);
         // TODO pushing finished type event with null duration results in http

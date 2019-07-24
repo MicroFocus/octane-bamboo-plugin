@@ -21,10 +21,7 @@ import com.atlassian.bamboo.chains.BuildExecution;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
 import com.atlassian.bamboo.fileserver.SystemDirectory;
-import com.atlassian.bamboo.plan.ExecutionRequestResult;
-import com.atlassian.bamboo.plan.PlanExecutionManager;
-import com.atlassian.bamboo.plan.PlanKeys;
-import com.atlassian.bamboo.plan.PlanResultKey;
+import com.atlassian.bamboo.plan.*;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
@@ -59,6 +56,7 @@ import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
 import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
+import com.hp.octane.plugins.bamboo.listener.MultibranchHelper;
 import com.hp.octane.plugins.bamboo.octane.gherkin.ALMOctaneCucumberTestReporterConfigurator;
 import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import org.acegisecurity.acls.Permission;
@@ -133,7 +131,9 @@ public class BambooPluginServices extends CIPluginServices {
         pipelineId = pipelineId.toUpperCase();
         log.info("get pipeline " + pipelineId);
         ImmutableTopLevelPlan plan = planMan.getPlanByKey(PlanKeys.getPlanKey(pipelineId), ImmutableTopLevelPlan.class);
-        return CONVERTER.getRootPipelineNodeFromTopLevelPlan(plan);
+        PipelineNode pipelineNode = CONVERTER.getRootPipelineNodeFromTopLevelPlan(plan);
+        MultibranchHelper.enrichMultiBranchParentPipeline(plan,pipelineNode);
+        return pipelineNode;
     }
 
     @Override

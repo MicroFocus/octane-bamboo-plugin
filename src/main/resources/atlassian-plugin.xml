@@ -65,6 +65,8 @@
         <description>Listens if a plugin changes its status</description>
     </component>
 
+    <bambooEventListener key="generalEventsListener" class="com.hp.octane.plugins.bamboo.listener.GeneralEventsListener"/>
+
     <postChainAction key="ngaPostChainReporter" name="NGA post-chain build status reporter"
                      class="com.hp.octane.plugins.bamboo.listener.OctanePostChainAction">
         <description>Report root job finished to NGA</description>
