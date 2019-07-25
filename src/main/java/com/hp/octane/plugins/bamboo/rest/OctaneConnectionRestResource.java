@@ -24,8 +24,8 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -41,7 +41,7 @@ import static com.opensymphony.xwork2.Action.SUCCESS;
 public class OctaneConnectionRestResource {
 
 	private final PluginSettingsFactory settingsFactory;
-	private static final Logger log = LoggerFactory.getLogger(OctaneConnectionRestResource.class);
+	private static final Logger log = LogManager.getLogger(OctaneConnectionRestResource.class);
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 	private String octaneUrl = "";
 	private String accessKey = "";

@@ -23,13 +23,13 @@ import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import org.acegisecurity.AccessDeniedException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.UUID;
 
 public class ConfigureOctaneAction extends BambooActionSupport {
-    private static final Logger logger = LoggerFactory.getLogger(ConfigureOctaneAction.class);
+    private static final Logger logger = LogManager.getLogger(ConfigureOctaneAction.class);
 
     private static PluginSettingsFactory settingsFactory;
 
