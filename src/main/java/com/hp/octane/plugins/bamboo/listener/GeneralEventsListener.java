@@ -67,7 +67,11 @@ public class GeneralEventsListener extends BaseListener {
     }
 
     private void initClients() {
-        logger.info("Init ALM Octane plugin - creating SDK clients");
+        logger.info("");
+        logger.info("");
+        logger.info("***********************************************************************************");
+        logger.info("****************************Enabling plugin - init SDK Clients*********************");
+        logger.info("***********************************************************************************");
         PluginSettings settings = settingsFactory.createGlobalSettings();
         String uuid, octaneUrl, accessKey, apiSecret, userName;
         if (settings.get(OctaneConfigurationKeys.UUID) != null) {
@@ -98,7 +102,7 @@ public class GeneralEventsListener extends BaseListener {
     }
 
     private void removeClients() {
-        logger.info("Destroying plugin - removing SDK clients");
+        logger.info("Disabling plugin - removing SDK clients");
         List<OctaneClient> clients = OctaneSDK.getClients();
         for (OctaneClient client : clients) {
             OctaneSDK.removeClient(client);
