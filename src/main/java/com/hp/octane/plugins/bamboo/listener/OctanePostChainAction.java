@@ -20,14 +20,11 @@ import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.chains.plugins.PostChainAction;
-import com.atlassian.bamboo.event.HibernateEventListenerAspect;
 import com.atlassian.bamboo.plan.PlanKey;
 import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.v2.build.BuildContext;
 import com.atlassian.bamboo.v2.build.CurrentBuildResult;
-import com.atlassian.bamboo.v2.build.events.BuildContextEvent;
 import com.atlassian.bamboo.v2.build.events.PostBuildCompletedEvent;
-import com.atlassian.event.api.EventListener;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
@@ -52,48 +49,46 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
     private static Map<String, Boolean> testResultExpectedMap = new HashedMap();
 
-    @EventListener
-    @HibernateEventListenerAspect
-    public void handle(BuildContextEvent event) {
+    public static void onJobCompleted(PostBuildCompletedEvent event) {
         // TODO move this listener into OctanePostJobAction
-        log.info("Build context event " + event.getClass().getSimpleName());
-        if (event instanceof PostBuildCompletedEvent) {
-            CurrentBuildResult results = event.getContext().getBuildResult();
-            boolean hasTests = (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
-                    (results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
-                    (results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty());
-            testResultExpectedMap.put(event.getContext().getParentBuildContext().getPlanResultKey().getKey(), hasTests);
-            PlanKey planKey = event.getPlanKey();
-            PlanResultKey planResultKey = event.getPlanResultKey();
+        //
 
-            CIEventCause cause = CONVERTER.getCauseWithDetails(
-                    event.getContext().getParentBuildIdentifier().getBuildResultKey(),
-                    event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
+        CurrentBuildResult results = event.getContext().getBuildResult();
+        boolean hasTests = (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
+                (results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
+                (results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty());
+        testResultExpectedMap.put(event.getContext().getParentBuildContext().getPlanResultKey().getKey(), hasTests);
+        PlanKey planKey = event.getPlanKey();
+        PlanResultKey planResultKey = event.getPlanResultKey();
 
-            CIEvent ciEvent = CONVERTER.getEventWithDetails(
-                    planResultKey.getPlanKey().getKey(),
-                    planResultKey.getKey(),
-                    event.getContext().getShortName(),
-                    CIEventType.FINISHED,
-                    event.getContext().getCurrentResult().getTasksStartDate().getTime(),
-                    100,
-                    Arrays.asList(cause),
-                    String.valueOf(planResultKey.getBuildNumber()),
-                    event.getContext().getCurrentResult().getBuildState(),
-                    (event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
-                    PhaseType.INTERNAL);
-            ciEvent.setTestResultExpected(hasTests);
+        CIEventCause cause = CONVERTER.getCauseWithDetails(
+                event.getContext().getParentBuildIdentifier().getBuildResultKey(),
+                event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
 
-            ParametersHelper.addParametersToEvent(ciEvent, event.getContext());
-            OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
+        CIEvent ciEvent = CONVERTER.getEventWithDetails(
+                planResultKey.getPlanKey().getKey(),
+                planResultKey.getKey(),
+                event.getContext().getShortName(),
+                CIEventType.FINISHED,
+                event.getContext().getCurrentResult().getTasksStartDate().getTime(),
+                100,
+                Arrays.asList(cause),
+                String.valueOf(planResultKey.getBuildNumber()),
+                event.getContext().getCurrentResult().getBuildState(),
+                (event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
+                PhaseType.INTERNAL);
+        ciEvent.setTestResultExpected(hasTests);
+
+        ParametersHelper.addParametersToEvent(ciEvent, event.getContext());
+        OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
 
 
-            if (hasTests) {
-                BuildContextCache.add(planResultKey.getKey(), event.getContext());
-                OctaneSDK.getClients().forEach(client ->
-                        client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
-            }
+        if (hasTests) {
+            BuildContextCache.add(planResultKey.getKey(), event.getContext());
+            OctaneSDK.getClients().forEach(client ->
+                    client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
         }
+
     }
 
     public void execute(Chain chain, ChainResultsSummary chainResultsSummary, ChainExecution chainExecution) throws Exception {
@@ -114,7 +109,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 chainResultsSummary.getBuildState(),
                 chainResultsSummary.getProcessingDuration(),//System.currentTimeMillis(),
                 PhaseType.INTERNAL);
-        if(chainExecution.isStopRequested()){
+        if (chainExecution.isStopRequested()) {
             ciEvent.setResult(CIBuildResult.ABORTED);
         }
         String key = chainExecution.getPlanResultKey().getKey();

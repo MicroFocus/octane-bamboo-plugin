@@ -17,24 +17,18 @@
 package com.hp.octane.plugins.bamboo.listener;
 
 import com.atlassian.bamboo.event.ChainDeletedEvent;
+import com.atlassian.bamboo.event.HibernateEventListenerAspect;
+import com.atlassian.bamboo.v2.build.events.PostBuildCompletedEvent;
 import com.atlassian.event.api.EventListener;
 import com.atlassian.plugin.event.events.PluginDisablingEvent;
 import com.atlassian.plugin.event.events.PluginEnabledEvent;
-import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
-import com.hp.octane.integrations.OctaneClient;
-import com.hp.octane.integrations.OctaneConfiguration;
-import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
-import com.hp.octane.plugins.bamboo.octane.MqmProject;
-import com.hp.octane.plugins.bamboo.octane.utils.Utils;
+import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.util.List;
-import java.util.UUID;
 
 public class GeneralEventsListener extends BaseListener {
 
@@ -44,7 +38,6 @@ public class GeneralEventsListener extends BaseListener {
 
     public GeneralEventsListener(PluginSettingsFactory settingsFactory) {
         this.settingsFactory = settingsFactory;
-        initOctaneAllowedStorageParameter();
     }
 
     @EventListener
@@ -53,61 +46,27 @@ public class GeneralEventsListener extends BaseListener {
     }
 
     @EventListener
+    @HibernateEventListenerAspect
+    public void onJobCompleted(PostBuildCompletedEvent event) {
+        log.info("on job completed " + event.getPlanKey().getKey());
+        OctanePostChainAction.onJobCompleted(event);
+    }
+
+    @EventListener
     public void onPluginEnabled(PluginEnabledEvent event) {
         if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
-            initClients();
+            initOctaneAllowedStorageParameter();
+            OctaneConnectionManager.getInstance().init(settingsFactory);
         }
     }
 
     @EventListener
     public void onPluginDisabling(PluginDisablingEvent event) {
         if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
-            removeClients();
+            OctaneConnectionManager.getInstance().removeClients();
         }
     }
 
-    private void initClients() {
-        logger.info("");
-        logger.info("");
-        logger.info("***********************************************************************************");
-        logger.info("****************************Enabling plugin - init SDK Clients*********************");
-        logger.info("***********************************************************************************");
-        PluginSettings settings = settingsFactory.createGlobalSettings();
-        String uuid, octaneUrl, accessKey, apiSecret, userName;
-        if (settings.get(OctaneConfigurationKeys.UUID) != null) {
-            uuid = String.valueOf(settings.get(OctaneConfigurationKeys.UUID));
-        } else {
-            // generate new UUID
-            uuid = UUID.randomUUID().toString();
-            settings.put(OctaneConfigurationKeys.UUID, uuid);
-        }
-        octaneUrl = settings.get(OctaneConfigurationKeys.OCTANE_URL) != null ?
-                String.valueOf(settings.get(OctaneConfigurationKeys.OCTANE_URL)) : "";
-        accessKey = settings.get(OctaneConfigurationKeys.ACCESS_KEY) != null ?
-                String.valueOf(settings.get(OctaneConfigurationKeys.ACCESS_KEY)) : "";
-        apiSecret = settings.get(OctaneConfigurationKeys.API_SECRET) != null ?
-                String.valueOf(settings.get(OctaneConfigurationKeys.API_SECRET)) : "";
-
-        if (octaneUrl.isEmpty() && accessKey.isEmpty() && apiSecret.isEmpty()) {
-            //empty configuration. Clean plugin installation
-            return;
-        }
-        MqmProject project = Utils.parseUiLocation(octaneUrl);
-        OctaneConfiguration octaneConfiguration = new OctaneConfiguration(uuid,
-                project.getLocation(),
-                project.getSharedSpace());
-        octaneConfiguration.setClient(accessKey);
-        octaneConfiguration.setSecret(apiSecret);
-        OctaneSDK.addClient(octaneConfiguration, BambooPluginServices.class);
-    }
-
-    private void removeClients() {
-        logger.info("Disabling plugin - removing SDK clients");
-        List<OctaneClient> clients = OctaneSDK.getClients();
-        for (OctaneClient client : clients) {
-            OctaneSDK.removeClient(client);
-        }
-    }
 
     private static void initOctaneAllowedStorageParameter() {
         try {
@@ -119,5 +78,4 @@ public class GeneralEventsListener extends BaseListener {
             logger.error("Failed to initOctaneAllowedStorageParameter : " + e.getMessage());
         }
     }
-
 }

@@ -1,0 +1,94 @@
+<html>
+<head>
+    <meta name="decorator" content="atl.admin">
+    <title>ALM Octane Configuration</title>
+    $webResourceManager.requireResourcesForContext("bamboo-plugin-resource-context")
+</head>
+
+<h3 class="formtitle">Spaces</h3>
+<p>
+    <button id="show-add-dialog" class="aui-button aui-button-link">Create</button>
+    a new ALM Octane space configuration.
+</p>
+<table id="configuration-rest-table"></table>
+
+<section id="config-dialog" class="aui-dialog2 aui-dialog2-medium aui-layer" data-aui-modal="true" role="dialog"
+         aria-hidden="true">
+    <header class="aui-dialog2-header">
+        <h2 class="aui-dialog2-header-main" id="config-dialog-title">
+            Create
+        </h2>
+    </header>
+    <div class="aui-dialog2-content">
+        <form class="aui" autocomplete="off">
+            <div class="field-group" id="space-field-group">
+                <input type='hidden' name='uid' id='uid' class="text medium-long-field affect-octane-entity-types"/>
+            </div>
+            <div class="field-group" id="space-field-group">
+                <label for="location">Location<span class="aui-icon icon-required">(required)</span></label>
+                <input type='text' name='location' id='location'
+                       class="text medium-long-field required affect-octane-entity-types"/>
+                <div class="error" id="locationError"></div>
+                <div class="description">Location of the ALM Octane application</div>
+            </div>
+            <div class="field-group">
+                <label for="clientId">Client ID<span class="aui-icon icon-required">(required)</span></label>
+                <input type="text" id="clientId" name="clientId"
+                       class="text medium-long-field required affect-octane-entity-types">
+
+                <div class="error" id="clientIdError"></div>
+                <div class="description">Client ID used for logging into the ALM Octane server</div>
+            </div>
+            <div class="field-group">
+                <label for="clientSecret">Client Secret<span class="aui-icon icon-required">(required)</span></label>
+                <input type="password" id="clientSecret" name="clientSecret"
+                       class="text medium-long-field required affect-octane-entity-types">
+
+                <div class="error" id="clientSecretError"></div>
+                <div class="description">Client secret used for logging into the ALM Octane server</div>
+            </div>
+            <div class="field-group">
+                <label for="bambooUser">Bamboo user<span class="aui-icon icon-required">(required)</span></label>
+                <input type='text' name='bambooUser' id='bambooUser' class="text medium-long-field required"/>
+                <div class="error" id="bambooUserError"></div>
+                <div class="description">The user to impersonate (Plans will be executed on behalf of this user)
+                </div>
+            </div>
+            <br/>
+            <div class="field-group">
+                <button id="dialog-testconnection-button" class="aui-button aui-button-primary">Test Connection</button>
+                <span id="dialog-message" class="aui-restfultable-throbber"></span>
+                <br/>
+                <br/>
+                <div id="error-massege" style="color:red;">
+                </div>
+            </div>
+        </form>
+    </div>
+    <footer class="aui-dialog2-footer">
+        <div class="aui-dialog2-footer-actions">
+
+            <button id="dialog-submit-button" class="aui-button aui-button-primary">Save</button>
+            <button id="dialog-cancel-button" class="aui-button aui-button-link">Cancel</button>
+
+        </div>
+    </footer>
+</section>
+<section id="warning-dialog" class="aui-dialog2 aui-dialog2-small aui-dialog2-warning aui-layer" role="dialog"
+         aria-hidden="true" style="width:max-content">
+    <header class="aui-dialog2-header">
+        <h2 class="aui-dialog2-header-main">Delete</h2>
+    </header>
+    <div class="aui-dialog2-content">
+
+        <p>Are you sure you want to delete '<span id="space-to-delete"></span>' space configuration?</p>
+    </div>
+    <footer class="aui-dialog2-footer">
+        <div class="aui-dialog2-footer-actions">
+            <button id="warning-dialog-confirm" class="aui-button aui-button-primary">Delete</button>
+            <button id="warning-dialog-cancel" class="aui-button aui-button-link">Cancel</button>
+        </div>
+    </footer>
+</section>
+
+
