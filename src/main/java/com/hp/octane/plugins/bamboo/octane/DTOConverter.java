@@ -50,7 +50,7 @@ public interface DTOConverter {
 	CIProxyConfiguration getProxyCconfiguration(String proxyServer, int proxyPort, String proxyUser,
 	                                            String proxyPassword);
 
-	CIServerInfo getServerInfo(String baseUrl, String instanceId, String impersonatedUser);
+	CIServerInfo getServerInfo(String baseUrl, String bambooVersion);
 
 	SnapshotNode getSnapshot(ImmutableTopLevelPlan plan, ImmutableResultsSummary summary);
 

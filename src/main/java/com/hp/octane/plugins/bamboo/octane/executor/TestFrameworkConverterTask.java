@@ -13,13 +13,13 @@
  *     limitations under the License.
  *
  */
+
 package com.hp.octane.plugins.bamboo.octane.executor;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.configuration.ConfigurationMap;
 import com.atlassian.bamboo.task.*;
 import com.atlassian.bamboo.variable.VariableDefinitionContext;
-import com.hp.octane.integrations.executor.TestsToRunConverter;
 import com.hp.octane.integrations.executor.TestsToRunConverterResult;
 import com.hp.octane.integrations.executor.TestsToRunConvertersFactory;
 import com.hp.octane.integrations.executor.TestsToRunFramework;
@@ -30,23 +30,22 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
 
 public class TestFrameworkConverterTask implements TaskType {
     private String framework;
     private String format;
 
-    public static String FRAMEWORK_PARAMETER = "framework";
-    public static String CONVERTER_FORMAT = "customConverterFormat";
+    public final static String FRAMEWORK_PARAMETER = "framework";
+    public final static String CONVERTER_FORMAT = "customConverterFormat";
 
 
-    private final String TESTS_TO_RUN_PARAMETER = "testsToRun";
-    private final String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
+    private final static String TESTS_TO_RUN_PARAMETER = "testsToRun";
+    private final static String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
 
-    private final String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
-    private final String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
-    private final int BAMBOO_MAX_FIELD_CAPACITY = 4000;
+    private final static String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
+    private final static String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
+    private final static int BAMBOO_MAX_FIELD_CAPACITY = 4000;
 
     @Override
     public TaskResult execute(@NotNull TaskContext taskContext) throws TaskException {
@@ -58,38 +57,38 @@ public class TestFrameworkConverterTask implements TaskType {
 
         String checkoutDirectory = DEFAULT_EXECUTING_DIRECTORY;
         if (StringUtils.isNotEmpty(rawTests)) {
-            addLogEntry( buildLogger,TESTS_TO_RUN_PARAMETER + " found with value : " + rawTests);
+            addLogEntry(buildLogger, TESTS_TO_RUN_PARAMETER + " found with value : " + rawTests);
             String checkoutDir = variables.containsKey(CHECKOUT_DIRECTORY_PARAMETER) ? variables.get(CHECKOUT_DIRECTORY_PARAMETER).getValue() : null;
             if (StringUtils.isEmpty(checkoutDir)) {
                 checkoutDir = DEFAULT_EXECUTING_DIRECTORY;
-                addLogEntry( buildLogger,CHECKOUT_DIRECTORY_PARAMETER + " is not defined, using default value : " + checkoutDir);
+                addLogEntry(buildLogger, CHECKOUT_DIRECTORY_PARAMETER + " is not defined, using default value : " + checkoutDir);
             } else {
-                addLogEntry( buildLogger,CHECKOUT_DIRECTORY_PARAMETER + " parameter found with value : " + checkoutDirectory);
+                addLogEntry(buildLogger, CHECKOUT_DIRECTORY_PARAMETER + " parameter found with value : " + checkoutDirectory);
             }
         } else {
             skip = true;
-            addLogEntry( buildLogger,TESTS_TO_RUN_PARAMETER + " is not defined or has empty value. Skipping.");
+            addLogEntry(buildLogger, TESTS_TO_RUN_PARAMETER + " is not defined or has empty value. Skipping.");
         }
         ConfigurationMap configurationMap = taskContext.getConfigurationMap();
         framework = configurationMap.get(FRAMEWORK_PARAMETER);
 
         if (StringUtils.isEmpty(framework)) {
-            addLogEntry( buildLogger,"No framework is selected. Skipping.");
+            addLogEntry(buildLogger, "No framework is selected. Skipping.");
             skip = true;
         }
 
         if (!skip) {
             format = configurationMap.get(CONVERTER_FORMAT);
             TestsToRunFramework testsToRunFramework = TestsToRunFramework.fromValue(framework);
-            addLogEntry( buildLogger,"framework : " + framework);
+            addLogEntry(buildLogger, "framework : " + framework);
             if (framework.equals("custom")) {
-                addLogEntry( buildLogger,"format : " + format);
+                addLogEntry(buildLogger, "format : " + format);
             }
             TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework).setFormat("")
                     .convert(rawTests, checkoutDirectory);
-            addLogEntry( buildLogger,"Found #tests : " + convertResult.getTestsData().size());
-            addLogEntry( buildLogger,TESTS_TO_RUN_CONVERTED_PARAMETER + " = " + convertResult.getConvertedTestsString());
-            addLogEntry( buildLogger,TESTS_TO_RUN_CONVERTED_PARAMETER + " length = " + convertResult.getConvertedTestsString().length());
+            addLogEntry(buildLogger, "Found #tests : " + convertResult.getTestsData().size());
+            addLogEntry(buildLogger, TESTS_TO_RUN_CONVERTED_PARAMETER + " = " + convertResult.getConvertedTestsString());
+            addLogEntry(buildLogger, TESTS_TO_RUN_CONVERTED_PARAMETER + " length = " + convertResult.getConvertedTestsString().length());
             //if framework is uft and converter result more then 4000 ,save to file and save path reference to the file
 
             String testToRunConverted = convertResult.getConvertedTestsString();

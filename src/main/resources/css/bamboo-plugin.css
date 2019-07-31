@@ -14,3 +14,15 @@
  *
  */
 
+span.aui-restfultable-throbber.test-connection-status{
+    margin-top: 2px;
+    visibility: visible;
+    background-image: url(images/wait.gif);
+}
+span.aui-restfultable-throbber.test-connection-status.test-connection-status-successful{
+    background-image: url(images/icon-success.png);
+}
+
+span.aui-restfultable-throbber.test-connection-status.test-connection-status-failed{
+    background-image: url(images/icon-error.png);
+}
