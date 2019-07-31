@@ -26,6 +26,6 @@ public class OctanePostJobAction extends BaseListener implements PostJobAction {
 
 	//  [YG] TODO: review the original intent for this listener and remove if not needed
 	public void execute(StageExecution paramStageExecution, Job paramJob, BuildResultsSummary paramBuildResultsSummary) {
-		PlanResultKey resultKey = paramBuildResultsSummary.getPlanResultKey();
+		//PlanResultKey resultKey = paramBuildResultsSummary.getPlanResultKey();
 	}
 }

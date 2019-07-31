@@ -80,9 +80,9 @@ import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import org.apache.http.HttpStatus;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -122,7 +122,7 @@ public class UftManager {
     public static final String DISCOVERY_PREFIX_KEY = "UFTDISCOVERY";
     public static final String EXECUTOR_PREFIX_KEY = "UFTEXECUTOR";
 
-    private static final Logger log = LoggerFactory.getLogger(UftManager.class);
+    private static final Logger log = LogManager.getLogger(UftManager.class);
 
 
     private static final String UFT_INTEGRATION_PREFIX = "UFT";

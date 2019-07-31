@@ -21,7 +21,6 @@ import com.atlassian.bamboo.plan.Plan;
 import com.atlassian.bamboo.plan.PlanKey;
 import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
-import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableChainBranch;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.sal.api.component.ComponentLocator;
@@ -42,12 +41,8 @@ public class MultibranchHelper {
 
 
     public static boolean isMultibranch(ImmutableTopLevelPlan plan) {
-        if (plan instanceof ImmutableChain) {
-            Set<PlanKey> branchKeys = getCachedPlanManager().getBranchKeysOfChain(plan.getPlanKey());
-            return !branchKeys.isEmpty();
-        } else {
-            return false;
-        }
+        Set<PlanKey> branchKeys = getCachedPlanManager().getBranchKeysOfChain(plan.getPlanKey());
+        return !branchKeys.isEmpty();
     }
 
     private static CachedPlanManager getCachedPlanManager() {

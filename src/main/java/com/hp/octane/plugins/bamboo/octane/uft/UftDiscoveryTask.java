@@ -30,12 +30,12 @@ import java.io.File;
 import java.io.IOException;
 
 public class UftDiscoveryTask implements TaskType {
-    public static String WORKSPACE_ID_PARAM = "workspaceId";
-    public static String SCM_REPOSITORY_ID_PARAM = "scmRepositoryId";
-    public static String TEST_RUNNER_ID_PARAM = "testRunnerId";
+    public static final String WORKSPACE_ID_PARAM = "workspaceId";
+    public static final String SCM_REPOSITORY_ID_PARAM = "scmRepositoryId";
+    public static final String TEST_RUNNER_ID_PARAM = "testRunnerId";
 
-    public static String RESULT_FOLDER = "_discovery_results";
-    public static String RESULT_FILE_NAME_PREFIX = "uft_discovery_result_build_";
+    public static final String RESULT_FOLDER = "_discovery_results";
+    public static final String RESULT_FILE_NAME_PREFIX = "uft_discovery_result_build_";
 
 
     @Override

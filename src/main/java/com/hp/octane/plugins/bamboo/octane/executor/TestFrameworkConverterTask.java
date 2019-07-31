@@ -37,16 +37,16 @@ public class TestFrameworkConverterTask implements TaskType {
     private String framework;
     private String format;
 
-    public static String FRAMEWORK_PARAMETER = "framework";
-    public static String CONVERTER_FORMAT = "customConverterFormat";
+    public final static String FRAMEWORK_PARAMETER = "framework";
+    public final static String CONVERTER_FORMAT = "customConverterFormat";
 
 
-    private final String TESTS_TO_RUN_PARAMETER = "testsToRun";
-    private final String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
+    private final static String TESTS_TO_RUN_PARAMETER = "testsToRun";
+    private final static String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
 
-    private final String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
-    private final String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
-    private final int BAMBOO_MAX_FIELD_CAPACITY = 4000;
+    private final static String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
+    private final static String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
+    private final static int BAMBOO_MAX_FIELD_CAPACITY = 4000;
 
     @Override
     public TaskResult execute(@NotNull TaskContext taskContext) throws TaskException {

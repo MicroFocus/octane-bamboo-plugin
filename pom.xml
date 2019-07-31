@@ -66,10 +66,11 @@
 		<maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
 		<maven.compiler.plugin.version>1.8</maven.compiler.plugin.version>
 		<maven-source-plugin.version>2.2.1</maven-source-plugin.version>
-		<bamboo.version>6.4.2</bamboo.version>
-		<bamboo.data.version>6.4.2</bamboo.data.version>
-		<amps.version>5.1.11</amps.version>
-		<plugin.testrunner.version>1.2.3</plugin.testrunner.version>
+        <bamboo.version>6.8.0</bamboo.version>
+        <bamboo.data.version>6.8.0</bamboo.data.version>
+		<amps.version>8.0.0</amps.version>
+		<plugin.testrunner.version>2.0.1</plugin.testrunner.version>
+		<spotbugs.version>3.1.9</spotbugs.version>
 		<atlassian.spring.scanner.version>1.2.13</atlassian.spring.scanner.version>
 		<!-- This key is used to keep the consistency between the key in atlassian-plugin.xml and the key to generate bundle. -->
 		<atlassian.plugin.key>${project.groupId}.${project.artifactId}</atlassian.plugin.key>
@@ -119,6 +120,25 @@
 			<groupId>javax.ws.rs</groupId>
 			<artifactId>jsr311-api</artifactId>
 			<version>1.1.1</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax.xml.bind</groupId>
+			<artifactId>jaxb-api</artifactId>
+			<version>2.1</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.atlassian.sal</groupId>
+			<artifactId>sal-api</artifactId>
+			<version>3.1.2</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.atlassian.templaterenderer</groupId>
+			<artifactId>atlassian-template-renderer-api</artifactId>
+			<version>4.0.0-71ca514</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -205,12 +225,36 @@
 					<artifactId>maven-javadoc-plugin</artifactId>
 					<version>2.10.4</version>
 				</plugin>
+				<plugin>
+					<groupId>com.github.spotbugs</groupId>
+					<artifactId>spotbugs-maven-plugin</artifactId>
+					<version>${spotbugs.version}</version>
+					<configuration>
+						<effort>max</effort>
+						<maxRank>20</maxRank>
+					</configuration>
+					<executions>
+						<execution>
+							<goals>
+								<goal>check</goal>
+							</goals>
+						</execution>
+					</executions>
+					<dependencies>
+						<!-- overwrite dependency on spotbugs if you want to specify the version of spotbugs -->
+						<dependency>
+							<groupId>com.github.spotbugs</groupId>
+							<artifactId>spotbugs</artifactId>
+							<version>${spotbugs.version}</version>
+						</dependency>
+					</dependencies>
+				</plugin>
 			</plugins>
 		</pluginManagement>
 
 		<plugins>
 			<plugin>
-				<artifactId>maven-bamboo-plugin</artifactId>
+				<artifactId>bamboo-maven-plugin</artifactId>
 				<groupId>com.atlassian.maven.plugins</groupId>
 				<version>${amps.version}</version>
 				<extensions>true</extensions>
@@ -218,7 +262,6 @@
 					<allowGoogleTracking>false</allowGoogleTracking>
 					<productVersion>${bamboo.version}</productVersion>
 					<productDataVersion>${bamboo.data.version}</productDataVersion>
-					<enableFastdev>false</enableFastdev>
 					<buildTestPlugin>false</buildTestPlugin>
 					<!-- See here for more options: -->
 					<!-- https://developer.atlassian.com/docs/developer-tools/working-with-the-sdk/about-amps-build-options/amps-build-configuration-reference -->

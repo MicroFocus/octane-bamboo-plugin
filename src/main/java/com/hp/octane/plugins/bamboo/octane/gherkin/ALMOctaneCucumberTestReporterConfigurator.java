@@ -12,8 +12,8 @@ import java.util.Map;
 
 public class ALMOctaneCucumberTestReporterConfigurator extends AbstractTaskConfigurator {
 
-    public static String CUCUMBER_REPORT_PATTERN_FIELD = "cucumberReportXML";
-    public static String MQM_RESULT_FOLDER_PREFIX = "MQM_Result";
+    public static final String CUCUMBER_REPORT_PATTERN_FIELD = "cucumberReportXML";
+    public static final String MQM_RESULT_FOLDER_PREFIX = "MQM_Result";
 
     @Override
     public void populateContextForCreate(@NotNull Map<String, Object> context) {

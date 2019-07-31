@@ -37,33 +37,37 @@
     <!-- 		<resource type="download" name="images/" location="/images" /> -->
     <!-- 		<context>bamboo-plugin</context> -->
     <!-- 	</web-resource> -->
-    <web-item key="ngaAdminLink" section="system.admin/communication" weight="130">
-        <description>Octane configuration link</description>
-        <label key="ALM Octane CI Plugin"/>
-        <link linkId="ngaConfig">/admin/nga/configureOctaneEdit.action</link>
+
+
+    <servlet key="admin-servlet" class="com.hp.octane.plugins.bamboo.admin.AdminServlet">
+        <url-pattern>/admin/octane</url-pattern>
+    </servlet>
+
+
+    <web-item key="bamboo-menu-item" name="XProduct Admin" section="system.admin/communication" weight="10" application="bamboo">
+        <description>Link to configuration page.</description>
+        <label key="ALM Octane Configuration" />
+        <link linkId="alm-octane-config-link">/plugins/servlet/admin/octane</link>
     </web-item>
-    <xwork key="ngaActions" name="Octane Configuration Actions">
-        <package name="ngaAdmin" extends="admin" namespace="/admin/nga">
-            <action name="configureOctaneEdit" class="com.hp.octane.plugins.bamboo.ui.ConfigureOctaneAction"
-                    method="edit">
-                <result name="input" type="freemarker">/templates/configureOctane.ftl</result>
-                <param name="mode">edit</param>
-            </action>
-            <action name="configureOctaneSave" class="com.hp.octane.plugins.bamboo.ui.ConfigureOctaneAction"
-                    method="save">
-                <result name="input" type="freemarker">/templates/configureOctane.ftl</result>
-                <result name="success" type="freemarker">/templates/configureOctane.ftl</result>
-                <result name="error" type="freemarker">/error.ftl</result>
-            </action>
-        </package>
-    </xwork>
-    <bambooEventListener key="buildContextListener" name="Build Context Listener"
-                         class="com.hp.octane.plugins.bamboo.listener.OctanePostChainAction">
-        <description>Listens for build context events</description>
-    </bambooEventListener>
-    <component key="eventListener" class="com.hp.octane.plugins.bamboo.listener.PluginStatusChangesListener">
-        <description>Listens if a plugin changes its status</description>
-    </component>
+
+    <rest key="octane-admin-rest" path="/octane-admin" version="1.0">
+        <!--http://localhost:2990/bamboo/rest/octane-admin/1.0/-->
+        <description>Provides REST resources for the admin UI.</description>
+        <package>com.hp.octane.plugins.bamboo.rest</package>
+    </rest>
+
+    <web-resource key="bamboo-resources">
+        <dependency>com.atlassian.auiplugin:ajs</dependency>
+        <dependency>com.atlassian.auiplugin:aui-restfultable</dependency>
+        <dependency>com.atlassian.auiplugin:aui-dialog2</dependency>
+        <dependency>com.atlassian.auiplugin:aui-select2</dependency>
+        <dependency>com.atlassian.auiplugin:aui-flag</dependency>
+        <dependency>com.atlassian.auiplugin:aui-form-validation</dependency>
+        <resource type="download" name="images/" location="/images"/>
+        <resource key="jsKey" type="download" name="xproduct-admin-ui-plugin.js" location="/js/bamboo-plugin.js"/>
+        <resource key="cssKey" type="download" name="bamboo-plugin.css" location="/css/bamboo-plugin.css"/>
+        <context>bamboo-plugin-resource-context</context>
+    </web-resource>
 
     <bambooEventListener key="generalEventsListener" class="com.hp.octane.plugins.bamboo.listener.GeneralEventsListener"/>
 

@@ -21,10 +21,14 @@ import com.atlassian.bamboo.chains.BuildExecution;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
 import com.atlassian.bamboo.fileserver.SystemDirectory;
-import com.atlassian.bamboo.plan.*;
+import com.atlassian.bamboo.plan.ExecutionRequestResult;
+import com.atlassian.bamboo.plan.PlanExecutionManager;
+import com.atlassian.bamboo.plan.PlanKeys;
+import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
+import com.atlassian.bamboo.plugin.BambooApplication;
 import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.security.BambooPermissionManager;
 import com.atlassian.bamboo.security.acegi.acls.BambooPermission;
@@ -34,7 +38,6 @@ import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.bamboo.v2.build.queue.BuildQueueManager;
 import com.atlassian.plugin.PluginAccessor;
 import com.atlassian.sal.api.component.ComponentLocator;
-import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.CIPluginServices;
 import com.hp.octane.integrations.dto.DTOFactory;
@@ -46,6 +49,7 @@ import com.hp.octane.integrations.dto.executor.TestConnectivityInfo;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIPluginInfo;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
+import com.hp.octane.integrations.dto.general.CIServerTypes;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameters;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
@@ -55,13 +59,15 @@ import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
 import com.hp.octane.integrations.utils.SdkStringUtils;
-import com.hp.octane.plugins.bamboo.api.OctaneConfigurationKeys;
+import com.hp.octane.plugins.bamboo.listener.GeneralEventsListener;
 import com.hp.octane.plugins.bamboo.listener.MultibranchHelper;
 import com.hp.octane.plugins.bamboo.octane.gherkin.ALMOctaneCucumberTestReporterConfigurator;
 import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
+import com.hp.octane.plugins.bamboo.rest.OctaneConnection;
+import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 import org.acegisecurity.acls.Permission;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -73,17 +79,18 @@ import java.util.concurrent.Callable;
 import java.util.stream.StreamSupport;
 
 public class BambooPluginServices extends CIPluginServices {
-    private static final Logger log = LoggerFactory.getLogger(BambooPluginServices.class);
+    private static final Logger log = LogManager.getLogger(BambooPluginServices.class);
     private static final DTOFactory dtoFactory = DTOFactory.getInstance();
     private final String pluginVersion;
-    public static String PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin";
+    private final String bambooVersion;
+    public final static String PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin";
 
     private CachedPlanManager planMan;
 
     private ImpersonationService impService;
     private PlanExecutionManager planExecMan;
     private BuildQueueManager buildQueueManager;
-    private boolean allowedOctaneStorageExist = false;
+    private static boolean allowedOctaneStorageExist = false;
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
     private PluginSettingsFactory settingsFactory;
@@ -94,11 +101,17 @@ public class BambooPluginServices extends CIPluginServices {
         this.impService = ComponentLocator.getComponent(ImpersonationService.class);
         this.buildQueueManager = ComponentLocator.getComponent(BuildQueueManager.class);
         pluginVersion = ComponentLocator.getComponent(PluginAccessor.class).getPlugin(PLUGIN_KEY).getPluginInformation().getVersion();
+        bambooVersion = ComponentLocator.getComponent(BambooApplication.class).getVersion();
+
     }
 
 
     @Override
     public File getAllowedOctaneStorage() {
+        return getAllowedStorageFile();
+    }
+
+    public static File getAllowedStorageFile() {
         File f = new File(SystemDirectory.getApplicationHome(), "octanePluginContent");
         if (!allowedOctaneStorageExist) {
             f.mkdirs();
@@ -132,7 +145,7 @@ public class BambooPluginServices extends CIPluginServices {
         log.info("get pipeline " + pipelineId);
         ImmutableTopLevelPlan plan = planMan.getPlanByKey(PlanKeys.getPlanKey(pipelineId), ImmutableTopLevelPlan.class);
         PipelineNode pipelineNode = CONVERTER.getRootPipelineNodeFromTopLevelPlan(plan);
-        MultibranchHelper.enrichMultiBranchParentPipeline(plan,pipelineNode);
+        MultibranchHelper.enrichMultiBranchParentPipeline(plan, pipelineNode);
         return pipelineNode;
     }
 
@@ -179,11 +192,8 @@ public class BambooPluginServices extends CIPluginServices {
     @Override
     public CIServerInfo getServerInfo() {
         log.debug("get ci server info");
-        String instanceId = String.valueOf(getPluginSettings().get(OctaneConfigurationKeys.UUID));
-
         String baseUrl = getBambooServerBaseUrl();
-        String runAsUser = getRunAsUser();
-        return CONVERTER.getServerInfo(baseUrl, instanceId, runAsUser);
+        return CONVERTER.getServerInfo(baseUrl, bambooVersion);
     }
 
     @Override
@@ -299,16 +309,18 @@ public class BambooPluginServices extends CIPluginServices {
     }
 
     private String getRunAsUser() {
-        return String.valueOf(getPluginSettings().get(OctaneConfigurationKeys.IMPERSONATION_USER));
+        return getConnection().getBambooUser();
     }
 
-    private PluginSettings getPluginSettings() {
-        try {
-            return settingsFactory.createGlobalSettings();
-        } catch (Exception e) {//can occur then proxy object is destroyed on plugin redeployment
+    private OctaneConnection getConnection() {
+        return OctaneConnectionManager.getInstance().getConnectionById(getInstanceId());
+    }
+
+    private PluginSettingsFactory getPluginSettingsFactory() {
+        if (settingsFactory == null) {
             settingsFactory = ComponentLocator.getComponent(PluginSettingsFactory.class);
-            return settingsFactory.createGlobalSettings();
         }
+        return settingsFactory;
     }
 
     @Override
@@ -330,7 +342,7 @@ public class BambooPluginServices extends CIPluginServices {
 
 
         String workingDirectory = buildContext.getBuildResult().getCustomBuildData().get("working.directory");
-        String mqmResultFilePath = workingDirectory + File.separator + ALMOctaneCucumberTestReporterConfigurator.MQM_RESULT_FOLDER_PREFIX + File.separator +"Build_"+ buildContext.getBuildNumber() + File.separator + "mqmTests.xml";
+        String mqmResultFilePath = workingDirectory + File.separator + ALMOctaneCucumberTestReporterConfigurator.MQM_RESULT_FOLDER_PREFIX + File.separator + "Build_" + buildContext.getBuildNumber() + File.separator + "mqmTests.xml";
         File mqmResultFile = new File(mqmResultFilePath);
         if (mqmResultFile.exists()) {
             try {
@@ -361,10 +373,11 @@ public class BambooPluginServices extends CIPluginServices {
                 }
             }
 
+
             if (!testRuns.isEmpty()) {
                 List<TestField> testFields = runnerType.getTestFields();
                 BuildContext context = CONVERTER.getBuildContext(
-                        String.valueOf(settingsFactory.createGlobalSettings().get(OctaneConfigurationKeys.UUID)),
+                        String.valueOf(getConnection().getId()),
                         jobId,
                         buildId);
                 TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
