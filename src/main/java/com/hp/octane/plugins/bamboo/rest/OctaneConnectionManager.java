@@ -15,6 +15,8 @@
  */
 package com.hp.octane.plugins.bamboo.rest;
 
+import com.atlassian.plugin.PluginAccessor;
+import com.atlassian.sal.api.component.ComponentLocator;
 import com.atlassian.sal.api.pluginsettings.PluginSettings;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.OctaneClient;
@@ -34,7 +36,7 @@ public class OctaneConnectionManager {
     private static final Logger log = LogManager.getLogger(OctaneConnectionManager.class);
     private PluginSettingsFactory settingsFactory;
     private static final String PLUGIN_PREFIX = "com.hp.octane.plugins.bamboo.";
-    public static final String CONFIGURATIONS_LIST = PLUGIN_PREFIX + "CONFIGURATIONS_LIST";
+    public static final String CONFIGURATIONS_LIST = PLUGIN_PREFIX + "CONFIGURATIONS_LIST1";
     public static final String PLAIN_PASSWORD = "___PLAIN_PASSWORD____";
     private OctaneConnectionCollection octaneConnectionCollection;
     private static OctaneConnectionManager instance = new OctaneConnectionManager();
@@ -44,11 +46,6 @@ public class OctaneConnectionManager {
     }
 
     private OctaneConnectionManager() {
-    }
-
-    public void init(PluginSettingsFactory settingsFactory) {
-        this.settingsFactory = settingsFactory;
-        initSdkClients();
     }
 
     public OctaneConnectionCollection getOctaneConnections() {
@@ -126,13 +123,21 @@ public class OctaneConnectionManager {
         OctaneSDK.removeClient(currentClient);
     }
 
-    private void initSdkClients() {
+    public void initSdkClients(PluginSettingsFactory settingsFactory) {
         log.info("");
         log.info("");
         log.info("***********************************************************************************");
         log.info("****************************Enabling plugin - init SDK Clients*********************");
         log.info("***********************************************************************************");
 
+        try {
+            String pluginVersion = ComponentLocator.getComponent(PluginAccessor.class).getPlugin(BambooPluginServices.PLUGIN_KEY).getPluginInformation().getVersion();
+            log.info("Plugin version : " + pluginVersion);
+        } catch (Exception e) {
+            log.error("Failed to get plugin version : " + e.getMessage());
+        }
+
+        this.settingsFactory = settingsFactory;
         try {
             PluginSettings settings = settingsFactory.createGlobalSettings();
             if (settings.get(OctaneConnectionManager.CONFIGURATIONS_LIST) == null) {
@@ -142,7 +147,8 @@ public class OctaneConnectionManager {
                 OctaneConnection octaneConnection = PreviousVersionsConfigurationHelper_1_7.tryReadConfiguration(settingsFactory);
                 if (octaneConnection != null) {
                     addConfiguration(octaneConnection);
-                    PreviousVersionsConfigurationHelper_1_7.removePreviousVersion(settingsFactory);
+                    //don't remove previous version,to give possibility to user to do revert to previous version
+                    //PreviousVersionsConfigurationHelper_1_7.removePreviousVersion(settingsFactory);
                 }
             } else {
                 String confStr = ((String) settings.get(OctaneConnectionManager.CONFIGURATIONS_LIST));

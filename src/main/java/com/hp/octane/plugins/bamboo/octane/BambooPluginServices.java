@@ -38,7 +38,6 @@ import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.bamboo.v2.build.queue.BuildQueueManager;
 import com.atlassian.plugin.PluginAccessor;
 import com.atlassian.sal.api.component.ComponentLocator;
-import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.CIPluginServices;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
@@ -91,7 +90,6 @@ public class BambooPluginServices extends CIPluginServices {
     private static boolean allowedOctaneStorageExist = false;
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
-    private PluginSettingsFactory settingsFactory;
 
     public BambooPluginServices() {
         this.planExecMan = ComponentLocator.getComponent(PlanExecutionManager.class);
@@ -102,7 +100,6 @@ public class BambooPluginServices extends CIPluginServices {
         bambooVersion = ComponentLocator.getComponent(BambooApplication.class).getVersion();
 
     }
-
 
     @Override
     public File getAllowedOctaneStorage() {
@@ -312,13 +309,6 @@ public class BambooPluginServices extends CIPluginServices {
 
     private OctaneConnection getConnection() {
         return OctaneConnectionManager.getInstance().getConnectionById(getInstanceId());
-    }
-
-    private PluginSettingsFactory getPluginSettingsFactory() {
-        if (settingsFactory == null) {
-            settingsFactory = ComponentLocator.getComponent(PluginSettingsFactory.class);
-        }
-        return settingsFactory;
     }
 
     @Override

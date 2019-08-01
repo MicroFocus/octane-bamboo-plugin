@@ -56,7 +56,7 @@ public class GeneralEventsListener extends BaseListener {
     public void onPluginEnabled(PluginEnabledEvent event) {
         if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
             initOctaneAllowedStorageParameter();
-            OctaneConnectionManager.getInstance().init(settingsFactory);
+            OctaneConnectionManager.getInstance().initSdkClients(settingsFactory);
         }
     }
 
@@ -66,7 +66,6 @@ public class GeneralEventsListener extends BaseListener {
             OctaneConnectionManager.getInstance().removeClients();
         }
     }
-
 
     private static void initOctaneAllowedStorageParameter() {
         try {

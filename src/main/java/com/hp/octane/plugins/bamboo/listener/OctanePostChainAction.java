@@ -25,7 +25,6 @@ import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.v2.build.BuildContext;
 import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.bamboo.v2.build.events.PostBuildCompletedEvent;
-import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
@@ -33,21 +32,12 @@ import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.plugins.bamboo.octane.BuildContextCache;
-import org.apache.commons.collections.map.HashedMap;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class OctanePostChainAction extends BaseListener implements PostChainAction {
-    private final PluginSettingsFactory settingsFactory;
 
-    public OctanePostChainAction(PluginSettingsFactory settingsFactory) {
-        this.settingsFactory = settingsFactory;
-    }
-
-    private static Map<String, Boolean> testResultExpectedMap = new HashedMap();
+    private static Set<String> testResultExpected = new HashSet<>();
 
     public static void onJobCompleted(PostBuildCompletedEvent event) {
         // TODO move this listener into OctanePostJobAction
@@ -57,7 +47,6 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         boolean hasTests = (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
                 (results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
                 (results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty());
-        testResultExpectedMap.put(event.getContext().getParentBuildContext().getPlanResultKey().getKey(), hasTests);
         PlanKey planKey = event.getPlanKey();
         PlanResultKey planResultKey = event.getPlanResultKey();
 
@@ -84,6 +73,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
 
         if (hasTests) {
+            testResultExpected.add(event.getContext().getParentBuildContext().getPlanResultKey().getKey());
             BuildContextCache.add(planResultKey.getKey(), event.getContext());
             OctaneSDK.getClients().forEach(client ->
                     client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
@@ -112,10 +102,11 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         if (chainExecution.isStopRequested()) {
             ciEvent.setResult(CIBuildResult.ABORTED);
         }
+
+        //handle setTestResultExpected
         String key = chainExecution.getPlanResultKey().getKey();
-        if (testResultExpectedMap.containsKey(key)) {
-            ciEvent.setTestResultExpected(testResultExpectedMap.remove(key));
-        }
+        ciEvent.setTestResultExpected(testResultExpected.contains(key));
+        testResultExpected.remove(key);
 
         MultibranchHelper.enrichMultibranchEvent(chain, ciEvent);
 
