@@ -36,7 +36,7 @@ public class OctaneConnectionManager {
     private static final Logger log = LogManager.getLogger(OctaneConnectionManager.class);
     private PluginSettingsFactory settingsFactory;
     private static final String PLUGIN_PREFIX = "com.hp.octane.plugins.bamboo.";
-    public static final String CONFIGURATIONS_LIST = PLUGIN_PREFIX + "CONFIGURATIONS_LIST1";
+    public static final String CONFIGURATIONS_LIST = PLUGIN_PREFIX + "configuration_list";
     public static final String PLAIN_PASSWORD = "___PLAIN_PASSWORD____";
     private OctaneConnectionCollection octaneConnectionCollection;
     private static OctaneConnectionManager instance = new OctaneConnectionManager();
