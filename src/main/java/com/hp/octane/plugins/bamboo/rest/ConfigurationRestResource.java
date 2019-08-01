@@ -75,9 +75,8 @@ public class ConfigurationRestResource {
 
         octaneConnectionManager.replacePlainPasswordIfRequired(model);
         octaneConnectionManager.updateConfiguration(model);
-        return Response.ok().entity(model).build();
+        return Response.ok().entity(model.cloneForUI()).build();
     }
-
 
     @POST
     @Path("/")
@@ -98,7 +97,7 @@ public class ConfigurationRestResource {
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
-        return Response.ok().entity(model).build();
+        return Response.ok().entity(model.cloneForUI()).build();
     }
 
 
