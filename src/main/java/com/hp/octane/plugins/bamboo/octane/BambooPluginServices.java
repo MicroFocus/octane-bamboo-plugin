@@ -156,7 +156,7 @@ public class BambooPluginServices extends CIPluginServices {
         CIProxyConfiguration result = null;
 
         if (isProxyNeeded(targetUrl)) {
-            log.info("proxy is required for host " + targetUrl.getHost());
+            log.debug("proxy is required for host " + targetUrl.getHost());
             String protocol = targetUrl.getProtocol();
 
             return CONVERTER.getProxyCconfiguration(getProxyProperty(protocol + ".proxyHost", null),
