@@ -25,6 +25,7 @@ import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
+import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,9 @@ import java.util.List;
 public class OctanePreChainAction extends BaseListener implements PreChainAction {
 
     public void execute(Chain chain, ChainExecution chainExecution) throws Exception {
+        if(!OctaneConnectionManager.hasActiveClients()){
+            return;
+        }
 
         log.info("Executing chain " + chain.getName() + " build id "
                 + chainExecution.getBuildIdentifier().getBuildResultKey() + " build number "

@@ -42,12 +42,18 @@ public class GeneralEventsListener extends BaseListener {
 
     @EventListener
     public void onChainDeleted(ChainDeletedEvent event) {
+        if(!OctaneConnectionManager.hasActiveClients()){
+            return;
+        }
         MultibranchHelper.onChainDeleted(event.getPlanKey());
     }
 
     @EventListener
     @HibernateEventListenerAspect
     public void onJobCompleted(PostBuildCompletedEvent event) {
+        if(!OctaneConnectionManager.hasActiveClients()){
+            return;
+        }
         log.info("on job completed " + event.getPlanKey().getKey());
         OctanePostChainAction.onJobCompleted(event);
     }

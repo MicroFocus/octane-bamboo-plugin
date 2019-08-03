@@ -25,12 +25,16 @@ import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
+import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 
 import java.util.Arrays;
 
 public class OctanePreJobAction extends BaseListener implements PreJobAction {
 
 	public void execute(StageExecution paramStageExecution, BuildContext buildContext) {
+		if(!OctaneConnectionManager.hasActiveClients()){
+			return;
+		}
 
 		PlanResultKey resultKey = buildContext.getPlanResultKey();
 

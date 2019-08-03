@@ -171,4 +171,7 @@ public class OctaneConnectionManager {
         OctaneSDK.getClients().forEach(c -> OctaneSDK.removeClient(c));
     }
 
+    public static boolean hasActiveClients(){
+        return OctaneSDK.hasClients();
+    }
 }

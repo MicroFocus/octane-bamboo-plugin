@@ -32,6 +32,7 @@ import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.plugins.bamboo.octane.BuildContextCache;
+import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 
 import java.util.*;
 
@@ -40,8 +41,9 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
     private static Set<String> testResultExpected = new HashSet<>();
 
     public static void onJobCompleted(PostBuildCompletedEvent event) {
-        // TODO move this listener into OctanePostJobAction
-        //
+        if(!OctaneConnectionManager.hasActiveClients()){
+            return;
+        }
 
         CurrentBuildResult results = event.getContext().getBuildResult();
         boolean hasTests = (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
@@ -71,17 +73,19 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         ParametersHelper.addParametersToEvent(ciEvent, event.getContext());
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
 
-
         if (hasTests) {
             testResultExpected.add(event.getContext().getParentBuildContext().getPlanResultKey().getKey());
             BuildContextCache.add(planResultKey.getKey(), event.getContext());
             OctaneSDK.getClients().forEach(client ->
                     client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
         }
-
     }
 
     public void execute(Chain chain, ChainResultsSummary chainResultsSummary, ChainExecution chainExecution) throws Exception {
+        if(!OctaneConnectionManager.hasActiveClients()){
+            return;
+        }
+
         log.info("Chain " + chain.getName() + " completed with result "
                 + chainResultsSummary.getBuildState().toString());
         log.info("Build identifier " + chainExecution.getBuildIdentifier().getBuildResultKey() + " chain id "
