@@ -16,11 +16,11 @@
 
 package com.hp.octane.plugins.bamboo.listener;
 
-import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.plan.Plan;
 import com.atlassian.bamboo.plan.PlanKey;
 import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableChainBranch;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.sal.api.component.ComponentLocator;
@@ -40,8 +40,12 @@ public class MultibranchHelper {
     private static PlanManager planManager;
 
 
-    public static boolean isMultibranch(ImmutableTopLevelPlan plan) {
-        Set<PlanKey> branchKeys = getCachedPlanManager().getBranchKeysOfChain(plan.getPlanKey());
+    public static boolean isMultibranch(ImmutableChain chain) {
+        if(chain instanceof ImmutableChainBranch){
+            return true;
+        }
+
+        Set<PlanKey> branchKeys = getCachedPlanManager().getBranchKeysOfChain(chain.getPlanKey());
         return !branchKeys.isEmpty();
     }
 
@@ -65,8 +69,8 @@ public class MultibranchHelper {
         }
     }
 
-    public static void enrichMultibranchEvent(Chain chain, CIEvent ciEvent) {
-        if (chain instanceof ImmutableChainBranch) {
+    public static void enrichMultibranchEvent(ImmutableChain chain, CIEvent ciEvent) {
+        if (isMultibranch(chain)) {
             ciEvent.setParentCiId(chain.getMaster().getPlanKey().toString()).setMultiBranchType(MultiBranchType.MULTI_BRANCH_CHILD);
         }
     }
