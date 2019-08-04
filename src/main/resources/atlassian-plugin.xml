@@ -44,7 +44,7 @@
     </servlet>
 
 
-    <web-item key="bamboo-menu-item" name="XProduct Admin" section="system.admin/communication" weight="10" application="bamboo">
+    <web-item key="bamboo-menu-item" name="XProduct Admin" section="system.admin/communication" weight="100" application="bamboo">
         <description>Link to configuration page.</description>
         <label key="ALM Octane Configuration" />
         <link linkId="alm-octane-config-link">/plugins/servlet/admin/octane</link>

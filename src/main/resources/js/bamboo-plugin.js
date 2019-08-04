@@ -64,6 +64,7 @@
             if (!validateRequiredFieldsFilled()) {
                 return;
             }
+
             var model = {
                 id: "",
                 location: $("#location").val(),
@@ -89,13 +90,32 @@
                 dataType: "json",
                 contentType: "application/json"
             }).done(function (result) {
+                clearStatusMessage();
                 refreshRow(result);
                 AJS.dialog2("#config-dialog").hide();
-            }).fail(function (request, status, error) {
-                $("#error-massege").text(request.responseText);
+            }).fail(function (request) {
+                setStatusMessage("Failed to save : " + request.responseText, "ERROR");
             });
         });
 
+    }
+
+    function clearStatusMessage() {
+        setStatusMessage("");
+    }
+
+    function setStatusMessage(msg, status) {
+        $("#error-message").removeClass("success-msg");
+        $("#error-message").removeClass("error-msg");
+        $("#error-message").text(msg);
+
+        if(status){
+            if(status==="ERROR") {
+                $("#error-message").addClass("error-msg");
+            }else if (status==="SUCCESS") {
+                $("#error-message").addClass("success-msg");
+            }
+        }
     }
 
     function configureSpaceConfigurationTable() {
@@ -178,11 +198,14 @@
     }
 
     function removeSpaceConfiguration(row) {
-        var s = row.model.attributes.location;
-        var n = s.indexOf('#');
-        s = s.substring(0, n != -1 ? n : s.length);
+        var model = row.model.attributes;
+        var n = model.location.indexOf('#');
+        s = model.location.substring(0, n != -1 ? n : model.location.length);
 
         $("#space-to-delete").text(s);
+
+        $( "#warning-dialog-confirm" ).off();
+        $( "#warning-dialog-cancel" ).off();
 
         AJS.dialog2("#warning-dialog").show();
         AJS.$("#warning-dialog-confirm").click(function (e) {
@@ -190,15 +213,11 @@
             AJS.dialog2("#warning-dialog").hide();
 
             $.ajax({
-                url: spaceTable.options.resources.all + "/" + row.model.id, type: "DELETE",
+                url: spaceTable.options.resources.all + "/" + model.id, type: "DELETE",
             }).done(function () {
-                //reloadTable(spaceTable);
                 spaceTable.removeRow(row)
-            }).fail(function (request, status, error) {
-                var myFlag = AJS.flag({
-                    type: 'error',
-                    body: request.responseText,
-                });
+            }).fail(function (request) {
+                AJS.flag({type: 'error', body: request.responseText});
             });
         });
 
@@ -209,6 +228,8 @@
     }
 
     function showSpaceConfigurationDialog(rowForEdit) {
+        clearStatusMessage();
+
         var editMode = !!rowForEdit;
         var editEntity = editMode ? rowForEdit.model.attributes : null;
         AJS.$("#location").val(editEntity ? editEntity.location : "");
@@ -233,6 +254,7 @@
     }
 
     function testConnection(throbber, model) {
+        clearStatusMessage();
         throbber.addClass("test-connection-status");
         throbber.removeClass("test-connection-status-successful");
         throbber.removeClass("test-connection-status-failed");

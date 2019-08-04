@@ -70,7 +70,7 @@ public class ConfigurationRestResource {
         }
 
         if (octaneConnectionManager.getConnectionById(model.getId()) == null) {
-            Response.status(Response.Status.NOT_FOUND).entity("No configuration with id " + id).build();
+            return Response.status(Response.Status.NOT_FOUND).entity("No configuration with id " + id).build();
         }
 
         octaneConnectionManager.replacePlainPasswordIfRequired(model);
@@ -104,16 +104,16 @@ public class ConfigurationRestResource {
     @DELETE
     @Path("/{id}")
     public Response deleteConfiguration(@Context HttpServletRequest request, @PathParam("id") String id) {
-        if (octaneConnectionManager.getConnectionById(id) == null) {
-            Response.status(Response.Status.NOT_FOUND).entity("No configuration with id " + id).build();
-        }
-
         try {
-            octaneConnectionManager.deleteConfiguration(id);
+            boolean deleted = octaneConnectionManager.deleteConfiguration(id);
+            if (deleted) {
+                return Response.ok().entity(true).build();
+            } else {
+                return Response.status(Response.Status.NOT_FOUND).entity("No configuration with id " + id).build();
+            }
         } catch (Exception e) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
         }
-        return Response.ok().entity(true).build();
     }
 
     @GET

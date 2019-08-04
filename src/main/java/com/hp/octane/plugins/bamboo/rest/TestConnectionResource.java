@@ -32,6 +32,7 @@ import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.MqmProject;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import org.acegisecurity.acls.Permission;
+import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -43,7 +44,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -59,7 +59,7 @@ public class TestConnectionResource {
     @Path("/testconnection")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response testConfiguration(@Context HttpServletRequest request, OctaneConnection model) throws IOException {
+    public Response testConfiguration(@Context HttpServletRequest request, OctaneConnection model) {
         try {
             OctaneConnectionManager.getInstance().replacePlainPasswordIfRequired(model);
             tryToConnect(model);
@@ -74,19 +74,19 @@ public class TestConnectionResource {
         String clientId = dto.getClientId();
         String clientSecret = dto.getClientSecret();
         String bambooUser = dto.getBambooUser();
-        if (location == null || location.isEmpty()) {
-            throw new IllegalArgumentException("Location URL is required");
+        if (StringUtils.isEmpty(location)) {
+            throw new IllegalArgumentException("Location URL is missing");
         }
-        if (clientId == null || clientId.isEmpty()) {
-            throw new IllegalArgumentException("Client ID is required");
-        }
-
-        if (clientSecret == null || clientSecret.isEmpty()) {
-            throw new IllegalArgumentException("Client Secret is required");
+        if (StringUtils.isEmpty(clientId)) {
+            throw new IllegalArgumentException("Client ID is missing");
         }
 
-        if (bambooUser == null || bambooUser.isEmpty()) {
-            throw new IllegalArgumentException("Bamboo user is required");
+        if (StringUtils.isEmpty(clientSecret)) {
+            throw new IllegalArgumentException("Client Secret is missing");
+        }
+
+        if (StringUtils.isEmpty(bambooUser)) {
+            throw new IllegalArgumentException("Bamboo user is missing");
         }
         if (!isUserExist(bambooUser)) {
             throw new IllegalArgumentException("Bamboo user does not exist");

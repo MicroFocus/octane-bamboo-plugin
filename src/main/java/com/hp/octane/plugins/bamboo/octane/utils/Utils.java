@@ -39,13 +39,19 @@ public class Utils {
 
     public static MqmProject parseUiLocation(String uiLocation) {
         try {
-            URL url = new URL(uiLocation);
+            String myUiLocation = uiLocation;
+            int anchorPart = uiLocation.indexOf("#");
+            if (anchorPart > 0) {
+                myUiLocation = uiLocation.substring(0, anchorPart);
+            }
+
+            URL url = new URL(myUiLocation);
             String location;
-            int contextPos = uiLocation.indexOf("/ui");
+            int contextPos = myUiLocation.indexOf("/ui");
             if (contextPos < 0) {
                 return new MqmProject("Application context not found in URL");
             } else {
-                location = uiLocation.substring(0, contextPos);
+                location = myUiLocation.substring(0, contextPos);
             }
             List<NameValuePair> params = URLEncodedUtils.parse(url.toURI(), "UTF-8");
             for (NameValuePair param : params) {

@@ -60,7 +60,7 @@
                 <span id="dialog-message" class="aui-restfultable-throbber"></span>
                 <br/>
                 <br/>
-                <div id="error-massege" style="color:red;">
+                <div id="error-message">
                 </div>
             </div>
         </form>

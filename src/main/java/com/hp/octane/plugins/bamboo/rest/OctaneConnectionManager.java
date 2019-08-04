@@ -83,12 +83,14 @@ public class OctaneConnectionManager {
 
     public boolean deleteConfiguration(String id) {
         OctaneConnection octaneConnection = getConnectionById(id);
-        log.info("delete configuration: " + octaneConnection.getLocation());
-        removeClientFromSDK(id);
-        boolean removed = octaneConnectionCollection.removeConnection(octaneConnection);
-        saveSettings();
+        if(octaneConnection!=null){
+            log.info("delete configuration: " + octaneConnection.getLocation());
+            removeClientFromSDK(id);
+            boolean removed = octaneConnectionCollection.removeConnection(octaneConnection);
+            saveSettings();
+        }
 
-        return removed;
+        return octaneConnection!=null;
     }
 
     public void replacePlainPasswordIfRequired(OctaneConnection octaneConnection) {
