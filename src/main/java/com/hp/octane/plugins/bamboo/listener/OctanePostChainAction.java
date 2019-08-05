@@ -86,6 +86,11 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             return;
         }
 
+        if(MultibranchHelper.isMultiBranchParent(chain)){
+            //don't sent event on multibranch parent
+            return;
+        }
+
         log.info("Chain " + chain.getName() + " completed with result "
                 + chainResultsSummary.getBuildState().toString());
         log.info("Build identifier " + chainExecution.getBuildIdentifier().getBuildResultKey() + " chain id "
@@ -112,7 +117,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         ciEvent.setTestResultExpected(testResultExpected.contains(key));
         testResultExpected.remove(key);
 
-        MultibranchHelper.enrichMultibranchEvent(chain, ciEvent);
+        MultibranchHelper.enrichMultiBranchEvent(chain, ciEvent);
 
 //		event.setResult((chainResultsSummary.getBuildState() == BuildState.SUCCESS) ? CIBuildResult.SUCCESS : CIBuildResult.FAILURE);
         // TODO pushing finished type event with null duration results in http

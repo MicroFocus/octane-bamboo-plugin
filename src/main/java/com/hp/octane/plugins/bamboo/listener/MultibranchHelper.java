@@ -22,13 +22,14 @@ import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableChainBranch;
-import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.Set;
 
@@ -38,16 +39,8 @@ public class MultibranchHelper {
 
     private static CachedPlanManager cachedPlanManager;
     private static PlanManager planManager;
+    protected static final Logger log = LogManager.getLogger(OctanePostChainAction.class);
 
-
-    public static boolean isMultibranch(ImmutableChain chain) {
-        if(chain instanceof ImmutableChainBranch){
-            return true;
-        }
-
-        Set<PlanKey> branchKeys = getCachedPlanManager().getBranchKeysOfChain(chain.getPlanKey());
-        return !branchKeys.isEmpty();
-    }
 
     private static CachedPlanManager getCachedPlanManager() {
         if (cachedPlanManager == null) {
@@ -63,14 +56,24 @@ public class MultibranchHelper {
         return planManager;
     }
 
-    public static void enrichMultiBranchParentPipeline(ImmutableTopLevelPlan plan, PipelineNode pipelineNode) {
-        if (isMultibranch(plan)) {
+    public static boolean isMultiBranchParent(ImmutableChain chain) {
+        try {
+            Set<PlanKey> branchKeys = getCachedPlanManager().getBranchKeysOfChain(chain.getPlanKey());
+            return !branchKeys.isEmpty();
+        } catch (Exception e) {
+            log.error("Failed to check isMultiBranchParent : " + e.getMessage());
+            return false;
+        }
+    }
+
+    public static void enrichMultiBranchParentPipeline(ImmutableChain chain, PipelineNode pipelineNode) {
+        if (isMultiBranchParent(chain)) {
             pipelineNode.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
         }
     }
 
-    public static void enrichMultibranchEvent(ImmutableChain chain, CIEvent ciEvent) {
-        if (isMultibranch(chain)) {
+    public static void enrichMultiBranchEvent(ImmutableChain chain, CIEvent ciEvent) {
+        if (chain instanceof ImmutableChainBranch) {
             ciEvent.setParentCiId(chain.getMaster().getPlanKey().toString()).setMultiBranchType(MultiBranchType.MULTI_BRANCH_CHILD);
         }
     }

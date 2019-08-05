@@ -33,7 +33,13 @@ import java.util.List;
 public class OctanePreChainAction extends BaseListener implements PreChainAction {
 
     public void execute(Chain chain, ChainExecution chainExecution) throws Exception {
-        if(!OctaneConnectionManager.hasActiveClients()){
+        if (!OctaneConnectionManager.hasActiveClients()) {
+            return;
+        }
+
+        if (MultibranchHelper.isMultiBranchParent(chain)) {
+            //don't sent event on multibranch parent
+            log.info(String.format("Chain '%s(%s)' is recognized as multi-branch parent. Start event is ignored.", chain.getPlanKey(), chain.getName()));
             return;
         }
 
@@ -48,9 +54,9 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
                 PhaseType.INTERNAL);
 
-        MultibranchHelper.enrichMultibranchEvent(chain, event);
+        MultibranchHelper.enrichMultiBranchEvent(chain, event);
 
-        BuildContext buildContext = (BuildContext)chainExecution.getBuildIdentifier();
+        BuildContext buildContext = (BuildContext) chainExecution.getBuildIdentifier();
         ParametersHelper.addParametersToEvent(event, buildContext);
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
     }
