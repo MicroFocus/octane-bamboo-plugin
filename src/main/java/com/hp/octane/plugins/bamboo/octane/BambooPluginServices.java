@@ -317,7 +317,7 @@ public class BambooPluginServices extends CIPluginServices {
         InputStream output = null;
         List<TestRun> testRuns = new ArrayList<>();
         PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
-        com.atlassian.bamboo.v2.build.BuildContext buildContext = BuildContextCache.extract(buildId);
+        com.atlassian.bamboo.v2.build.BuildContext buildContext = BuildContextCache.get(buildId);
         if (buildContext == null) {
             BuildExecution buildExecution = planExecMan.getJobExecution(planResultKey);
             if (buildExecution == null) {
