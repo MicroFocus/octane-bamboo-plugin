@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 public class BuildContextCache {
 
-    private static final long MAX_WAIT_TIME = TimeUnit.MINUTES.toMillis(2);
+    private static final long MAX_WAIT_TIME = TimeUnit.MINUTES.toMillis(20);
     private static Map<String, Entry> map = new HashMap();
     private static long lastClearTime = System.currentTimeMillis();
     private static final Logger log = LogManager.getLogger(BuildContextCache.class);
@@ -39,10 +39,10 @@ public class BuildContextCache {
     }
 
     private static void clearOldEntries() {
-        boolean isToClear = System.currentTimeMillis() > (MAX_WAIT_TIME / 4 + lastClearTime);
+        boolean isToClear = System.currentTimeMillis() > (MAX_WAIT_TIME + lastClearTime);
         if (isToClear) {
             Set<String> keysToDelete = map.entrySet().stream().filter(entry -> entry.getValue().isExceedMaxWaitTime()).map(Map.Entry::getKey).collect(Collectors.toSet());
-            log.info("Clearing %s/%s items", keysToDelete.size(), map.size());
+            log.info(String.format("Clearing %s/%s items", keysToDelete.size(), map.size()));
             keysToDelete.stream().forEach(key -> map.remove(key));
             lastClearTime = System.currentTimeMillis();
         }
