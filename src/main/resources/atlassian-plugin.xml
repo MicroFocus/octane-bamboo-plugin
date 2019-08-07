@@ -83,10 +83,6 @@
                   class="com.hp.octane.plugins.bamboo.listener.OctanePreJobAction">
         <description>Report non-root job started to NGA</description>
     </preJobAction>
-    <rest name="Octane Rest Resource" i18n-name-key="octane-rest-resource.name" key="octane-rest-resource"
-          path="/octane" version="1.0">
-        <description key="octane-rest-resource.description">Octane Rest</description>
-    </rest>
     <taskType key="octaneUftTestDiscovery" name="ALM Octane UFT Test Discovery"
               class="com.hp.octane.plugins.bamboo.octane.uft.UftDiscoveryTask">
         <description>Scan UFT repository and discover existing UFT tests and data tables</description>
