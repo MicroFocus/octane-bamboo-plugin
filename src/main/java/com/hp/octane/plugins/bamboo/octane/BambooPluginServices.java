@@ -333,6 +333,7 @@ public class BambooPluginServices extends CIPluginServices {
         String mqmResultFilePath = workingDirectory + File.separator + ALMOctaneCucumberTestReporterConfigurator.MQM_RESULT_FOLDER_PREFIX + File.separator + "Build_" + buildContext.getBuildNumber() + File.separator + "mqmTests.xml";
         File mqmResultFile = new File(mqmResultFilePath);
         if (mqmResultFile.exists()) {
+            log.info("getTestsResult, using " + mqmResultFilePath);
             try {
                 output = mqmResultFile.length() > 0 ? new FileInputStream(mqmResultFile.getAbsolutePath()) : null;
             } catch (IOException e) {
