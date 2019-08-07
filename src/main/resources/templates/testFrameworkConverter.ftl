@@ -333,14 +333,14 @@
                 "\n\t\t\"target\": \"$package|$class|$testName\"," +
                 "\n\t\t\"string\": \"aaa\"," +
                 "\n\t\t\"replacement\": \"bbb\"" +
-                "\n\t\}" +
+                "\n\t\}," +
 
                 "\n\t\{" +
                 "\n\t\t\"type\": \"replaceRegexFirst\"," +
                 "\n\t\t\"target\": \"$package|$class|$testName\"," +
                 "\n\t\t\"regex\": \"aaa\"," +
                 "\n\t\t\"replacement\": \"bbb\"" +
-                "\n\t\}" +
+                "\n\t\}," +
 
                 "\n\t\{" +
                 "\n\t\t\"type\": \"joinString\"," +
