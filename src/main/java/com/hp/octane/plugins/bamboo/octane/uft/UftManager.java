@@ -320,6 +320,7 @@ public class UftManager {
         discoveryTask.getConfiguration().put(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, discoveryInfo.getScmRepositoryId());
         discoveryTask.getConfiguration().put(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, discoveryInfo.getExecutorId());
         discoveryTask.getConfiguration().put(UftDiscoveryTask.WORKSPACE_ID_PARAM, discoveryInfo.getWorkspaceId());
+        discoveryTask.getConfiguration().put(UftDiscoveryTask.SPACE_CONFIGURATION_ID_PARAM, discoveryInfo.getConfigurationId());
         tasks.add(discoveryTask);
         buildConfiguration.clearTree(TaskConfigurationUtils.TASK_CONFIG_ROOT);
         TaskConfigurationUtils.addTaskDefinitionsToConfig(tasks, buildConfiguration, TaskConfigurationUtils.TASK_PREFIX);

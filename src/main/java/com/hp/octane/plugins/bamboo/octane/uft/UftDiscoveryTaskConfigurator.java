@@ -19,6 +19,7 @@ import com.atlassian.bamboo.collections.ActionParametersMap;
 import com.atlassian.bamboo.task.AbstractTaskConfigurator;
 import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.utils.error.ErrorCollection;
+import org.apache.commons.lang.StringUtils;
 
 import java.util.Map;
 
@@ -31,6 +32,7 @@ public class UftDiscoveryTaskConfigurator extends AbstractTaskConfigurator {
         context.put(UftDiscoveryTask.WORKSPACE_ID_PARAM, taskDefinition.getConfiguration().get(UftDiscoveryTask.WORKSPACE_ID_PARAM));
         context.put(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, taskDefinition.getConfiguration().get(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM));
         context.put(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, taskDefinition.getConfiguration().get(UftDiscoveryTask.TEST_RUNNER_ID_PARAM));
+        context.put(UftDiscoveryTask.SPACE_CONFIGURATION_ID_PARAM, taskDefinition.getConfiguration().get(UftDiscoveryTask.SPACE_CONFIGURATION_ID_PARAM));
     }
 
     @Override
@@ -40,6 +42,7 @@ public class UftDiscoveryTaskConfigurator extends AbstractTaskConfigurator {
         config.put(UftDiscoveryTask.WORKSPACE_ID_PARAM, params.getString(UftDiscoveryTask.WORKSPACE_ID_PARAM));
         config.put(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, params.getString(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM));
         config.put(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, params.getString(UftDiscoveryTask.TEST_RUNNER_ID_PARAM));
+        config.put(UftDiscoveryTask.SPACE_CONFIGURATION_ID_PARAM, params.getString(UftDiscoveryTask.SPACE_CONFIGURATION_ID_PARAM));
 
         return config;
     }
@@ -50,6 +53,7 @@ public class UftDiscoveryTaskConfigurator extends AbstractTaskConfigurator {
         validateNumericalValue(UftDiscoveryTask.WORKSPACE_ID_PARAM, params.getString(UftDiscoveryTask.WORKSPACE_ID_PARAM), errorCollection);
         validateNumericalValue(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM, params.getString(UftDiscoveryTask.SCM_REPOSITORY_ID_PARAM), errorCollection);
         validateNumericalValue(UftDiscoveryTask.TEST_RUNNER_ID_PARAM, params.getString(UftDiscoveryTask.TEST_RUNNER_ID_PARAM), errorCollection);
+        validateRequiredStringValue(UftDiscoveryTask.SPACE_CONFIGURATION_ID_PARAM, params.getString(UftDiscoveryTask.SPACE_CONFIGURATION_ID_PARAM), errorCollection);
     }
 
     private void validateNumericalValue(String field, String value, ErrorCollection errorCollection) {
@@ -58,5 +62,12 @@ public class UftDiscoveryTaskConfigurator extends AbstractTaskConfigurator {
         } catch (Exception e) {
             errorCollection.addError(field, "Expected numerical value");
         }
+    }
+
+    private void validateRequiredStringValue(String field, String value, ErrorCollection errorCollection) {
+        if (StringUtils.isEmpty(value)) {
+            errorCollection.addError(field, "Value is missing");
+        }
+
     }
 }

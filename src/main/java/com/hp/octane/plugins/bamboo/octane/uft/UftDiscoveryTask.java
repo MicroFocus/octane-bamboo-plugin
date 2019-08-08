@@ -24,6 +24,7 @@ import com.hp.octane.integrations.uft.UftTestDispatchUtils;
 import com.hp.octane.integrations.uft.items.CustomLogger;
 import com.hp.octane.integrations.uft.items.JobRunContext;
 import com.hp.octane.integrations.uft.items.UftTestDiscoveryResult;
+import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -33,6 +34,7 @@ public class UftDiscoveryTask implements TaskType {
     public static final String WORKSPACE_ID_PARAM = "workspaceId";
     public static final String SCM_REPOSITORY_ID_PARAM = "scmRepositoryId";
     public static final String TEST_RUNNER_ID_PARAM = "testRunnerId";
+    public static final String SPACE_CONFIGURATION_ID_PARAM = "spaceConfigurationId";
 
     public static final String RESULT_FOLDER = "_discovery_results";
     public static final String RESULT_FILE_NAME_PREFIX = "uft_discovery_result_build_";
@@ -48,14 +50,24 @@ public class UftDiscoveryTask implements TaskType {
         UftTestDiscoveryResult result = UftTestDiscoveryUtils.doFullDiscovery(checkoutLocation);
         buildLogger.addBuildLogEntry(String.format("Found %s tests", result.getAllTests().size()));
         buildLogger.addBuildLogEntry(String.format("Found %s data tables ", result.getAllScmResourceFiles().size()));
-        //todo OctaneSDK.getClients().get(0) should be replaced for multi shared space support
-        if (OctaneSDK.getClients().get(0).getConfigurationService().isCurrentConfigurationValid()) {
+
+
+        String spaceConfigurationId = taskContext.getConfigurationMap().get(SPACE_CONFIGURATION_ID_PARAM);
+        if (StringUtils.isEmpty(spaceConfigurationId)) {
+            spaceConfigurationId = OctaneSDK.getClients().size() == 1 ? OctaneSDK.getClients().get(0).getInstanceId() : null;
+        }
+        if (StringUtils.isEmpty(spaceConfigurationId)) {
+            buildLogger.addBuildLogEntry("Space configuration is missing! This field should contain instance ID of space configuration!!!!!!!!!!!");
+            return TaskResultBuilder.newBuilder(taskContext).failed().build();
+        }
+        if (OctaneSDK.getClientByInstanceId(spaceConfigurationId).getConfigurationService().isCurrentConfigurationValid()) {
             result.setWorkspaceId(taskContext.getConfigurationMap().get(WORKSPACE_ID_PARAM));
             result.setScmRepositoryId(taskContext.getConfigurationMap().get(SCM_REPOSITORY_ID_PARAM));
             result.setTestRunnerId(taskContext.getConfigurationMap().get(TEST_RUNNER_ID_PARAM));
+            result.setConfigurationId(spaceConfigurationId);
             result.setFullScan(true);
 
-            EntitiesService entitiesService = OctaneSDK.getClients().get(0).getEntitiesService();
+            EntitiesService entitiesService = OctaneSDK.getClientByInstanceId(spaceConfigurationId).getEntitiesService();
             UftTestDispatchUtils.prepareDispatchingForFullSync(entitiesService, result);
 
 
