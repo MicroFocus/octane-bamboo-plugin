@@ -17,7 +17,6 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.applinks.ImpersonationService;
-import com.atlassian.bamboo.chains.BuildExecution;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
 import com.atlassian.bamboo.fileserver.SystemDirectory;
@@ -29,12 +28,10 @@ import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.bamboo.plugin.BambooApplication;
-import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.security.BambooPermissionManager;
 import com.atlassian.bamboo.security.acegi.acls.BambooPermission;
 import com.atlassian.bamboo.user.BambooUser;
 import com.atlassian.bamboo.user.BambooUserManager;
-import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.bamboo.v2.build.queue.BuildQueueManager;
 import com.atlassian.plugin.PluginAccessor;
 import com.atlassian.sal.api.component.ComponentLocator;
@@ -52,13 +49,11 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameters;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
-import com.hp.octane.integrations.dto.tests.*;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
 import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.listener.MultibranchHelper;
-import com.hp.octane.plugins.bamboo.octane.gherkin.ALMOctaneCucumberTestReporterConfigurator;
 import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnection;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
@@ -71,7 +66,10 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.StreamSupport;
 
@@ -315,65 +313,23 @@ public class BambooPluginServices extends CIPluginServices {
     public InputStream getTestsResult(String jobId, String buildId) {
         //  retrieve test results by build IDs
         InputStream output = null;
-        List<TestRun> testRuns = new ArrayList<>();
         PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
-        com.atlassian.bamboo.v2.build.BuildContext buildContext = BuildContextCache.get(buildId);
-        if (buildContext == null) {
-            BuildExecution buildExecution = planExecMan.getJobExecution(planResultKey);
-            if (buildExecution == null) {
-                log.info("failed to find build execution for " + jobId + " #" + buildId);
-                return null;
-                //throw new IllegalStateException("failed to find build execution for " + jobId + " #" + buildId);
-            }
-            buildContext = buildExecution.getBuildContext();
-        }
 
-
-        String workingDirectory = buildContext.getBuildResult().getCustomBuildData().get("working.directory");
-        String mqmResultFilePath = workingDirectory + File.separator + ALMOctaneCucumberTestReporterConfigurator.MQM_RESULT_FOLDER_PREFIX + File.separator + "Build_" + buildContext.getBuildNumber() + File.separator + "mqmTests.xml";
-        File mqmResultFile = new File(mqmResultFilePath);
+        File mqmResultFile = MqmResultsHelper.getMqmResultFilePath(planResultKey).toFile();
         if (mqmResultFile.exists()) {
-            log.info("getTestsResult, using " + mqmResultFilePath);
+            log.info(String.format("getTestsResult %s #%s, using  %s", jobId, buildId, mqmResultFile.getAbsolutePath()));
             try {
                 output = mqmResultFile.length() > 0 ? new FileInputStream(mqmResultFile.getAbsolutePath()) : null;
             } catch (IOException e) {
-                log.error("failed to get test results for  " + jobId + " #" + buildId + " from " + mqmResultFilePath);
+                log.error("failed to get test results for  " + jobId + " #" + buildId + " from " + mqmResultFile.getAbsolutePath());
             }
         } else {
-            HPRunnerType runnerType = HPRunnerTypeUtils.getHPRunnerType(buildContext.getRuntimeTaskDefinitions());
-            CurrentBuildResult results = buildContext.getBuildResult();
-
-            if (results.getFailedTestResults() != null) {
-                for (TestResults currentTestResult : results.getFailedTestResults()) {
-                    testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.FAILED,
-                            results.getTasksStartDate().getTime()));
-                }
-            }
-            if (results.getSkippedTestResults() != null) {
-                for (TestResults currentTestResult : results.getSkippedTestResults()) {
-                    testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.SKIPPED,
-                            results.getTasksStartDate().getTime()));
-                }
-            }
-            if (results.getSuccessfulTestResults() != null) {
-                for (TestResults currentTestResult : results.getSuccessfulTestResults()) {
-                    testRuns.add(CONVERTER.getTestRunFromTestResult(buildContext, runnerType, currentTestResult, TestRunResult.PASSED,
-                            results.getTasksStartDate().getTime()));
-                }
-            }
-
-
-            if (!testRuns.isEmpty()) {
-                List<TestField> testFields = runnerType.getTestFields();
-                BuildContext context = CONVERTER.getBuildContext(
-                        String.valueOf(getConnection().getId()),
-                        jobId,
-                        buildId);
-                TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class).setTestRuns(testRuns)
-                        .setBuildContext(context).setTestFields(testFields);
-
-                //  return stream to SDK
-                output = dtoFactory.dtoToXmlStream(testsResult);
+            com.atlassian.bamboo.v2.build.BuildContext buildContext = BuildContextCache.get(buildId);
+            if (buildContext != null) {
+                log.info(String.format("getTestsResult %s #%s, using build context", jobId, buildId));
+                output = MqmResultsHelper.generateTestResultStream(buildContext, jobId, buildId);
+            } else {
+                log.info(String.format("getTestsResult %s #%s, build context is not found ", jobId, buildId));
             }
         }
         return output;

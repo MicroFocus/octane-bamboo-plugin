@@ -2,6 +2,7 @@ package com.hp.octane.plugins.bamboo.octane.gherkin;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.task.*;
+import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
@@ -18,7 +19,7 @@ public class ALMOctaneCucumberTestReporterTask implements TaskType {
             buildLogger.addBuildLogEntry("***************ALM octane cucumber test reporter task must be final*************");
         }
         File targetDirectory = Paths.get(taskContext.getWorkingDirectory().getAbsolutePath(),
-                ALMOctaneCucumberTestReporterConfigurator. MQM_RESULT_FOLDER_PREFIX,
+                OctaneConstants.MQM_RESULT_FOLDER,
                 "Build_" + taskContext.getBuildContext().getBuildNumber()).toFile();
         targetDirectory.mkdirs();
 

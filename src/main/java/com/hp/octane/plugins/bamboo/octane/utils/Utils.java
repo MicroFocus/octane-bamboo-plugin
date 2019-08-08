@@ -16,18 +16,11 @@
 
 package com.hp.octane.plugins.bamboo.octane.utils;
 
-import com.atlassian.bamboo.build.Job;
-import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionImpl;
-import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionManager;
-import com.atlassian.bamboo.util.RequestCacheThreadLocal;
-import com.atlassian.bamboo.utils.XsrfUtils;
-import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.plugins.bamboo.octane.MqmProject;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
@@ -76,41 +69,4 @@ public class Utils {
     }
 
 
-    public static boolean registerArtifactDefinition(@NotNull Job job, String name, String pattern) {
-        if (job == null || StringUtils.isEmpty(name) || StringUtils.isEmpty(pattern)) {
-            return false;
-        }
-        String HTTP_REQUEST_IS_MUTATIVE_KEY = "bamboo.http.request.isMutative";
-        boolean isMutativeKeyWasChanged = false;
-        try {
-            ArtifactDefinitionManager artifactDefinitionManager = ComponentLocator.getComponent(ArtifactDefinitionManager.class);
-            if (artifactDefinitionManager.findArtifactDefinition(job, name) == null) {
-                ArtifactDefinitionImpl artifactDefinition = new ArtifactDefinitionImpl(name, "", pattern);
-                artifactDefinition.setProducerJob(job);
-
-                //workaround, if request is not mutative - saveArtifactDefinition will fail on XSRF exception
-                if (XsrfUtils.areMutativeGetsForbiddenByConfig() && !XsrfUtils.noRequestOrRequestCanMutateState() && !RequestCacheThreadLocal.canRequestMutateState()) {
-                    isMutativeKeyWasChanged = true;
-                    RequestCacheThreadLocal.getRequestCache().put(HTTP_REQUEST_IS_MUTATIVE_KEY, true);
-                }
-
-                //save
-                artifactDefinitionManager.saveArtifactDefinition(artifactDefinition);
-
-                //revert workaround
-                if (isMutativeKeyWasChanged) {
-                    RequestCacheThreadLocal.getRequestCache().put(HTTP_REQUEST_IS_MUTATIVE_KEY, false);
-                }
-                return true;
-            } else {
-                return false;
-            }
-        } catch (Exception e) {
-            log.error("Failed to registerArtifactDefinition : " + e.getMessage(), e);
-        } finally {
-
-
-        }
-        return false;
-    }
 }
