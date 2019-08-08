@@ -76,6 +76,7 @@ import com.hp.octane.integrations.dto.scm.SCMRepository;
 import com.hp.octane.integrations.dto.scm.SCMType;
 import com.hp.octane.integrations.utils.SdkStringUtils;
 import com.hp.octane.plugins.bamboo.listener.ParametersHelper;
+import com.hp.octane.plugins.bamboo.octane.ArtifactsHelper;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
@@ -548,13 +549,13 @@ public class UftManager {
     private boolean registerArtifactForDiscovery(@NotNull Job job) {
         String name = "UFT discovery result";
         String pattern = "**/" + UftDiscoveryTask.RESULT_FILE_NAME_PREFIX + "${bamboo.buildNumber}*";
-        return Utils.registerArtifactDefinition(job, name, pattern);
+        return ArtifactsHelper.registerArtifactDefinition(job, name, pattern);
     }
 
     private boolean registerArtifactForExecution(@NotNull Job job) {
         String name = "Micro Focus Tasks Artifact Definition";
         String pattern = "UFT_Build_${bamboo.buildNumber}/**";
-        return Utils.registerArtifactDefinition(job, name, pattern);
+        return ArtifactsHelper.registerArtifactDefinition(job, name, pattern);
     }
 
     private void createVariablesForExecution(@NotNull Chain chain) {

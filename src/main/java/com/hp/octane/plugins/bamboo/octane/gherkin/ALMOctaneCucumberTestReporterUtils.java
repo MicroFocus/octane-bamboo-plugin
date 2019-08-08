@@ -18,6 +18,7 @@ package com.hp.octane.plugins.bamboo.octane.gherkin;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
+import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -43,7 +44,6 @@ import java.util.Map;
 
 public class ALMOctaneCucumberTestReporterUtils {
     public static final String GHERKIN_NGA_RESULTS = "OctaneGherkinResults";
-    public static final String MQM_TESTS_FILE_NAME = "mqmTests";
     public static final String DEFAULT_GLOB = "**/*" + GHERKIN_NGA_RESULTS + ".xml";
 
 
@@ -104,7 +104,7 @@ public class ALMOctaneCucumberTestReporterUtils {
         //https://docs.oracle.com/javase/7/docs/api/java/nio/file/FileSystem.html#getPathMatcher(java.lang.String)
         userPattern = "{" + userPattern + "}";
         final PathMatcher matcher = fs.getPathMatcher("glob:" + userPattern);
-        final PathMatcher exclude = fs.getPathMatcher("glob:" + "**/" + ALMOctaneCucumberTestReporterConfigurator.MQM_RESULT_FOLDER_PREFIX + "/**");
+        final PathMatcher exclude = fs.getPathMatcher("glob:" + "**/" + OctaneConstants.MQM_RESULT_FOLDER + "/**");
         List<Path> finalCollection = new ArrayList<>();
         FileVisitor<Path> matcherVisitor = new SimpleFileVisitor<Path>() {
             @Override
@@ -129,7 +129,7 @@ public class ALMOctaneCucumberTestReporterUtils {
 
     private static void writeXmlFile(String targetDirectoryPath, String planName, int buildNumber, List<GherkinTestResult> gherkinTestResults, BuildLogger buildLogger) throws IOException, XMLStreamException {
 
-        String mqmFilePath = targetDirectoryPath + File.separator + MQM_TESTS_FILE_NAME + ".xml";
+        String mqmFilePath = targetDirectoryPath + File.separator + OctaneConstants.MQM_TESTS_FILE_NAME;
         addLogEntry(buildLogger, "Creating mqm test result file : " + mqmFilePath);
         FileOutputStream outputStream = new FileOutputStream(new File(mqmFilePath));
         XMLStreamWriter writer = XMLOutputFactory.newInstance().createXMLStreamWriter(outputStream, "UTF-8");
@@ -137,7 +137,7 @@ public class ALMOctaneCucumberTestReporterUtils {
             writer.writeStartDocument("UTF-8", "1.0");
             writer.writeStartElement("test_result");
             writer.writeStartElement("build");
-            writer.writeAttribute("server_id", "to-be-filled-in-SDK");
+            writer.writeAttribute("server_id", OctaneConstants.INSTANCE_ID_TO_BE_SET_IN_SDK);
             writer.writeAttribute("job_id", planName);
             writer.writeAttribute("build_id", Integer.toString(buildNumber));
             writer.writeEndElement(); // build

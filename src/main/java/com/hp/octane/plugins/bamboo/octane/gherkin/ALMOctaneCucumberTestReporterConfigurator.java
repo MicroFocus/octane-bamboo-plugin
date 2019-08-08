@@ -21,7 +21,8 @@ import com.atlassian.bamboo.collections.ActionParametersMap;
 import com.atlassian.bamboo.task.AbstractTaskConfigurator;
 import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.utils.error.ErrorCollection;
-import com.hp.octane.plugins.bamboo.octane.utils.Utils;
+import com.hp.octane.plugins.bamboo.octane.ArtifactsHelper;
+import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Map;
@@ -29,7 +30,6 @@ import java.util.Map;
 public class ALMOctaneCucumberTestReporterConfigurator extends AbstractTaskConfigurator {
 
     public static final String CUCUMBER_REPORT_PATTERN_FIELD = "cucumberReportXML";
-    public static final String MQM_RESULT_FOLDER_PREFIX = "MQM_Result";
 
     @Override
     public void populateContextForCreate(@NotNull Map<String, Object> context) {
@@ -38,9 +38,8 @@ public class ALMOctaneCucumberTestReporterConfigurator extends AbstractTaskConfi
     }
 
     private boolean registerArtifacts(@NotNull Job job) {
-        String name = "MQM test results";
-        String pattern = "**/" + MQM_RESULT_FOLDER_PREFIX + "/Build_${bamboo.buildNumber}/*.xml";
-        return Utils.registerArtifactDefinition(job, name, pattern);
+        String pattern = "**/" + OctaneConstants.MQM_RESULT_FOLDER + "/Build_${bamboo.buildNumber}/*.xml";
+        return ArtifactsHelper.registerArtifactDefinition(job, OctaneConstants.MQM_RESULT_ARTIFACT_NAME, pattern);
     }
 
     @Override
