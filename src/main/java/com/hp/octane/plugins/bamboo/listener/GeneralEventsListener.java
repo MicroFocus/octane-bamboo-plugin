@@ -22,16 +22,13 @@ import com.atlassian.bamboo.v2.build.events.PostBuildCompletedEvent;
 import com.atlassian.event.api.EventListener;
 import com.atlassian.plugin.event.events.PluginDisablingEvent;
 import com.atlassian.plugin.event.events.PluginEnabledEvent;
-import com.atlassian.plugin.event.events.PluginInstalledEvent;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
-import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 
 public class GeneralEventsListener extends BaseListener {
 
     private PluginSettingsFactory settingsFactory;
-    private static volatile boolean sysParamConfigured = false;
 
     public GeneralEventsListener(PluginSettingsFactory settingsFactory) {
         this.settingsFactory = settingsFactory;
@@ -58,15 +55,7 @@ public class GeneralEventsListener extends BaseListener {
     @EventListener
     public void onPluginEnabled(PluginEnabledEvent event) {
         if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
-            //SDKBasedLoggerProvider.initOctaneAllowedStorageProperty();
             OctaneConnectionManager.getInstance().initSdkClients(settingsFactory);
-        }
-    }
-
-    @EventListener
-    public void onPluginInstalled(PluginInstalledEvent event) {
-        if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
-            //SDKBasedLoggerProvider.initOctaneAllowedStorageProperty();
         }
     }
 
@@ -76,5 +65,4 @@ public class GeneralEventsListener extends BaseListener {
             OctaneConnectionManager.getInstance().removeClients();
         }
     }
-
 }
