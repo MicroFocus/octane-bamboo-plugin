@@ -19,7 +19,6 @@ package com.hp.octane.plugins.bamboo.octane;
 import com.atlassian.bamboo.applinks.ImpersonationService;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
-import com.atlassian.bamboo.fileserver.SystemDirectory;
 import com.atlassian.bamboo.plan.ExecutionRequestResult;
 import com.atlassian.bamboo.plan.PlanExecutionManager;
 import com.atlassian.bamboo.plan.PlanKeys;
@@ -58,7 +57,6 @@ import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnection;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 import org.acegisecurity.acls.Permission;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
@@ -74,8 +72,7 @@ import java.util.concurrent.Callable;
 import java.util.stream.StreamSupport;
 
 public class BambooPluginServices extends CIPluginServices {
-    private static final Logger log = LogManager.getLogger(BambooPluginServices.class);
-    private static final DTOFactory dtoFactory = DTOFactory.getInstance();
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(BambooPluginServices.class);
     private final String pluginVersion;
     private final String bambooVersion;
     public final static String PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin";
@@ -85,7 +82,6 @@ public class BambooPluginServices extends CIPluginServices {
     private ImpersonationService impService;
     private PlanExecutionManager planExecMan;
     private BuildQueueManager buildQueueManager;
-    private static boolean allowedOctaneStorageExist = false;
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
 
@@ -101,16 +97,7 @@ public class BambooPluginServices extends CIPluginServices {
 
     @Override
     public File getAllowedOctaneStorage() {
-        return getAllowedStorageFile();
-    }
-
-    public static File getAllowedStorageFile() {
-        File f = new File(SystemDirectory.getApplicationHome(), "octanePluginContent");
-        if (!allowedOctaneStorageExist) {
-            f.mkdirs();
-            allowedOctaneStorageExist = true;
-        }
-        return f;
+        return SDKBasedLoggerProvider.getAllowedStorageFile();
     }
 
     @Override

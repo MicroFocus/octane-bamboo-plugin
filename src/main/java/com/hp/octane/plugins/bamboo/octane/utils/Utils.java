@@ -17,9 +17,9 @@
 package com.hp.octane.plugins.bamboo.octane.utils;
 
 import com.hp.octane.plugins.bamboo.octane.MqmProject;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.util.StringUtils;
 
@@ -29,7 +29,7 @@ import java.net.URL;
 import java.util.List;
 
 public class Utils {
-    private static final Logger log = LogManager.getLogger(Utils.class);
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(Utils.class);
     private static final String PARAM_SHARED_SPACE = "p";
 
     public static MqmProject parseUiLocation(String uiLocation) {

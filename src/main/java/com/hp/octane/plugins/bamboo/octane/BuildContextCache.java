@@ -17,7 +17,6 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.v2.build.BuildContext;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.HashMap;
@@ -31,7 +30,7 @@ public class BuildContextCache {
     private static final long MAX_WAIT_TIME = TimeUnit.MINUTES.toMillis(20);
     private static Map<String, Entry> map = new HashMap();
     private static long lastClearTime = System.currentTimeMillis();
-    private static final Logger log = LogManager.getLogger(BuildContextCache.class);
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(BuildContextCache.class);
 
     public static synchronized void add(String planResultKey, BuildContext buildContext) {
         clearOldEntries();

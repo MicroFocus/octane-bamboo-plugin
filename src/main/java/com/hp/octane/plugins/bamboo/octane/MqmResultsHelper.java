@@ -24,8 +24,6 @@ import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +35,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MqmResultsHelper {
-    private static final Logger log = LogManager.getLogger(MqmResultsHelper.class);
     private static StorageLocationService storageLocationService;
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
 

@@ -22,17 +22,14 @@ import com.atlassian.bamboo.v2.build.events.PostBuildCompletedEvent;
 import com.atlassian.event.api.EventListener;
 import com.atlassian.plugin.event.events.PluginDisablingEvent;
 import com.atlassian.plugin.event.events.PluginEnabledEvent;
+import com.atlassian.plugin.event.events.PluginInstalledEvent;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.io.File;
 
 public class GeneralEventsListener extends BaseListener {
 
-    private static final Logger logger = LogManager.getLogger(GeneralEventsListener.class);
     private PluginSettingsFactory settingsFactory;
     private static volatile boolean sysParamConfigured = false;
 
@@ -42,7 +39,7 @@ public class GeneralEventsListener extends BaseListener {
 
     @EventListener
     public void onChainDeleted(ChainDeletedEvent event) {
-        if(!OctaneConnectionManager.hasActiveClients()){
+        if (!OctaneConnectionManager.hasActiveClients()) {
             return;
         }
         MultibranchHelper.onChainDeleted(event.getPlanKey());
@@ -51,7 +48,7 @@ public class GeneralEventsListener extends BaseListener {
     @EventListener
     @HibernateEventListenerAspect
     public void onJobCompleted(PostBuildCompletedEvent event) {
-        if(!OctaneConnectionManager.hasActiveClients()){
+        if (!OctaneConnectionManager.hasActiveClients()) {
             return;
         }
         log.info("on job completed " + event.getPlanKey().getKey());
@@ -61,8 +58,15 @@ public class GeneralEventsListener extends BaseListener {
     @EventListener
     public void onPluginEnabled(PluginEnabledEvent event) {
         if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
-            initOctaneAllowedStorageParameter();
+            //SDKBasedLoggerProvider.initOctaneAllowedStorageProperty();
             OctaneConnectionManager.getInstance().initSdkClients(settingsFactory);
+        }
+    }
+
+    @EventListener
+    public void onPluginInstalled(PluginInstalledEvent event) {
+        if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
+            //SDKBasedLoggerProvider.initOctaneAllowedStorageProperty();
         }
     }
 
@@ -73,14 +77,4 @@ public class GeneralEventsListener extends BaseListener {
         }
     }
 
-    private static void initOctaneAllowedStorageParameter() {
-        try {
-            if (!sysParamConfigured) {
-                System.setProperty("octaneAllowedStorage", BambooPluginServices.getAllowedStorageFile().getAbsolutePath() + File.separator);
-                sysParamConfigured = true;
-            }
-        } catch (Throwable e) {
-            logger.error("Failed to initOctaneAllowedStorageParameter : " + e.getMessage());
-        }
-    }
 }

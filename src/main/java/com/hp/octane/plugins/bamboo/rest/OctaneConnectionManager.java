@@ -24,16 +24,16 @@ import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.MqmProject;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import com.hp.octane.plugins.bamboo.octane.utils.JsonHelper;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 
 public class OctaneConnectionManager {
 
-    private static final Logger log = LogManager.getLogger(OctaneConnectionManager.class);
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(OctaneConnectionManager.class);
     private PluginSettingsFactory settingsFactory;
     private static final String PLUGIN_PREFIX = "com.hp.octane.plugins.bamboo.";
     public static final String CONFIGURATIONS_LIST = PLUGIN_PREFIX + "configuration_list";

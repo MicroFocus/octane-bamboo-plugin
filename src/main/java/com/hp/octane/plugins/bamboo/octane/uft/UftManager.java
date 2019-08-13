@@ -79,9 +79,8 @@ import com.hp.octane.plugins.bamboo.listener.ParametersHelper;
 import com.hp.octane.plugins.bamboo.octane.ArtifactsHelper;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
-import com.hp.octane.plugins.bamboo.octane.utils.Utils;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import org.apache.http.HttpStatus;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
@@ -98,7 +97,6 @@ public class UftManager {
     private CachedPlanManager cachedPlanManager;
 
     private PlanManager planManager;
-    private PlanExecutionManager planExecutionManager;
     private ProjectManager projectManager;
     private JobCreationService jobCreationService;
     private TriggerTypeManager triggerTypeManager;
@@ -123,7 +121,7 @@ public class UftManager {
     public static final String DISCOVERY_PREFIX_KEY = "UFTDISCOVERY";
     public static final String EXECUTOR_PREFIX_KEY = "UFTEXECUTOR";
 
-    private static final Logger log = LogManager.getLogger(UftManager.class);
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(UftManager.class);
 
 
     private static final String UFT_INTEGRATION_PREFIX = "UFT";
@@ -142,7 +140,6 @@ public class UftManager {
         encryptionService = ComponentLocator.getComponent(EncryptionService.class);
         planManager = ComponentLocator.getComponent(PlanManager.class);
         cachedPlanManager = ComponentLocator.getComponent(CachedPlanManager.class);
-        planExecutionManager = ComponentLocator.getComponent(PlanExecutionManager.class);
         projectManager = ComponentLocator.getComponent(ProjectManager.class);
         repositoryDefinitionManager = ComponentLocator.getComponent(RepositoryDefinitionManager.class);
         vcsRepositoryConfigurationService = ComponentLocator.getComponent(VcsRepositoryConfigurationService.class);

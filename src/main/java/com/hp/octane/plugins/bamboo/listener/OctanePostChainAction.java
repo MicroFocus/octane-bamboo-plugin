@@ -37,12 +37,8 @@ import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
-import com.hp.octane.plugins.bamboo.octane.ArtifactsHelper;
-import com.hp.octane.plugins.bamboo.octane.BuildContextCache;
-import com.hp.octane.plugins.bamboo.octane.MqmResultsHelper;
-import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
+import com.hp.octane.plugins.bamboo.octane.*;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
@@ -52,7 +48,7 @@ import java.util.*;
 
 public class OctanePostChainAction extends BaseListener implements PostChainAction {
 
-    private static final Logger LOG = LogManager.getLogger(OctanePostChainAction.class);
+    private static final Logger LOG = SDKBasedLoggerProvider.getLogger(OctanePostChainAction.class);
 
     private static Set<String> testResultExpected = new HashSet<>();
 

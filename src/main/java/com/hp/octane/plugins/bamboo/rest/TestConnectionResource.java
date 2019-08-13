@@ -24,16 +24,15 @@ import com.atlassian.bamboo.user.BambooUser;
 import com.atlassian.bamboo.user.BambooUserManager;
 import com.atlassian.plugin.spring.scanner.annotation.component.Scanned;
 import com.atlassian.sal.api.component.ComponentLocator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.exceptions.OctaneConnectivityException;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.MqmProject;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import org.acegisecurity.acls.Permission;
 import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -51,9 +50,7 @@ import java.util.UUID;
 @Path("/test")
 @Scanned
 public class TestConnectionResource {
-    private static final Logger log = LogManager.getLogger(TestConnectionResource.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(TestConnectionResource.class);
 
     @POST
     @Path("/testconnection")

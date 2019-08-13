@@ -28,7 +28,7 @@ import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
-import org.apache.logging.log4j.LogManager;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Set;
@@ -39,7 +39,7 @@ public class MultibranchHelper {
 
     private static CachedPlanManager cachedPlanManager;
     private static PlanManager planManager;
-    protected static final Logger log = LogManager.getLogger(OctanePostChainAction.class);
+    protected static final Logger log = SDKBasedLoggerProvider.getLogger(OctanePostChainAction.class);
 
 
     private static CachedPlanManager getCachedPlanManager() {
