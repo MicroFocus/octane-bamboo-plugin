@@ -26,8 +26,6 @@ import com.atlassian.bamboo.credentials.CredentialsData;
 import com.atlassian.bamboo.credentials.CredentialsManager;
 import com.atlassian.bamboo.fieldvalue.TaskConfigurationUtils;
 import com.atlassian.bamboo.plan.*;
-import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionImpl;
-import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionManager;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;

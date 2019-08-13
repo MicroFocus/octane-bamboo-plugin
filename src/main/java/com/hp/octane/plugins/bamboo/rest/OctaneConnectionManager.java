@@ -22,11 +22,10 @@ import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.OctaneClient;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.utils.OctaneUrlParser;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
-import com.hp.octane.plugins.bamboo.octane.MqmProject;
 import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import com.hp.octane.plugins.bamboo.octane.utils.JsonHelper;
-import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
@@ -83,14 +82,14 @@ public class OctaneConnectionManager {
 
     public boolean deleteConfiguration(String id) {
         OctaneConnection octaneConnection = getConnectionById(id);
-        if(octaneConnection!=null){
+        if (octaneConnection != null) {
             log.info("delete configuration: " + octaneConnection.getLocation());
             removeClientFromSDK(id);
             boolean removed = octaneConnectionCollection.removeConnection(octaneConnection);
             saveSettings();
         }
 
-        return octaneConnection!=null;
+        return octaneConnection != null;
     }
 
     public void replacePlainPasswordIfRequired(OctaneConnection octaneConnection) {
@@ -100,10 +99,7 @@ public class OctaneConnectionManager {
     }
 
     private void addSdkClient(OctaneConnection configuration) {
-        MqmProject project = Utils.parseUiLocation(configuration.getLocation());
-        OctaneConfiguration octaneConfiguration = new OctaneConfiguration(configuration.getId(),
-                project.getLocation(),
-                project.getSharedSpace());
+        OctaneConfiguration octaneConfiguration = OctaneConfiguration.createWithUiLocation(configuration.getId(), configuration.getLocation());
         octaneConfiguration.setClient(configuration.getClientId());
         octaneConfiguration.setSecret(configuration.getClientSecret());
         OctaneSDK.addClient(octaneConfiguration, BambooPluginServices.class);
@@ -111,11 +107,11 @@ public class OctaneConnectionManager {
 
     private void updateClientInSDK(OctaneConnection configuration) {
         OctaneClient currentClient = OctaneSDK.getClientByInstanceId(configuration.getId());
-        MqmProject project = Utils.parseUiLocation(configuration.getLocation());
+        OctaneUrlParser octaneUrlParser = OctaneUrlParser.parse(configuration.getLocation());
 
         OctaneConfiguration config = currentClient.getConfigurationService().getCurrentConfiguration();
-        config.setSharedSpace(project.getSharedSpace());
-        config.setUrl(project.getLocation());
+        config.setSharedSpace(octaneUrlParser.getSharedSpace());
+        config.setUrl(octaneUrlParser.getLocation());
         config.setClient(configuration.getClientId());
         config.setSecret(configuration.getClientSecret());
     }
@@ -173,7 +169,7 @@ public class OctaneConnectionManager {
         OctaneSDK.getClients().forEach(c -> OctaneSDK.removeClient(c));
     }
 
-    public static boolean hasActiveClients(){
+    public static boolean hasActiveClients() {
         return OctaneSDK.hasClients();
     }
 }
