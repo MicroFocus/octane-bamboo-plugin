@@ -49,7 +49,6 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
     @Override
     public Map<String, String> generateTaskConfigMap(final ActionParametersMap params, final TaskDefinition previousTaskDefinition) {
         final Map<String, String> config = super.generateTaskConfigMap(params, previousTaskDefinition);
-
         config.put(TestFrameworkConverterTask.FRAMEWORK_PARAMETER, params.getString(TestFrameworkConverterTask.FRAMEWORK_PARAMETER));
         config.put(TestFrameworkConverterTask.CONVERTER_FORMAT, params.getString(TestFrameworkConverterTask.CONVERTER_FORMAT));
         return config;
@@ -62,9 +61,6 @@ public class TestFrameworkConverterConfigurator extends AbstractTaskConfigurator
     private Object getSupportedFrameworks() {
         Map<String, String> map = new HashMap<String, String>();
         for (TestsToRunFramework fr : TestsToRunFramework.values()) {
-            if(TestsToRunFramework.Custom.equals(fr)){
-                continue;
-            }
             map.put(fr.value(), fr.getDesc());
         }
 

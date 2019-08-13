@@ -38,12 +38,12 @@ public class TestFrameworkConverterTask implements TaskType {
 
     public final static String FRAMEWORK_PARAMETER = "framework";
     public final static String CONVERTER_FORMAT = "customConverterFormat";
+    public final static String TESTS_TO_RUN_PARAMETER = "testsToRun";
 
 
-    private final static String TESTS_TO_RUN_PARAMETER = "testsToRun";
     private final static String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
 
-    private final static String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
+    public final static String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
     private final static String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
     private final static int BAMBOO_MAX_FIELD_CAPACITY = 4000;
 
@@ -84,7 +84,7 @@ public class TestFrameworkConverterTask implements TaskType {
             if (framework.equals("custom")) {
                 addLogEntry(buildLogger, "format : " + format);
             }
-            TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework).setFormat("")
+            TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework).setFormat(format)
                     .convert(rawTests, checkoutDirectory);
             addLogEntry(buildLogger, "Found #tests : " + convertResult.getTestsData().size());
             addLogEntry(buildLogger, TESTS_TO_RUN_CONVERTED_PARAMETER + " = " + convertResult.getConvertedTestsString());
