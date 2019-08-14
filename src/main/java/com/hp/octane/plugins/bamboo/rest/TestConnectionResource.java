@@ -27,10 +27,10 @@ import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.exceptions.OctaneConnectivityException;
+import com.hp.octane.integrations.exceptions.OctaneSDKGeneralException;
+import com.hp.octane.integrations.utils.OctaneUrlParser;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
-import com.hp.octane.plugins.bamboo.octane.MqmProject;
 import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
-import com.hp.octane.plugins.bamboo.octane.utils.Utils;
 import org.acegisecurity.acls.Permission;
 import org.apache.commons.lang.StringUtils;
 import org.apache.logging.log4j.Logger;
@@ -92,13 +92,16 @@ public class TestConnectionResource {
         if (!hasBuildPermission(bambooUser)) {
             throw new IllegalArgumentException("Bamboo user doesn't have enough permissions");
         }
-        MqmProject mqmProject = Utils.parseUiLocation(location);
-        if (mqmProject.hasError()) {
-            throw new IllegalArgumentException(mqmProject.getErrorMsg());
+        OctaneUrlParser octaneUrlParser;
+        try {
+            octaneUrlParser = OctaneUrlParser.parse(location);
+        } catch (OctaneSDKGeneralException e) {
+            throw new IllegalArgumentException(e.getMessage());
         }
+
         OctaneConfiguration testedOctaneConfiguration = new OctaneConfiguration(UUID.randomUUID().toString(),
-                mqmProject.getLocation(),
-                mqmProject.getSharedSpace());
+                octaneUrlParser.getLocation(),
+                octaneUrlParser.getSharedSpace());
         testedOctaneConfiguration.setClient(clientId);
         testedOctaneConfiguration.setSecret(clientSecret);
         try {
