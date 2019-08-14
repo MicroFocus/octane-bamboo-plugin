@@ -93,7 +93,6 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 LOG.error("Failed to saveJobTestResults : " + e.getMessage());
             }
             testResultExpected.add(event.getContext().getParentBuildContext().getPlanResultKey().getKey());
-            BuildContextCache.add(planResultKey.getKey(), event.getContext());
             OctaneSDK.getClients().forEach(client ->
                     client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
         }

@@ -303,21 +303,11 @@ public class BambooPluginServices extends CIPluginServices {
         PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
 
         File mqmResultFile = MqmResultsHelper.getMqmResultFilePath(planResultKey).toFile();
-        if (mqmResultFile.exists()) {
-            log.info(String.format("getTestsResult %s #%s, using  %s", jobId, buildId, mqmResultFile.getAbsolutePath()));
-            try {
-                output = mqmResultFile.length() > 0 ? new FileInputStream(mqmResultFile.getAbsolutePath()) : null;
-            } catch (IOException e) {
-                log.error("failed to get test results for  " + jobId + " #" + buildId + " from " + mqmResultFile.getAbsolutePath());
-            }
-        } else {
-            com.atlassian.bamboo.v2.build.BuildContext buildContext = BuildContextCache.get(buildId);
-            if (buildContext != null) {
-                log.info(String.format("getTestsResult %s #%s, using build context", jobId, buildId));
-                output = MqmResultsHelper.generateTestResultStream(buildContext, jobId, buildId);
-            } else {
-                log.info(String.format("getTestsResult %s #%s, build context is not found ", jobId, buildId));
-            }
+        log.info(String.format("getTestsResult %s #%s, using  %s, exist=%s", jobId, buildId, mqmResultFile.getAbsolutePath()), mqmResultFile.exists());
+        try {
+            output = mqmResultFile.exists() && mqmResultFile.length() > 0 ? new FileInputStream(mqmResultFile.getAbsolutePath()) : null;
+        } catch (IOException e) {
+            log.error("failed to get test results for  " + jobId + " #" + buildId + " from " + mqmResultFile.getAbsolutePath());
         }
         return output;
     }
