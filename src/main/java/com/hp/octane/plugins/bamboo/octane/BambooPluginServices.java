@@ -118,7 +118,7 @@ public class BambooPluginServices extends CIPluginServices {
         final String pipelineIdUpper = pipelineId.toUpperCase();
         log.info("get pipeline " + pipelineIdUpper);
         Callable<ImmutableTopLevelPlan> planGetter = () -> planMan.getPlanByKey(PlanKeys.getPlanKey(pipelineIdUpper), ImmutableTopLevelPlan.class);
-        ImmutableTopLevelPlan plan = executeImpersonatedCall(planGetter,"getPipeline");
+        ImmutableTopLevelPlan plan = executeImpersonatedCall(planGetter, "getPipeline");
         PipelineNode pipelineNode = CONVERTER.getRootPipelineNodeFromTopLevelPlan(plan);
         MultibranchHelper.enrichMultiBranchParentPipeline(plan, pipelineNode);
         return pipelineNode;
@@ -291,7 +291,7 @@ public class BambooPluginServices extends CIPluginServices {
         PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
 
         File mqmResultFile = MqmResultsHelper.getMqmResultFilePath(planResultKey).toFile();
-        log.info(String.format("getTestsResult %s #%s, using  %s, exist=%s", jobId, buildId, mqmResultFile.getAbsolutePath()), mqmResultFile.exists());
+        log.info(String.format("getTestsResult of %s from  %s, file exist=%s", planResultKey.toString(), mqmResultFile.getAbsolutePath(), mqmResultFile.exists()));
         try {
             output = mqmResultFile.exists() && mqmResultFile.length() > 0 ? new FileInputStream(mqmResultFile.getAbsolutePath()) : null;
         } catch (IOException e) {
@@ -358,7 +358,7 @@ public class BambooPluginServices extends CIPluginServices {
         try {
             return impersonated.call();
         } catch (PermissionException e) {
-            log.warn("PermissionException : " + e.getMessage());
+            log.warn("PermissionException to executeImpersonatedCall " + actionName + " : " + e.getMessage());
             throw e;
         } catch (Throwable e) {
             log.warn("Failed to executeImpersonatedCall " + actionName + " : " + e.getMessage(), e);
