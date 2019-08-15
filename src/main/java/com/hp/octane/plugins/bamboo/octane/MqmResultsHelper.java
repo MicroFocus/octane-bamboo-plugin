@@ -24,6 +24,7 @@ import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.*;
+import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import java.util.List;
 public class MqmResultsHelper {
     private static StorageLocationService storageLocationService;
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(MqmResultsHelper.class);
 
     private static StorageLocationService getStorageLocationService() {
         if (storageLocationService == null) {
@@ -97,14 +99,16 @@ public class MqmResultsHelper {
 
     public static synchronized void saveToTestResultFile(InputStream is, PlanResultKey planResultKey) throws IOException {
         Path targetFilePath = getMqmResultFilePath(planResultKey);
-        if (targetFilePath.toFile().exists()) {
-            return;
-        }
-        if (is == null) {
-            targetFilePath.toFile().createNewFile();
-        } else {
-            targetFilePath.getParent().toFile().mkdirs();
-            Files.copy(is, targetFilePath);
+
+        try {
+            if (is == null) {
+                targetFilePath.toFile().createNewFile();
+            } else {
+                targetFilePath.getParent().toFile().mkdirs();
+                Files.copy(is, targetFilePath);
+            }
+        } catch (Exception e) {
+            log.error("Failed to saveToTestResultFile of " + planResultKey.toString(), e);
         }
     }
 

@@ -114,13 +114,13 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             ArtifactLink link = links.stream().filter(l -> l.getArtifact().getLabel().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME)).findFirst().orElse(null);
             if (link != null) {
                 File buildResultDirectory = new File(MqmResultsHelper.getBuildResultDirectory(planResultKey.getPlanKey()),OctaneConstants.MQM_RESULT_FOLDER);
-                LOG.info(planResultKey.toString() + " : copy artifacts to " + buildResultDirectory.getAbsolutePath());
+                LOG.info(planResultKey.toString() + " : Generating test result from artifacts. Copy artifacts to " + buildResultDirectory.getAbsolutePath());
                 ArtifactsHelper.copyArtifactTo(buildResultDirectory, link.getArtifact());
             } else {
                 new RuntimeException(OctaneConstants.MQM_RESULT_ARTIFACT_NAME + " artifact is not found");
             }
         } else {
-            LOG.info(planResultKey.toString() + " : generating test result from context");
+            LOG.info(planResultKey.toString() + " : Generating test result from context");
             InputStream is = MqmResultsHelper.generateTestResultStream(event.getContext(), planResultKey.getKey(), Integer.toString(planResultKey.getBuildNumber()));
             MqmResultsHelper.saveToTestResultFile(is, planResultKey);
         }
