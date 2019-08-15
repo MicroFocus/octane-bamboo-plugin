@@ -57,6 +57,8 @@ import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnection;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 import org.acegisecurity.acls.Permission;
+import org.acegisecurity.userdetails.UserDetails;
+import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
@@ -65,7 +67,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -82,6 +83,7 @@ public class BambooPluginServices extends CIPluginServices {
     private ImpersonationService impService;
     private PlanExecutionManager planExecMan;
     private BuildQueueManager buildQueueManager;
+    private BambooUserManager bambooUserManager;
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
 
@@ -90,6 +92,7 @@ public class BambooPluginServices extends CIPluginServices {
         this.planMan = ComponentLocator.getComponent(CachedPlanManager.class);
         this.impService = ComponentLocator.getComponent(ImpersonationService.class);
         this.buildQueueManager = ComponentLocator.getComponent(BuildQueueManager.class);
+        this.bambooUserManager = ComponentLocator.getComponent(BambooUserManager.class);
         pluginVersion = ComponentLocator.getComponent(PluginAccessor.class).getPlugin(PLUGIN_KEY).getPluginInformation().getVersion();
         bambooVersion = ComponentLocator.getComponent(BambooApplication.class).getVersion();
 
@@ -103,27 +106,19 @@ public class BambooPluginServices extends CIPluginServices {
     @Override
     public CIJobsList getJobsList(boolean arg0) {
         log.info("Get jobs list");
-        Callable<List<ImmutableTopLevelPlan>> plansGetter = impService.runAsUser(getRunAsUser(), new Callable<List<ImmutableTopLevelPlan>>() {
 
-            public List<ImmutableTopLevelPlan> call() throws Exception {
-                return planMan.getPlans();
-            }
-        });
-        try {
-            List<ImmutableTopLevelPlan> plans = plansGetter.call();
-            return CONVERTER.getRootJobsList(plans);
-        } catch (Exception e) {
-            log.error("Error while retrieving top level plans", e);
-        }
-        return CONVERTER.getRootJobsList(Collections.<ImmutableTopLevelPlan>emptyList());
+        Callable<List<ImmutableTopLevelPlan>> plansGetter = () -> planMan.getPlans();
+        List<ImmutableTopLevelPlan> plans = executeImpersonatedCall(plansGetter, "getJobsList");
+        return CONVERTER.getRootJobsList(plans);
     }
 
     @Override
     public PipelineNode getPipeline(String pipelineId) {
         //workaround for bamboo
-        pipelineId = pipelineId.toUpperCase();
-        log.info("get pipeline " + pipelineId);
-        ImmutableTopLevelPlan plan = planMan.getPlanByKey(PlanKeys.getPlanKey(pipelineId), ImmutableTopLevelPlan.class);
+        final String pipelineIdUpper = pipelineId.toUpperCase();
+        log.info("get pipeline " + pipelineIdUpper);
+        Callable<ImmutableTopLevelPlan> planGetter = () -> planMan.getPlanByKey(PlanKeys.getPlanKey(pipelineIdUpper), ImmutableTopLevelPlan.class);
+        ImmutableTopLevelPlan plan = executeImpersonatedCall(planGetter,"getPipeline");
         PipelineNode pipelineNode = CONVERTER.getRootPipelineNodeFromTopLevelPlan(plan);
         MultibranchHelper.enrichMultiBranchParentPipeline(plan, pipelineNode);
         return pipelineNode;
@@ -194,88 +189,81 @@ public class BambooPluginServices extends CIPluginServices {
     @Override
     public void stopPipelineRun(String pipeline, String paramsJson) {
         log.info("starting pipeline stop");
-        Callable<String> impersonated = impService.runAsUser(getRunAsUser(), new Callable<String>() {
+        Callable<String> action = () -> {
+            BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
+            BambooUser user = um.getBambooUser(getRunAsUser());
+            ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline.toUpperCase()), ImmutableChain.class);
 
-            public String call() throws Exception {
-                BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
-                BambooUser user = um.getBambooUser(getRunAsUser());
-                ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline.toUpperCase()), ImmutableChain.class);
-
-                if (chain != null) {
-                    if (!isUserHasPermission(BambooPermission.BUILD, user, chain)) {
-                        throw new PermissionException(403);
-                    }
-                    log.info(String.format("plan key=%s ,build key=%s ,chain key=%s", chain.getPlanKey().getKey(), chain.getBuildKey(), chain.getKey()));
-                    try {
-                        planExecMan.stopPlan(chain.getPlanKey(), true, user.getName());
-                    } catch (InterruptedException e) {
-                        log.error("Failed to stop:" + e.getMessage(), e);
-                    }
-                } else {
-                    throw new ConfigurationException(404);
+            if (chain != null) {
+                if (!isUserHasPermission(BambooPermission.BUILD, user, chain)) {
+                    throw new PermissionException(HttpStatus.SC_FORBIDDEN);
                 }
-                return null;
+
+                log.info(String.format("plan key=%s ,build key=%s ,chain key=%s", chain.getPlanKey().getKey(), chain.getBuildKey(), chain.getKey()));
+                try {
+                    planExecMan.stopPlan(chain.getPlanKey(), true, user.getName());
+                } catch (InterruptedException e) {
+                    log.error("Failed to stop:" + e.getMessage(), e);
+                }
+            } else {
+                throw new ConfigurationException(HttpStatus.SC_NOT_FOUND);
             }
-        });
-        execute(impersonated, "Stop Pipeline");
+            return null;
+        };
+        executeImpersonatedCall(action, "Stop Pipeline");
     }
 
 
     @Override
     public void runPipeline(final String pipeline, final String parametersJson) {
-        // TODO implement parameters conversion
-        // only execute runnable plans
         log.info("starting pipeline run");
 
-        Callable<String> impersonated = impService.runAsUser(getRunAsUser(), new Callable<String>() {
-
-            public String call() throws Exception {
-                BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
-                BambooUser user = um.getBambooUser(getRunAsUser());
-                ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline.toUpperCase()), ImmutableChain.class);
-                if (chain == null || chain.isSuspendedFromBuilding()) {
-                    throw new ConfigurationException(404);
-                }
-                log.info(String.format("plan key=%s ,build key=%s ,chain key=%s", chain.getPlanKey().getKey(), chain.getBuildKey(), chain.getKey()));
-
-                if (!isUserHasPermission(BambooPermission.BUILD, user, chain)) {
-                    throw new PermissionException(403);
-                }
-
-                HashMap<String, String> variables = new HashMap<>();
-                HashMap<String, String> params = new HashMap<>();
-                if (SdkStringUtils.isNotEmpty(parametersJson)) {
-
-                    CIParameters parameters = DTOFactory.getInstance().dtoFromJson(parametersJson, CIParameters.class);
-                    for (CIParameter param : parameters.getParameters()) {
-                        variables.put(param.getName(), param.getValue().toString());
-                    }
-                }
-
-                try {//check if start a new job will not exceed concurrent build capacity. only print it to log
-                    ConcurrentBuildConfig concurrentBuildConfig = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class).getAdministrationConfiguration().getConcurrentBuildConfig();
-                    log.info(String.format("concurrentBuildConfig: isEnabled=%s, NumberConcurrentBuilds=%d", concurrentBuildConfig.isEnabled(), concurrentBuildConfig.getNumberConcurrentBuilds()));
-                    long queueCount = StreamSupport.stream(buildQueueManager.getQueuedExecutables().spliterator(), false).count();
-                    long inProcessCount = (planExecMan.isBusy() ? 1 : 0) + queueCount;
-                    long capacityCount = concurrentBuildConfig.isEnabled() ? concurrentBuildConfig.getNumberConcurrentBuilds() : 1;
-                    log.info(String.format("in process count=%d, capacity count=%d, execution plan is busy=%s", inProcessCount, capacityCount, planExecMan.isBusy()));
-                    if (inProcessCount >= capacityCount) {
-                        log.warn("POSSIBLY RUN WILL FAIL because of queue limit. Check Concurrent builds configuration");
-                    }
-                } catch (Exception e) {
-                    log.warn("Fail in logging queue information : " + e.getMessage());
-                }
-
-                ExecutionRequestResult result = planExecMan.startManualExecution(chain, user, params, variables);
-                if (result.getErrors().getTotalErrors() > 0) {
-                    throw new ConfigurationException(504);
-                }
-
-                return null;
+        Callable<String> impersonated = () -> {
+            BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
+            BambooUser user = um.getBambooUser(getRunAsUser());
+            ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline.toUpperCase()), ImmutableChain.class);
+            if (chain == null || chain.isSuspendedFromBuilding()) {
+                throw new ConfigurationException(HttpStatus.SC_NOT_FOUND);
             }
-        });
+            log.info(String.format("plan key=%s ,build key=%s ,chain key=%s", chain.getPlanKey().getKey(), chain.getBuildKey(), chain.getKey()));
 
-        execute(impersonated, "runPipeline");
+            if (!isUserHasPermission(BambooPermission.BUILD, user, chain)) {
+                throw new PermissionException(HttpStatus.SC_FORBIDDEN);
+            }
+
+            HashMap<String, String> variables = new HashMap<>();
+            HashMap<String, String> params = new HashMap<>();
+            if (SdkStringUtils.isNotEmpty(parametersJson)) {
+
+                CIParameters parameters = DTOFactory.getInstance().dtoFromJson(parametersJson, CIParameters.class);
+                for (CIParameter param : parameters.getParameters()) {
+                    variables.put(param.getName(), param.getValue().toString());
+                }
+            }
+
+            try {//check if start a new job will not exceed concurrent build capacity. only print it to log
+                ConcurrentBuildConfig concurrentBuildConfig = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class).getAdministrationConfiguration().getConcurrentBuildConfig();
+                log.info(String.format("concurrentBuildConfig: isEnabled=%s, NumberConcurrentBuilds=%d", concurrentBuildConfig.isEnabled(), concurrentBuildConfig.getNumberConcurrentBuilds()));
+                long queueCount = StreamSupport.stream(buildQueueManager.getQueuedExecutables().spliterator(), false).count();
+                long inProcessCount = (planExecMan.isBusy() ? 1 : 0) + queueCount;
+                long capacityCount = concurrentBuildConfig.isEnabled() ? concurrentBuildConfig.getNumberConcurrentBuilds() : 1;
+                log.info(String.format("in process count=%d, capacity count=%d, execution plan is busy=%s", inProcessCount, capacityCount, planExecMan.isBusy()));
+                if (inProcessCount >= capacityCount) {
+                    log.warn("POSSIBLY RUN WILL FAIL because of queue limit. Check Concurrent builds configuration");
+                }
+            } catch (Exception e) {
+                log.warn("Fail in logging queue information : " + e.getMessage());
+            }
+
+            ExecutionRequestResult result = planExecMan.startManualExecution(chain, user, params, variables);
+            if (result.getErrors().getTotalErrors() > 0) {
+                throw new ConfigurationException(504);
+            }
+
+            return null;
+        };
+
+        executeImpersonatedCall(impersonated, "runPipeline");
     }
 
     private boolean isUserHasPermission(Permission permissionType, BambooUser user, ImmutableChain chain) {
@@ -314,59 +302,43 @@ public class BambooPluginServices extends CIPluginServices {
 
     @Override
     public OctaneResponse checkRepositoryConnectivity(final TestConnectivityInfo testConnectivityInfo) {
-        final Callable<OctaneResponse> impersonated = impService.runAsUser(getRunAsUser(), new Callable<OctaneResponse>() {
-            public OctaneResponse call() {
-                return getUftManager().checkRepositoryConnectivity(testConnectivityInfo);
-            }
-        });
-
-        return execute(impersonated, "checkRepositoryConnectivity");
+        final Callable<OctaneResponse> action = () -> getUftManager().checkRepositoryConnectivity(testConnectivityInfo);
+        return executeImpersonatedCall(action, "checkRepositoryConnectivity");
     }
 
     @Override
     public OctaneResponse upsertCredentials(final CredentialsInfo credentialsInfo) {
-        final Callable<OctaneResponse> impersonated = impService.runAsUser(getRunAsUser(), new Callable<OctaneResponse>() {
-            public OctaneResponse call() {
-                return getUftManager().upsertCredentials(credentialsInfo);
-            }
-        });
-
-        return execute(impersonated, "upsertCredentials");
+        final Callable<OctaneResponse> action = () -> getUftManager().upsertCredentials(credentialsInfo);
+        return executeImpersonatedCall(action, "upsertCredentials");
     }
 
     @Override
     public void runTestDiscovery(final DiscoveryInfo discoveryInfo) {
-        final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
-            public Void call() {
-                getUftManager().runTestDiscovery(discoveryInfo, getRunAsUser());
-                return null;
-            }
-        });
+        final Callable<Void> action = () -> {
+            getUftManager().runTestDiscovery(discoveryInfo, getRunAsUser());
+            return null;
+        };
 
-        execute(impersonated, "runTestDiscovery");
+        executeImpersonatedCall(action, "runTestDiscovery");
     }
 
     @Override
     public PipelineNode createExecutor(DiscoveryInfo discoveryInfo) {
-        final Callable<PipelineNode> impersonated = impService.runAsUser(getRunAsUser(), new Callable<PipelineNode>() {
-            public PipelineNode call() {
-                PipelineNode node = getUftManager().createExecutor(discoveryInfo, getRunAsUser());
-                return node;
-            }
-        });
-        return execute(impersonated, "createExecutor");
+        final Callable<PipelineNode> action = () -> {
+            PipelineNode node = getUftManager().createExecutor(discoveryInfo, getRunAsUser());
+            return node;
+        };
+        return executeImpersonatedCall(action, "createExecutor");
     }
 
     @Override
     public void deleteExecutor(final String id) {
-        final Callable<Void> impersonated = impService.runAsUser(getRunAsUser(), new Callable<Void>() {
-            public Void call() {
-                getUftManager().deleteExecutor(id);
-                return null;
-            }
-        });
+        final Callable<Void> action = () -> {
+            getUftManager().deleteExecutor(id);
+            return null;
+        };
 
-        execute(impersonated, "deleteExecutor");
+        executeImpersonatedCall(action, "deleteExecutor");
     }
 
 
@@ -374,8 +346,13 @@ public class BambooPluginServices extends CIPluginServices {
         return UftManager.getInstance();
     }
 
-    private <V> V execute(Callable<V> callable, String actionName) {
+    private <V> V executeImpersonatedCall(Callable<V> callable, String actionName) {
         log.info("Impersonated call : " + actionName);
+
+        UserDetails ud = bambooUserManager.loadUserByUsername(getRunAsUser());
+        if (ud == null) {
+            throw new PermissionException(HttpStatus.SC_UNAUTHORIZED);
+        }
 
         Callable<V> impersonated = impService.runAsUser(getRunAsUser(), callable);
         try {
@@ -384,8 +361,8 @@ public class BambooPluginServices extends CIPluginServices {
             log.warn("PermissionException : " + e.getMessage());
             throw e;
         } catch (Throwable e) {
-            log.warn("Failed to execute " + actionName + " : " + e.getMessage(), e);
-            RuntimeException runtimeException = null;
+            log.warn("Failed to executeImpersonatedCall " + actionName + " : " + e.getMessage(), e);
+            RuntimeException runtimeException;
             if (e instanceof RuntimeException) {
                 runtimeException = (RuntimeException) e;
             } else {
