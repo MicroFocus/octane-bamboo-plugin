@@ -37,12 +37,8 @@ import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
-import com.hp.octane.plugins.bamboo.octane.ArtifactsHelper;
-import com.hp.octane.plugins.bamboo.octane.BuildContextCache;
-import com.hp.octane.plugins.bamboo.octane.MqmResultsHelper;
-import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
+import com.hp.octane.plugins.bamboo.octane.*;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
@@ -52,7 +48,7 @@ import java.util.*;
 
 public class OctanePostChainAction extends BaseListener implements PostChainAction {
 
-    private static final Logger LOG = LogManager.getLogger(OctanePostChainAction.class);
+    private static final Logger LOG = SDKBasedLoggerProvider.getLogger(OctanePostChainAction.class);
 
     private static Set<String> testResultExpected = new HashSet<>();
 
@@ -97,7 +93,6 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 LOG.error("Failed to saveJobTestResults : " + e.getMessage());
             }
             testResultExpected.add(event.getContext().getParentBuildContext().getPlanResultKey().getKey());
-            BuildContextCache.add(planResultKey.getKey(), event.getContext());
             OctaneSDK.getClients().forEach(client ->
                     client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
         }
@@ -119,13 +114,13 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             ArtifactLink link = links.stream().filter(l -> l.getArtifact().getLabel().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME)).findFirst().orElse(null);
             if (link != null) {
                 File buildResultDirectory = new File(MqmResultsHelper.getBuildResultDirectory(planResultKey.getPlanKey()),OctaneConstants.MQM_RESULT_FOLDER);
-                LOG.info(planResultKey.toString() + " : copy artifacts to " + buildResultDirectory.getAbsolutePath());
+                LOG.info(planResultKey.toString() + " : Generating test result from artifacts. Copy artifacts to " + buildResultDirectory.getAbsolutePath());
                 ArtifactsHelper.copyArtifactTo(buildResultDirectory, link.getArtifact());
             } else {
                 new RuntimeException(OctaneConstants.MQM_RESULT_ARTIFACT_NAME + " artifact is not found");
             }
         } else {
-            LOG.info(planResultKey.toString() + " : generating test result from context");
+            LOG.info(planResultKey.toString() + " : Generating test result from context");
             InputStream is = MqmResultsHelper.generateTestResultStream(event.getContext(), planResultKey.getKey(), Integer.toString(planResultKey.getBuildNumber()));
             MqmResultsHelper.saveToTestResultFile(is, planResultKey);
         }

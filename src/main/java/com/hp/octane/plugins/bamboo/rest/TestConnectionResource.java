@@ -24,16 +24,15 @@ import com.atlassian.bamboo.user.BambooUser;
 import com.atlassian.bamboo.user.BambooUserManager;
 import com.atlassian.plugin.spring.scanner.annotation.component.Scanned;
 import com.atlassian.sal.api.component.ComponentLocator;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.exceptions.OctaneConnectivityException;
+import com.hp.octane.integrations.exceptions.OctaneSDKGeneralException;
+import com.hp.octane.integrations.utils.OctaneUrlParser;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
-import com.hp.octane.plugins.bamboo.octane.MqmProject;
-import com.hp.octane.plugins.bamboo.octane.utils.Utils;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import org.acegisecurity.acls.Permission;
 import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -51,9 +50,7 @@ import java.util.UUID;
 @Path("/test")
 @Scanned
 public class TestConnectionResource {
-    private static final Logger log = LogManager.getLogger(TestConnectionResource.class);
-    private static final ObjectMapper objectMapper = new ObjectMapper();
-
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(TestConnectionResource.class);
 
     @POST
     @Path("/testconnection")
@@ -95,13 +92,16 @@ public class TestConnectionResource {
         if (!hasBuildPermission(bambooUser)) {
             throw new IllegalArgumentException("Bamboo user doesn't have enough permissions");
         }
-        MqmProject mqmProject = Utils.parseUiLocation(location);
-        if (mqmProject.hasError()) {
-            throw new IllegalArgumentException(mqmProject.getErrorMsg());
+        OctaneUrlParser octaneUrlParser;
+        try {
+            octaneUrlParser = OctaneUrlParser.parse(location);
+        } catch (OctaneSDKGeneralException e) {
+            throw new IllegalArgumentException(e.getMessage());
         }
+
         OctaneConfiguration testedOctaneConfiguration = new OctaneConfiguration(UUID.randomUUID().toString(),
-                mqmProject.getLocation(),
-                mqmProject.getSharedSpace());
+                octaneUrlParser.getLocation(),
+                octaneUrlParser.getSharedSpace());
         testedOctaneConfiguration.setClient(clientId);
         testedOctaneConfiguration.setSecret(clientSecret);
         try {

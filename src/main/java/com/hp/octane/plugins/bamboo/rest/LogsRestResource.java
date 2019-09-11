@@ -21,8 +21,7 @@ import com.atlassian.plugin.spring.scanner.annotation.component.Scanned;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.atlassian.sal.api.user.UserManager;
 import com.atlassian.sal.api.user.UserProfile;
-import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
-import org.apache.logging.log4j.LogManager;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import org.apache.logging.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -46,7 +45,7 @@ public class LogsRestResource {
     @Context
     HttpServletRequest request;
 
-    private static final Logger log = LogManager.getLogger(LogsRestResource.class);
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(LogsRestResource.class);
     private UserManager userManager;
 
     @GET
@@ -68,7 +67,7 @@ public class LogsRestResource {
         }
 
         java.nio.file.Path path = Paths.get(
-                BambooPluginServices.getAllowedStorageFile().getAbsolutePath(),
+                SDKBasedLoggerProvider.getAllowedStorageFile().getAbsolutePath(),
                 "nga",
                 "logs",
                 id == null ? "nga.log" : String.format("nga-%s.log", id));

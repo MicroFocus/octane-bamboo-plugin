@@ -21,7 +21,7 @@ import com.atlassian.plugin.spring.scanner.annotation.component.Scanned;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.atlassian.sal.api.user.UserManager;
 import com.atlassian.sal.api.user.UserProfile;
-import org.apache.logging.log4j.LogManager;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import org.apache.logging.log4j.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -40,7 +40,7 @@ import java.util.UUID;
 public class ConfigurationRestResource {
 
     private OctaneConnectionManager octaneConnectionManager = OctaneConnectionManager.getInstance();
-    private static final Logger log = LogManager.getLogger(ConfigurationRestResource.class);
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(ConfigurationRestResource.class);
     private UserManager userManager;
 
 

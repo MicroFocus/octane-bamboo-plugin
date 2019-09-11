@@ -18,11 +18,11 @@ package com.hp.octane.plugins.bamboo.listener;
 
 import com.hp.octane.plugins.bamboo.octane.DTOConverter;
 import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
-import org.apache.logging.log4j.LogManager;
+import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import org.apache.logging.log4j.Logger;
 
 
 public class BaseListener {
 	protected static final DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
-	protected final Logger log = LogManager.getLogger(getClass());
+	protected final Logger log = SDKBasedLoggerProvider.getLogger(getClass());
 }

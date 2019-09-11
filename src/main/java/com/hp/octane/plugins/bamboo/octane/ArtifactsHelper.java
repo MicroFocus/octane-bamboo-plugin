@@ -18,39 +18,28 @@ package com.hp.octane.plugins.bamboo.octane;
 import com.atlassian.bamboo.artifact.MutableArtifact;
 import com.atlassian.bamboo.build.Job;
 import com.atlassian.bamboo.build.artifact.*;
-import com.atlassian.bamboo.chains.ChainResultsSummary;
-import com.atlassian.bamboo.chains.ChainStageResult;
 import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionImpl;
 import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionManager;
-import com.atlassian.bamboo.resultsummary.BuildResultsSummary;
 import com.atlassian.bamboo.util.RequestCacheThreadLocal;
 import com.atlassian.bamboo.utils.XsrfUtils;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-
 
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 
 
 public class ArtifactsHelper {
-    private static final Logger log = LogManager.getLogger(ArtifactsHelper.class);
+    private static final Logger log = SDKBasedLoggerProvider.getLogger(ArtifactsHelper.class);
     private static ArtifactLinkManager artifactLinkManager = ComponentLocator.getComponent(ArtifactLinkManager.class);
 
     public static boolean registerArtifactDefinition(@NotNull Job job, String name, String pattern) {
@@ -91,7 +80,7 @@ public class ArtifactsHelper {
         return false;
     }
 
-    public static void copyArtifactTo(File targetDir, MutableArtifact artifact)  {
+    public static void copyArtifactTo(File targetDir, MutableArtifact artifact) {
         targetDir.mkdirs();
         final ArtifactLinkDataProvider dataProvider = artifactLinkManager.getArtifactLinkDataProvider(artifact);
         if (dataProvider instanceof FileSystemArtifactLinkDataProvider) {
