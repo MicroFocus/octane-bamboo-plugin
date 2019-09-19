@@ -47,11 +47,7 @@ import com.hp.octane.integrations.dto.general.CIServerTypes;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.hp.octane.integrations.dto.scm.SCMChange;
-import com.hp.octane.integrations.dto.scm.SCMCommit;
-import com.hp.octane.integrations.dto.scm.SCMData;
-import com.hp.octane.integrations.dto.scm.SCMRepository;
-import com.hp.octane.integrations.dto.scm.SCMType;
+import com.hp.octane.integrations.dto.scm.*;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
@@ -70,7 +66,7 @@ import java.util.List;
 public class DefaultOctaneConverter implements DTOConverter {
 
 	private DTOFactory dtoFactoryInstance;
-
+	private final static int DEFAULT_STRING_SIZE = 255;
 	private static DTOConverter converter;
 
 	private DefaultOctaneConverter() {
@@ -237,11 +233,11 @@ public class DefaultOctaneConverter implements DTOConverter {
 	}
 
 	public TestRun getTestRunFromTestResult(com.atlassian.bamboo.v2.build.BuildContext buildContext, HPRunnerType runnerType, TestResults testResult, TestRunResult result, long startTime) {
-		String className = testResult.getClassName();
-		String simpleName = testResult.getShortClassName();
-		String packageName = className.substring(0,
-				className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0));
-		String testName = testResult.getActualMethodName();
+		String className = restrictSize(testResult.getClassName(), DEFAULT_STRING_SIZE);
+		String simpleName = restrictSize(testResult.getShortClassName(), DEFAULT_STRING_SIZE);
+		String packageName = restrictSize(className.substring(0,
+				className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0)), DEFAULT_STRING_SIZE);
+		String testName = restrictSize(testResult.getActualMethodName(), DEFAULT_STRING_SIZE);
 		if (buildContext.getCheckoutLocation().size() == 1) {
 			String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
 			if (testName.startsWith(checkoutDir)) {
@@ -251,10 +247,10 @@ public class DefaultOctaneConverter implements DTOConverter {
 
 			if (HPRunnerType.UFT.equals(runnerType)) { /*for example : a/b/c/d/uftTestName => package name = a/b/c/d and testName = uftTestName*/
 				packageName = "";
-                simpleName = "";//class name in octane
+				simpleName = "";//class name in octane
 				int packageSplitter = testName.lastIndexOf("\\");
 				if (packageSplitter > 0) {
-					packageName = testName.substring(0, packageSplitter);
+					packageName =testName.substring(0, packageSplitter);
 					testName = testName.substring(packageSplitter + 1);
 				}
 			}
@@ -283,7 +279,15 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return testRun;
 	}
 
-    private String getExternalReportForUft(com.atlassian.bamboo.v2.build.BuildContext buildContext, String testName) {
+	private String restrictSize(String value, int size) {
+		String result = value;
+		if (value != null && value.length() > size) {
+			result = value.substring(0, size);
+		}
+		return result;
+	}
+
+	private String getExternalReportForUft(com.atlassian.bamboo.v2.build.BuildContext buildContext, String testName) {
         try {
             String baseUrl = BambooPluginServices.getBambooServerBaseUrl();
             String planName = buildContext.getParentBuildContext().getTypedPlanKey().getKey();
