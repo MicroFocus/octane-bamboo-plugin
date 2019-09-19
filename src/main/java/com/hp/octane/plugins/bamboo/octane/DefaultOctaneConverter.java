@@ -232,41 +232,41 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return identifier.getPlanKey().getKey();
 	}
 
-	public TestRun getTestRunFromTestResult(com.atlassian.bamboo.v2.build.BuildContext buildContext, HPRunnerType runnerType, TestResults testResult, TestRunResult result, long startTime) {
-		String className = restrictSize(testResult.getClassName(), DEFAULT_STRING_SIZE);
-		String simpleName = restrictSize(testResult.getShortClassName(), DEFAULT_STRING_SIZE);
-		String packageName = restrictSize(className.substring(0,
-				className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0)), DEFAULT_STRING_SIZE);
-		String testName = restrictSize(testResult.getActualMethodName(), DEFAULT_STRING_SIZE);
-		if (buildContext.getCheckoutLocation().size() == 1) {
-			String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
-			if (testName.startsWith(checkoutDir)) {
-				testName = testName.substring(checkoutDir.length());
-				testName = StringUtils.stripStart(testName, "\\/");
-			}
+    public TestRun getTestRunFromTestResult(com.atlassian.bamboo.v2.build.BuildContext buildContext, HPRunnerType runnerType, TestResults testResult, TestRunResult result, long startTime) {
+        String className = testResult.getClassName();
+        String simpleName = testResult.getShortClassName();
+        String packageName = className.substring(0,
+                className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0));
+        String testName = restrictSize(testResult.getActualMethodName(), DEFAULT_STRING_SIZE);
+        if (buildContext.getCheckoutLocation().size() == 1) {
+            String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
+            if (testName.startsWith(checkoutDir)) {
+                testName = testName.substring(checkoutDir.length());
+                testName = StringUtils.stripStart(testName, "\\/");
+            }
 
-			if (HPRunnerType.UFT.equals(runnerType)) { /*for example : a/b/c/d/uftTestName => package name = a/b/c/d and testName = uftTestName*/
-				packageName = "";
-				simpleName = "";//class name in octane
-				int packageSplitter = testName.lastIndexOf("\\");
-				if (packageSplitter > 0) {
-					packageName =testName.substring(0, packageSplitter);
-					testName = testName.substring(packageSplitter + 1);
-				}
-			}
-		}
+            if (HPRunnerType.UFT.equals(runnerType)) { /*for example : a/b/c/d/uftTestName => package name = a/b/c/d and testName = uftTestName*/
+                packageName = "";
+                simpleName = "";//class name in octane
+                int packageSplitter = testName.lastIndexOf("\\");
+                if (packageSplitter > 0) {
+                    packageName = testName.substring(0, packageSplitter);
+                    testName = testName.substring(packageSplitter + 1);
+                }
+            }
+        }
 
-		TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
-				.setDuration(Math.round(Double.valueOf(testResult.getDurationMs()))).setPackageName(packageName)
-				.setResult(result).setStarted(startTime).setTestName(testName);
-		if (result == TestRunResult.FAILED) {
-			TestRunError error = dtoFactoryInstance.newDTO(TestRunError.class)
-					.setErrorMessage(testResult.getSystemOut());
-			if (!testResult.getErrors().isEmpty()) {
-				error.setStackTrace(testResult.getErrors().get(0).getContent());
-			}
-			testRun.setError(error);
-		}
+        TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
+                .setDuration(Math.round(Double.valueOf(testResult.getDurationMs()))).setPackageName(packageName)
+                .setResult(result).setStarted(startTime).setTestName(testName);
+        if (result == TestRunResult.FAILED) {
+            TestRunError error = dtoFactoryInstance.newDTO(TestRunError.class)
+                    .setErrorMessage(testResult.getSystemOut());
+            if (!testResult.getErrors().isEmpty()) {
+                error.setStackTrace(testResult.getErrors().get(0).getContent());
+            }
+            testRun.setError(error);
+        }
 
         String externalReport = null;
         if (HPRunnerType.UFT.equals(runnerType)) {
@@ -276,8 +276,11 @@ public class DefaultOctaneConverter implements DTOConverter {
         if (StringUtils.isNotEmpty(externalReport)) {
             testRun.setExternalReportUrl(externalReport);
         }
-		return testRun;
-	}
+        testRun.setClassName(restrictSize(testRun.getClassName(), DEFAULT_STRING_SIZE))
+                .setPackageName(restrictSize(testRun.getPackageName(), DEFAULT_STRING_SIZE))
+                .setTestName(restrictSize(testRun.getTestName(), DEFAULT_STRING_SIZE));
+        return testRun;
+    }
 
 	private String restrictSize(String value, int size) {
 		String result = value;
