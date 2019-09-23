@@ -237,7 +237,7 @@ public class DefaultOctaneConverter implements DTOConverter {
         String simpleName = testResult.getShortClassName();
         String packageName = className.substring(0,
                 className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0));
-        String testName = restrictSize(testResult.getActualMethodName(), DEFAULT_STRING_SIZE);
+        String testName = testResult.getActualMethodName();
         if (buildContext.getCheckoutLocation().size() == 1) {
             String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
             if (testName.startsWith(checkoutDir)) {
