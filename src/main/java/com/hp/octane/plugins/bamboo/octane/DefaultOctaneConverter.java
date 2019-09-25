@@ -47,11 +47,7 @@ import com.hp.octane.integrations.dto.general.CIServerTypes;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
-import com.hp.octane.integrations.dto.scm.SCMChange;
-import com.hp.octane.integrations.dto.scm.SCMCommit;
-import com.hp.octane.integrations.dto.scm.SCMData;
-import com.hp.octane.integrations.dto.scm.SCMRepository;
-import com.hp.octane.integrations.dto.scm.SCMType;
+import com.hp.octane.integrations.dto.scm.*;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
@@ -70,7 +66,7 @@ import java.util.List;
 public class DefaultOctaneConverter implements DTOConverter {
 
 	private DTOFactory dtoFactoryInstance;
-
+	private final static int DEFAULT_STRING_SIZE = 255;
 	private static DTOConverter converter;
 
 	private DefaultOctaneConverter() {
@@ -236,41 +232,41 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return identifier.getPlanKey().getKey();
 	}
 
-	public TestRun getTestRunFromTestResult(com.atlassian.bamboo.v2.build.BuildContext buildContext, HPRunnerType runnerType, TestResults testResult, TestRunResult result, long startTime) {
-		String className = testResult.getClassName();
-		String simpleName = testResult.getShortClassName();
-		String packageName = className.substring(0,
-				className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0));
-		String testName = testResult.getActualMethodName();
-		if (buildContext.getCheckoutLocation().size() == 1) {
-			String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
-			if (testName.startsWith(checkoutDir)) {
-				testName = testName.substring(checkoutDir.length());
-				testName = StringUtils.stripStart(testName, "\\/");
-			}
+    public TestRun getTestRunFromTestResult(com.atlassian.bamboo.v2.build.BuildContext buildContext, HPRunnerType runnerType, TestResults testResult, TestRunResult result, long startTime) {
+        String className = testResult.getClassName();
+        String simpleName = testResult.getShortClassName();
+        String packageName = className.substring(0,
+                className.length() - simpleName.length() - (className.length() > simpleName.length() ? 1 : 0));
+        String testName = testResult.getActualMethodName();
+        if (buildContext.getCheckoutLocation().size() == 1) {
+            String checkoutDir = buildContext.getCheckoutLocation().values().iterator().next();
+            if (testName.startsWith(checkoutDir)) {
+                testName = testName.substring(checkoutDir.length());
+                testName = StringUtils.stripStart(testName, "\\/");
+            }
 
-			if (HPRunnerType.UFT.equals(runnerType)) { /*for example : a/b/c/d/uftTestName => package name = a/b/c/d and testName = uftTestName*/
-				packageName = "";
+            if (HPRunnerType.UFT.equals(runnerType)) { /*for example : a/b/c/d/uftTestName => package name = a/b/c/d and testName = uftTestName*/
+                packageName = "";
                 simpleName = "";//class name in octane
-				int packageSplitter = testName.lastIndexOf("\\");
-				if (packageSplitter > 0) {
-					packageName = testName.substring(0, packageSplitter);
-					testName = testName.substring(packageSplitter + 1);
-				}
-			}
-		}
+                int packageSplitter = testName.lastIndexOf("\\");
+                if (packageSplitter > 0) {
+                    packageName = testName.substring(0, packageSplitter);
+                    testName = testName.substring(packageSplitter + 1);
+                }
+            }
+        }
 
-		TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
-				.setDuration(Math.round(Double.valueOf(testResult.getDurationMs()))).setPackageName(packageName)
-				.setResult(result).setStarted(startTime).setTestName(testName);
-		if (result == TestRunResult.FAILED) {
-			TestRunError error = dtoFactoryInstance.newDTO(TestRunError.class)
-					.setErrorMessage(testResult.getSystemOut());
-			if (!testResult.getErrors().isEmpty()) {
-				error.setStackTrace(testResult.getErrors().get(0).getContent());
-			}
-			testRun.setError(error);
-		}
+        TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
+                .setDuration(Math.round(Double.valueOf(testResult.getDurationMs()))).setPackageName(packageName)
+                .setResult(result).setStarted(startTime).setTestName(testName);
+        if (result == TestRunResult.FAILED) {
+            TestRunError error = dtoFactoryInstance.newDTO(TestRunError.class)
+                    .setErrorMessage(testResult.getSystemOut());
+            if (!testResult.getErrors().isEmpty()) {
+                error.setStackTrace(testResult.getErrors().get(0).getContent());
+            }
+            testRun.setError(error);
+        }
 
         String externalReport = null;
         if (HPRunnerType.UFT.equals(runnerType)) {
@@ -280,10 +276,21 @@ public class DefaultOctaneConverter implements DTOConverter {
         if (StringUtils.isNotEmpty(externalReport)) {
             testRun.setExternalReportUrl(externalReport);
         }
-		return testRun;
+        testRun.setClassName(restrictSize(testRun.getClassName(), DEFAULT_STRING_SIZE))
+                .setPackageName(restrictSize(testRun.getPackageName(), DEFAULT_STRING_SIZE))
+                .setTestName(restrictSize(testRun.getTestName(), DEFAULT_STRING_SIZE));
+        return testRun;
+    }
+
+	private String restrictSize(String value, int size) {
+		String result = value;
+		if (value != null && value.length() > size) {
+			result = value.substring(0, size);
+		}
+		return result;
 	}
 
-    private String getExternalReportForUft(com.atlassian.bamboo.v2.build.BuildContext buildContext, String testName) {
+	private String getExternalReportForUft(com.atlassian.bamboo.v2.build.BuildContext buildContext, String testName) {
         try {
             String baseUrl = BambooPluginServices.getBambooServerBaseUrl();
             String planName = buildContext.getParentBuildContext().getTypedPlanKey().getKey();
