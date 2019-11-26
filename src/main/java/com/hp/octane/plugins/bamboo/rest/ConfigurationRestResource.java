@@ -72,9 +72,12 @@ public class ConfigurationRestResource {
         if (octaneConnectionManager.getConnectionById(model.getId()) == null) {
             return Response.status(Response.Status.NOT_FOUND).entity("No configuration with id " + id).build();
         }
-
         octaneConnectionManager.replacePlainPasswordIfRequired(model);
-        octaneConnectionManager.updateConfiguration(model);
+        try {
+            octaneConnectionManager.updateConfiguration(model);
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        }
         return Response.ok().entity(model.cloneForUI()).build();
     }
 
