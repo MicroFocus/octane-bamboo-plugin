@@ -127,7 +127,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
         File testResultFile = MqmResultsHelper.getMqmResultFilePath(planResultKey).toFile();
         boolean testResultFileExist = testResultFile.exists();
-        LOG.info(planResultKey.toString() + " : text result file created=" + testResultFileExist + ". Path is " + testResultFile);
+        LOG.info(planResultKey.toString() + " : test result file created=" + testResultFileExist + ". Path is " + testResultFile);
     }
 
     public void execute(Chain chain, ChainResultsSummary chainResultsSummary, ChainExecution chainExecution) {
