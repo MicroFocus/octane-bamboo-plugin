@@ -74,7 +74,11 @@ public class ConfigurationRestResource {
         }
 
         octaneConnectionManager.replacePlainPasswordIfRequired(model);
-        octaneConnectionManager.updateConfiguration(model);
+        try {
+            octaneConnectionManager.updateConfiguration(model);
+        } catch (Exception e) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+        }
         return Response.ok().entity(model.cloneForUI()).build();
     }
 
