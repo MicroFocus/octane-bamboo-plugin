@@ -106,7 +106,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         boolean hasTestResultsArtifact = artifactContext.getPublishingResults()
                 .stream().filter(r -> r.getArtifactDefinitionContext().getName().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME)).findFirst().isPresent();
         if (hasTestResultsArtifact) {
-            LOG.info(planResultKey.toString() + " : test result artifact found");
+            LOG.info(planResultKey.toString() + " : test result artifact found - " + OctaneConstants.MQM_RESULT_ARTIFACT_NAME);
             ResultsSummaryManager resultsSummaryManager = ComponentLocator.getComponent(ResultsSummaryManager.class);
             ResultsSummary rs = resultsSummaryManager.getResultsSummary(planResultKey);
             ArtifactLinkManager artifactLinkManager = ComponentLocator.getComponent(ArtifactLinkManager.class);
