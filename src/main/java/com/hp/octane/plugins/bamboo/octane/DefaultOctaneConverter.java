@@ -204,7 +204,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 		}
 	}
 
-	public CIJobsList getRootJobsList(List<ImmutableTopLevelPlan> plans) {
+	public CIJobsList getRootJobsList(List<ImmutableTopLevelPlan> plans, boolean includeParameters) {
 		CIJobsList jobsList = dtoFactoryInstance.newDTO(CIJobsList.class).setJobs(new PipelineNode[0]);
 
 		List<PipelineNode> nodes = new ArrayList<>(plans.size());
@@ -213,12 +213,14 @@ public class DefaultOctaneConverter implements DTOConverter {
 					.setName(plan.getName());
 
 			//add parameters
-			List<VariableDefinition> varDefinitions = plan.getEffectiveVariables();
-			if (!varDefinitions.isEmpty()) {
-				List<CIParameter> params = new ArrayList<>();
-				node.setParameters(params);
-				for (VariableDefinition def : varDefinitions) {
-					params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()));
+			if(includeParameters) {
+				List<VariableDefinition> varDefinitions = plan.getEffectiveVariables();
+				if (!varDefinitions.isEmpty()) {
+					List<CIParameter> params = new ArrayList<>();
+					node.setParameters(params);
+					for (VariableDefinition def : varDefinitions) {
+						params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+					}
 				}
 			}
 			nodes.add(node);

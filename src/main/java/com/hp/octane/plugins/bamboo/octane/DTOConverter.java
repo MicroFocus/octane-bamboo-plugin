@@ -54,7 +54,7 @@ public interface DTOConverter {
 
 	SnapshotNode getSnapshot(ImmutableTopLevelPlan plan, ImmutableResultsSummary summary);
 
-	CIJobsList getRootJobsList(List<ImmutableTopLevelPlan> toplevels);
+	CIJobsList getRootJobsList(List<ImmutableTopLevelPlan> toplevels, boolean includeParameters);
 
 	String getCiId(PlanIdentifier identifier);
 
