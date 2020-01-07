@@ -271,14 +271,14 @@ public class DefaultOctaneConverter implements DTOConverter {
         }
 
         String externalReport = null;
-        if (HPRunnerType.UFT.equals(runnerType)) {
-            externalReport = getExternalReportForUft(buildContext, testName);
-			if(testResult.getSystemOut()!=null && testResult.getSystemOut().contains("warning")){
+		if (HPRunnerType.UFT.equals(runnerType)) {
+			externalReport = getExternalReportForUft(buildContext, testName);
+			if (testResult.getSystemOut() != null && testResult.getSystemOut().contains("warning")) {
 				TestRunError error = dtoFactoryInstance.newDTO(TestRunError.class)
 						.setErrorMessage("Test ended with 'Warning' status.");
 				testRun.setError(error);
 			}
-        }
+		}
 
         if (StringUtils.isNotEmpty(externalReport)) {
             testRun.setExternalReportUrl(externalReport);
