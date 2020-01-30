@@ -32,6 +32,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -105,7 +106,7 @@ public class MqmResultsHelper {
                 targetFilePath.toFile().createNewFile();
             } else {
                 targetFilePath.getParent().toFile().mkdirs();
-                Files.copy(is, targetFilePath);
+                Files.copy(is, targetFilePath, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (Exception e) {
             log.error("Failed to saveToTestResultFile of " + planResultKey.toString(), e);
