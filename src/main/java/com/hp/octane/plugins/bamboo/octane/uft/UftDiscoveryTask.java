@@ -60,7 +60,9 @@ public class UftDiscoveryTask implements TaskType {
             buildLogger.addBuildLogEntry("Space configuration is missing! This field should contain instance ID of space configuration!!!!!!!!!!!");
             return TaskResultBuilder.newBuilder(taskContext).failed().build();
         }
-        if (OctaneSDK.getClientByInstanceId(spaceConfigurationId).getConfigurationService().isCurrentConfigurationValid()) {
+
+        try {
+            OctaneSDK.getClientByInstanceId(spaceConfigurationId).getConfigurationService().validateConfigurationAndGetConnectivityStatus();
             result.setWorkspaceId(taskContext.getConfigurationMap().get(WORKSPACE_ID_PARAM));
             result.setScmRepositoryId(taskContext.getConfigurationMap().get(SCM_REPOSITORY_ID_PARAM));
             result.setTestRunnerId(taskContext.getConfigurationMap().get(TEST_RUNNER_ID_PARAM));
@@ -92,12 +94,11 @@ public class UftDiscoveryTask implements TaskType {
             } catch (IOException e) {
                 buildLogger.addBuildLogEntry(String.format("Failed to save final result file  " + reportXmlFile.getAbsolutePath() + " : " + e.getMessage()));
             }
-        } else {
-            buildLogger.addBuildLogEntry(String.format("Octane configuration is not valid, skip dispatching of discovered items"));
+            return TaskResultBuilder.newBuilder(taskContext).success().build();
+        } catch (Exception e) {
+            buildLogger.addBuildLogEntry(String.format("Octane configuration is not valid : " + e.getMessage()));
+            return TaskResultBuilder.newBuilder(taskContext).failed().build();
         }
-
-
-        return TaskResultBuilder.newBuilder(taskContext).success().build();
     }
 
 }

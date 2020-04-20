@@ -94,7 +94,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             }
             testResultExpected.add(event.getContext().getParentBuildContext().getPlanResultKey().getKey());
             OctaneSDK.getClients().forEach(client ->
-                    client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey()));
+                    client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey(), null));
         }
     }
 

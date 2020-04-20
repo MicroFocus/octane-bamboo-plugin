@@ -26,6 +26,7 @@ import com.atlassian.plugin.spring.scanner.annotation.component.Scanned;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.dto.entities.Entity;
 import com.hp.octane.integrations.exceptions.OctaneConnectivityException;
 import com.hp.octane.integrations.exceptions.OctaneSDKGeneralException;
 import com.hp.octane.integrations.utils.OctaneUrlParser;
@@ -59,14 +60,14 @@ public class TestConnectionResource {
     public Response testConfiguration(@Context HttpServletRequest request, OctaneConnection model) {
         try {
             OctaneConnectionManager.getInstance().replacePlainPasswordIfRequired(model);
-            tryToConnect(model);
+            List<Entity> workspaces = tryToConnectAndGetAvailableWorkspaces(model);
             return Response.ok().build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
     }
 
-    private void tryToConnect(OctaneConnection dto) throws OctaneConnectivityException {
+    private List<Entity> tryToConnectAndGetAvailableWorkspaces(OctaneConnection dto) throws OctaneConnectivityException {
         String location = dto.getLocation();
         String clientId = dto.getClientId();
         String clientSecret = dto.getClientSecret();
@@ -105,7 +106,7 @@ public class TestConnectionResource {
         testedOctaneConfiguration.setClient(clientId);
         testedOctaneConfiguration.setSecret(clientSecret);
         try {
-            OctaneSDK.testAndValidateOctaneConfiguration(testedOctaneConfiguration.getUrl(),
+            return OctaneSDK.testOctaneConfigurationAndFetchAvailableWorkspaces(testedOctaneConfiguration.getUrl(),
                     testedOctaneConfiguration.getSharedSpace(),
                     testedOctaneConfiguration.getClient(),
                     testedOctaneConfiguration.getSecret(),
