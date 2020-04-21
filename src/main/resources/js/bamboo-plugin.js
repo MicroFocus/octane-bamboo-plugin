@@ -265,16 +265,16 @@
             url: octanePluginContext.octaneAdminBaseUrl + "test/testconnection",
             type: "POST",
             data: myJSON,
-            dataType: "json",
+            dataType: "text",
             contentType: "application/json"
-        }).done(function () {
+        , success:function (response) {
             throbber.addClass("test-connection-status-successful");
-            throbber.attr("title", "Test connection is successful");
-        }).fail(function (request, status, error) {
+            throbber.attr("title", "Test connection is successful. \n\n" + response);
+        }, error:function (request, status, error) {
             throbber.addClass("test-connection-status-failed");
             throbber.attr("title", "Test connection is failed : " + request.responseText);
 
-        });
+        }});
     }
 
 }(AJS.$ || jQuery));

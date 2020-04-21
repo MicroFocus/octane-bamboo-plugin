@@ -44,8 +44,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 
 @Path("/test")
@@ -61,7 +63,18 @@ public class TestConnectionResource {
         try {
             OctaneConnectionManager.getInstance().replacePlainPasswordIfRequired(model);
             List<Entity> workspaces = tryToConnectAndGetAvailableWorkspaces(model);
-            return Response.ok().build();
+            String tooltip="";
+            if (workspaces != null && !workspaces.isEmpty()) {
+                int workspaceNumberLimit = 30;
+                String titleNewLine = "\n";
+                String suffix = (workspaces.size() > workspaceNumberLimit) ? titleNewLine + "and more " + (workspaces.size() - workspaceNumberLimit) + " workspaces" : "";
+                tooltip= workspaces.stream()
+                        .sorted(Comparator.comparingInt(e -> Integer.parseInt(e.getId())))
+                        .limit(workspaceNumberLimit)
+                        .map(w -> w.getId() + " - " + w.getName())
+                        .collect(Collectors.joining(titleNewLine, "Available workspaces are : " + titleNewLine, suffix));
+            }
+            return Response.status(Response.Status.OK).entity(tooltip).build();
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.CONFLICT).entity(e.getMessage()).build();
         }
