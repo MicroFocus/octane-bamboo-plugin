@@ -237,7 +237,18 @@ public class BambooPluginServices extends CIPluginServices {
 
                 CIParameters parameters = DTOFactory.getInstance().dtoFromJson(parametersJson, CIParameters.class);
                 for (CIParameter param : parameters.getParameters()) {
-                    variables.put(param.getName(), param.getValue().toString());
+                    //if testsToRun parameter more then 3900 ,split it for many variables
+                    if (param.getName().equals(OctaneConstants.TESTS_TO_RUN_PARAMETER) && param.getValue().toString().length() > OctaneConstants.BAMBOO_MAX_FIELD_CAPACITY) {
+                        String[] split = param.getValue().toString().split("(?<=\\G.{3900})");
+                        log.info("testsToRun parameter is too long, split it to "+split.length);
+                        for (int i = 0; i < split.length; i++) {
+                            variables.put(param.getName() + i, split[i]);
+                        }
+                        variables.put(OctaneConstants.TEST_TO_RUN_SPLIT_COUNT, split.length + "");
+                        param.setValue("value is too long and splitted to "+split.length +" parts");
+                    } else {
+                        variables.put(param.getName(), param.getValue().toString());
+                    }
                 }
             }
 

@@ -23,6 +23,7 @@ import com.atlassian.bamboo.variable.VariableDefinitionContext;
 import com.hp.octane.integrations.executor.TestsToRunConverterResult;
 import com.hp.octane.integrations.executor.TestsToRunConvertersFactory;
 import com.hp.octane.integrations.executor.TestsToRunFramework;
+import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import org.apache.commons.lang.StringUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -38,26 +39,22 @@ public class TestFrameworkConverterTask implements TaskType {
 
     public final static String FRAMEWORK_PARAMETER = "framework";
     public final static String CONVERTER_FORMAT = "customConverterFormat";
-    public final static String TESTS_TO_RUN_PARAMETER = "testsToRun";
 
 
     private final static String TESTS_TO_RUN_CONVERTED_PARAMETER = "testsToRunConverted";
 
     public final static String DEFAULT_EXECUTING_DIRECTORY = "${bamboo.build.working.directory}";
     private final static String CHECKOUT_DIRECTORY_PARAMETER = "testsToRunCheckoutDirectory";
-    private final static int BAMBOO_MAX_FIELD_CAPACITY = 4000;
 
     @Override
     public TaskResult execute(@NotNull TaskContext taskContext) throws TaskException {
         boolean skip = false;
         final BuildLogger buildLogger = taskContext.getBuildLogger();
         Map<String, VariableDefinitionContext> variables = taskContext.getBuildContext().getVariableContext().getEffectiveVariables();
-
-        String rawTests = variables.containsKey(TESTS_TO_RUN_PARAMETER) ? variables.get(TESTS_TO_RUN_PARAMETER).getValue() : null;
-
+        String rawTests = getTestsToRunValue(variables);
         String checkoutDirectory = DEFAULT_EXECUTING_DIRECTORY;
         if (StringUtils.isNotEmpty(rawTests)) {
-            addLogEntry(buildLogger, TESTS_TO_RUN_PARAMETER + " found with value : " + rawTests);
+            addLogEntry(buildLogger, OctaneConstants.TESTS_TO_RUN_PARAMETER + " found with value : " + rawTests);
             String checkoutDir = variables.containsKey(CHECKOUT_DIRECTORY_PARAMETER) ? variables.get(CHECKOUT_DIRECTORY_PARAMETER).getValue() : null;
             if (StringUtils.isEmpty(checkoutDir)) {
                 checkoutDir = DEFAULT_EXECUTING_DIRECTORY;
@@ -67,7 +64,7 @@ public class TestFrameworkConverterTask implements TaskType {
             }
         } else {
             skip = true;
-            addLogEntry(buildLogger, TESTS_TO_RUN_PARAMETER + " is not defined or has empty value. Skipping.");
+            addLogEntry(buildLogger, OctaneConstants.TESTS_TO_RUN_PARAMETER + " is not defined or has empty value. Skipping.");
         }
         ConfigurationMap configurationMap = taskContext.getConfigurationMap();
         framework = configurationMap.get(FRAMEWORK_PARAMETER);
@@ -92,15 +89,35 @@ public class TestFrameworkConverterTask implements TaskType {
             //if framework is uft and converter result more then 4000 ,save to file and save path reference to the file
 
             String testToRunConverted = convertResult.getConvertedTestsString();
-            if (convertResult.getConvertedTestsString().length() >= BAMBOO_MAX_FIELD_CAPACITY && testsToRunFramework.equals(TestsToRunFramework.MF_UFT)) {
-                File converterResultFile = saveUftTestsToMtbxFile(taskContext, buildLogger, convertResult);
-                testToRunConverted = converterResultFile.getAbsolutePath();
-
+            if (convertResult.getConvertedTestsString().length() >= OctaneConstants.BAMBOO_MAX_FIELD_CAPACITY) {
+                if (testsToRunFramework.equals(TestsToRunFramework.MF_UFT)) {
+                    File converterResultFile = saveUftTestsToMtbxFile(taskContext, buildLogger, convertResult);
+                    testToRunConverted = converterResultFile.getAbsolutePath();
+                } else {
+                    String msg = String.format("Conversion value is too long (%s characters) for Bamboo. Check possibility to reduce number of tests for execution. Max allowed value is %s.",
+                            convertResult.getConvertedTestsString().length(), OctaneConstants.BAMBOO_MAX_FIELD_CAPACITY);
+                    buildLogger.addBuildLogEntry(msg);
+                    throw new TaskException(msg);
+                }
             }
             taskContext.getBuildContext().getVariableContext().addResultVariable(TESTS_TO_RUN_CONVERTED_PARAMETER, testToRunConverted);
         }
 
         return TaskResultBuilder.newBuilder(taskContext).success().build();
+    }
+
+    @NotNull
+    private String getTestsToRunValue(Map<String, VariableDefinitionContext> variables) {
+        StringBuilder rawTestsStringBuilder = new StringBuilder();
+        if (variables.containsKey(OctaneConstants.TEST_TO_RUN_SPLIT_COUNT)) {
+            int splitCount = Integer.parseInt(variables.get(OctaneConstants.TEST_TO_RUN_SPLIT_COUNT).getValue());
+            for (int i = 0; i < splitCount; i++) {
+                rawTestsStringBuilder.append(variables.containsKey(OctaneConstants.TESTS_TO_RUN_PARAMETER + i) ? variables.get(OctaneConstants.TESTS_TO_RUN_PARAMETER + i).getValue() : "");
+            }
+        } else {
+            rawTestsStringBuilder.append(variables.containsKey(OctaneConstants.TESTS_TO_RUN_PARAMETER) ? variables.get(OctaneConstants.TESTS_TO_RUN_PARAMETER).getValue() : "");
+        }
+        return rawTestsStringBuilder.toString();
     }
 
     private static void addLogEntry(BuildLogger buildLogger, String message) {

@@ -7,6 +7,7 @@ import com.atlassian.sal.api.user.UserProfile;
 import com.hp.octane.integrations.executor.TestsToRunConverterResult;
 import com.hp.octane.integrations.executor.TestsToRunConvertersFactory;
 import com.hp.octane.integrations.executor.TestsToRunFramework;
+import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import com.hp.octane.plugins.bamboo.octane.executor.TestFrameworkConverterTask;
 import com.hp.octane.plugins.bamboo.octane.utils.JsonHelper;
 import org.apache.commons.lang.StringUtils;
@@ -31,7 +32,7 @@ public class FrameworkConverterRestResources {
     public Response doTestConvert(@Context HttpServletRequest request, String body) {
         try {
             Map<String, String> params = JsonHelper.deserialize(body, HashMap.class);
-            String rawTests = params.get(TestFrameworkConverterTask.TESTS_TO_RUN_PARAMETER), framework = params.get(TestFrameworkConverterTask.FRAMEWORK_PARAMETER), format = params.get(TestFrameworkConverterTask.CONVERTER_FORMAT);
+            String rawTests = params.get(OctaneConstants.TESTS_TO_RUN_PARAMETER), framework = params.get(TestFrameworkConverterTask.FRAMEWORK_PARAMETER), format = params.get(TestFrameworkConverterTask.CONVERTER_FORMAT);
 
             if (!hasPermissions(request)) {
                 throw new IllegalArgumentException("Bamboo user does not exist");
