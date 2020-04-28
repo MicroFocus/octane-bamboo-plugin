@@ -22,5 +22,8 @@ public class OctaneConstants {
     public static final String MQM_RESULT_ARTIFACT_NAME = "ALM Octane test results";
     public static final String MQM_TESTS_FILE_NAME = "mqmTests.xml";
     public static final String INSTANCE_ID_TO_BE_SET_IN_SDK = "to-be-filled-in-SDK";
+    public static final String TEST_TO_RUN_SPLIT_COUNT = "test-to-run-split-count";
+    public final static String TESTS_TO_RUN_PARAMETER = "testsToRun";
+    public final static int BAMBOO_MAX_FIELD_CAPACITY = 3900;
 }
 
