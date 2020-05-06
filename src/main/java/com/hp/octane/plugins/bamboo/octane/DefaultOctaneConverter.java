@@ -25,15 +25,13 @@ import com.atlassian.bamboo.plan.PlanIdentifier;
 import com.atlassian.bamboo.plan.cache.ImmutableJob;
 import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
-import com.atlassian.bamboo.plugins.git.GitRepository;
-import com.atlassian.bamboo.repository.Repository;
-import com.atlassian.bamboo.repository.svn.SvnRepository;
 import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.resultsummary.ImmutableResultsSummary;
 import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.v2.build.BuildChanges;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
 import com.atlassian.bamboo.variable.VariableDefinition;
+import com.atlassian.bamboo.vcs.configuration.PlanRepositoryDefinition;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.causes.CIEventCauseType;
@@ -394,18 +392,16 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return scmChangesList;
 	}
 
-	private SCMRepository createRepository(Repository repo) {
+	private SCMRepository createRepository(PlanRepositoryDefinition repo) {
 		SCMRepository scmRepository = DTOFactory.getInstance().newDTO(SCMRepository.class);
-		if (repo instanceof SvnRepository) {
-			SvnRepository svn = (SvnRepository) repo;
-			scmRepository.setUrl(svn.getRepositoryUrl());
+		if (repo.getPluginKey().contains(":svn")) {
+			scmRepository.setUrl(repo.getVcsLocation().getConfiguration().get("repository.svn.repositoryRoot"));
 			scmRepository.setType(SCMType.SVN);
-			scmRepository.setBranch(svn.getVcsBranch().getName());
-		} else if (repo instanceof GitRepository) {
-			GitRepository git = (GitRepository) repo;
-			scmRepository.setUrl(git.getRepositoryUrl());
+			scmRepository.setBranch(repo.getBranch().getVcsBranch().getName());
+		} else if (repo.getPluginKey().contains(":git")) {
+			scmRepository.setUrl(repo.getVcsLocation().getConfiguration().get("repository.git.repositoryUrl"));
 			scmRepository.setType(SCMType.GIT);
-			scmRepository.setBranch(git.getVcsBranch().getName());
+			scmRepository.setBranch(repo.getBranch().getVcsBranch().getName());
 		} else {
 			scmRepository.setType(SCMType.UNKNOWN);
 		}
@@ -430,8 +426,8 @@ public class DefaultOctaneConverter implements DTOConverter {
 		SCMData scmData = null;
 		SCMRepository scmRepository = null;
 
-		if (buildContext.getRepositoryDefinitions() != null && !buildContext.getRepositoryDefinitions().isEmpty()) {
-			Repository repo = buildContext.getRepositoryDefinitions().get(0).getRepository();
+		if (buildContext.getVcsRepositories() != null && !buildContext.getVcsRepositories().isEmpty()) {
+			PlanRepositoryDefinition repo = buildContext.getVcsRepositories().get(0);
 			scmRepository = createRepository(repo);
 		}
 		List<SCMCommit> scmCommitList = new ArrayList<>();
