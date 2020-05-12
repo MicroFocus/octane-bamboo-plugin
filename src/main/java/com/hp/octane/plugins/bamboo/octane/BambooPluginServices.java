@@ -104,7 +104,7 @@ public class BambooPluginServices extends CIPluginServices {
     }
 
     @Override
-    public CIJobsList getJobsList(boolean includeParameters) {
+    public CIJobsList getJobsList(boolean includeParameters, Long workspaceId) {
         log.info("Get jobs list");
 
         Callable<List<ImmutableTopLevelPlan>> plansGetter = () -> planMan.getPlans();

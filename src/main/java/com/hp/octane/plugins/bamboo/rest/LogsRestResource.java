@@ -96,7 +96,7 @@ public class LogsRestResource {
 
     private boolean hasPermissions(HttpServletRequest request) {
         UserProfile username = getUserManager().getRemoteUser(request);
-        return (username != null && getUserManager().isSystemAdmin(username.getUserKey()));
+        return (username != null && (getUserManager().isSystemAdmin(username.getUserKey()) || getUserManager().isAdmin(username.getUserKey())));
     }
 
 
