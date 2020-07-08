@@ -405,7 +405,6 @@ public class UftManager {
                         result = temp.getCompleteData();
                     } catch (IllegalAccessException | ClassNotFoundException | InvocationTargetException e) {
                         log.error("failed to create linked repository. " + e.getMessage());
-                        e.printStackTrace();
                     }
                 }
             }
