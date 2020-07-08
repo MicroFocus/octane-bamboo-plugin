@@ -36,7 +36,6 @@ import com.atlassian.bamboo.project.Project;
 import com.atlassian.bamboo.project.ProjectManager;
 import com.atlassian.bamboo.repository.AuthenticationType;
 import com.atlassian.bamboo.repository.PlanRepositoryLink;
-import com.atlassian.bamboo.repository.RepositoryConfigurationService;
 import com.atlassian.bamboo.repository.RepositoryDefinitionManager;
 import com.atlassian.bamboo.repository.svn.v2.configurator.SvnConfigurationConstants;
 import com.atlassian.bamboo.security.EncryptionService;
@@ -82,6 +81,9 @@ import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -118,6 +120,7 @@ public class UftManager {
     public static final String PROJECT_KEY = "UOI";
     public static final String DISCOVERY_PREFIX_KEY = "UFTDISCOVERY";
     public static final String EXECUTOR_PREFIX_KEY = "UFTEXECUTOR";
+    public static final String ALL_USERS = "ALL_USERS";
 
     private static final Logger log = SDKBasedLoggerProvider.getLogger(UftManager.class);
 
@@ -389,8 +392,23 @@ public class UftManager {
         //create new
         if (result == null) {
             PartialVcsRepositoryData vcsRepositoryData = createRepositoryData(repositoryName, scmRepository, null, null, sharedCredentialsId);
-            PartialVcsRepositoryData temp = vcsRepositoryConfigurationService.createLinkedRepository(vcsRepositoryData, impersonatedUser, RepositoryConfigurationService.LinkedRepositoryAccess.ALL_USERS);
-            result = temp.getCompleteData();
+            Optional<Method> createLinkedRepositoryMethod = Arrays.asList(vcsRepositoryConfigurationService.getClass().getDeclaredMethods())
+                    .stream().filter(method -> method.getName().equals("createLinkedRepository")).findFirst();
+            if (createLinkedRepositoryMethod.isPresent()) {
+                Optional<Type> accessOptionParameter = Arrays.asList(createLinkedRepositoryMethod.get().getParameters()).stream().map(parameter -> parameter.getParameterizedType()).filter(type -> type.getTypeName().contains("LinkedRepositoryAccess")).findFirst();
+
+                if (accessOptionParameter.isPresent()) {
+                    PartialVcsRepositoryData temp = null;
+                    try {
+                        Object all_users = Arrays.asList(Class.forName(accessOptionParameter.get().getTypeName()).getEnumConstants()).stream().filter(c -> c.toString().equals(ALL_USERS)).findFirst().get();
+                        temp = (PartialVcsRepositoryData) createLinkedRepositoryMethod.get().invoke(vcsRepositoryConfigurationService, vcsRepositoryData, impersonatedUser, all_users);
+                        result = temp.getCompleteData();
+                    } catch (IllegalAccessException | ClassNotFoundException | InvocationTargetException e) {
+                        log.error("failed to create linked repository. " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
         return result;
     }
@@ -530,7 +548,7 @@ public class UftManager {
         context.put(ChainCreationService.CHAIN_KEY, chainKey);
         context.put(ChainCreationService.CHAIN_NAME, chainName);
         context.put(ChainCreationService.CHAIN_DESCRIPTION, chainDescription);
-        context.put("linkedRepositoryAccessOption", RepositoryConfigurationService.LinkedRepositoryAccess.ALL_USERS.name());
+        context.put("linkedRepositoryAccessOption", ALL_USERS);
         context.put("repositoryTypeOption", "LINKED");
         context.put("selectedRepository", linkedRepository.getId());
         ActionParametersMap apm = new ActionParametersMapImpl(context);
