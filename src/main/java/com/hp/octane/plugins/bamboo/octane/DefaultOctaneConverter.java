@@ -121,6 +121,14 @@ public class DefaultOctaneConverter implements DTOConverter {
 				.setJobCiId(getRootJobCiId(plan))
 				.setName(plan.getName());
 		List<PipelinePhase> phases = new ArrayList<>(plan.getAllStages().size());
+		List<VariableDefinition> variables = plan.getVariables();
+		if (!variables.isEmpty()) {
+			List<CIParameter> params = new ArrayList<>();
+			for (VariableDefinition def : variables) {
+				params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+			}
+			node.setParameters(params);
+		}
 		for (ImmutableChainStage stage : plan.getAllStages()) {
 			phases.add(getPipelinePhaseFromStage(stage));
 		}
