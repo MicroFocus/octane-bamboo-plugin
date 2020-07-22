@@ -21,7 +21,6 @@ import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
-import com.hp.octane.integrations.utils.SdkStringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,19 +35,14 @@ public class ParametersHelper {
     public static void addParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
         try {
             Map<String, VariableDefinitionContext> variables = buildContext.getVariableContext().getEffectiveVariables();
-            List<CIParameter> parameters = null;
-
-            if (variables.containsKey(SUITE_ID_PARAMETER) && SdkStringUtils.isNotEmpty(variables.get(SUITE_ID_PARAMETER).getValue())) {
-                parameters = new ArrayList<>();
-                String value = variables.get(SUITE_ID_PARAMETER).getValue();
-                parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
-
-                if (variables.containsKey(SUITE_RUN_ID_PARAMETER)) {
-                    value = variables.get(SUITE_RUN_ID_PARAMETER).getValue();
-                    parameters.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(SUITE_RUN_ID_PARAMETER).setValue(value).setType(CIParameterType.STRING));
-                }
-            }
-
+            List<CIParameter> parameters = new ArrayList<>();
+            variables.entrySet().forEach(v -> {
+                parameters.add(
+                        DTOFactory.getInstance().newDTO(CIParameter.class)
+                                .setName(v.getKey())
+                                .setValue(v.getValue().getValue())
+                                .setType(CIParameterType.STRING));
+            });
             if (parameters != null && !parameters.isEmpty()) {
                 ciEvent.setParameters(parameters);
             }
