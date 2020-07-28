@@ -23,6 +23,7 @@ import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -31,17 +32,20 @@ public class ParametersHelper {
     public static final String SUITE_ID_PARAMETER = "suiteId";
     public static final String SUITE_RUN_ID_PARAMETER = "suiteRunId";
     public static final String TESTS_TO_RUN_PARAMETER = "testsToRun";
+    private static List<String> encryptedVariable = Arrays.asList("password", "sshkey", "passphrase", "secret");
 
     public static void addParametersToEvent(CIEvent ciEvent, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
         try {
             Map<String, VariableDefinitionContext> variables = buildContext.getVariableContext().getEffectiveVariables();
             List<CIParameter> parameters = new ArrayList<>();
             variables.entrySet().forEach(v -> {
-                parameters.add(
-                        DTOFactory.getInstance().newDTO(CIParameter.class)
-                                .setName(v.getKey())
-                                .setValue(v.getValue().getValue())
-                                .setType(CIParameterType.STRING));
+                if (!ParametersHelper.isEncrypted(v.getValue())) {
+                    parameters.add(
+                            DTOFactory.getInstance().newDTO(CIParameter.class)
+                                    .setName(v.getKey())
+                                    .setValue(v.getValue().getValue())
+                                    .setType(CIParameterType.STRING));
+                }
             });
             if (parameters != null && !parameters.isEmpty()) {
                 ciEvent.setParameters(parameters);
@@ -49,5 +53,14 @@ public class ParametersHelper {
         } catch (Exception e) {
             //do nothing - try/catch just to be on safe side for all other plans
         }
+    }
+
+    public static boolean isEncrypted(VariableDefinitionContext variable) {
+        for (String val : encryptedVariable) {
+            if (variable.getKey().toLowerCase().contains(val)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
