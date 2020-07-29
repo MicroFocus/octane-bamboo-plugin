@@ -56,8 +56,9 @@ public class ParametersHelper {
     }
 
     public static boolean isEncrypted(VariableDefinitionContext variable) {
+       String variableName = variable.getKey().toLowerCase();
         for (String val : encryptedVariable) {
-            if (variable.getKey().toLowerCase().contains(val)) {
+            if (variableName.contains(val)) {
                 return true;
             }
         }
