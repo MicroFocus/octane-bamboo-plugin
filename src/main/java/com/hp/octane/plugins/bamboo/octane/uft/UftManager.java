@@ -250,12 +250,14 @@ public class UftManager {
 
     public void deleteExecutor(String id) {
         log.info("deleteExecutor " + id);
-        String discoveryKeyPrefix = createChainBuildKey(DISCOVERY_PREFIX_KEY, id, "");
-        String executionKeyPrefix = createChainBuildKey(EXECUTOR_PREFIX_KEY, id, "");
+        String discoveryKeyPrefixById = createChainBuildKey(DISCOVERY_PREFIX_KEY, id, "");
+        String discoveryKeyPrefixByLogical = "LOGICAL" + id.toUpperCase();
+
         Project project = getMainProject();
         List<TopLevelPlan> plans = planManager.getAllPlansByProject(project, TopLevelPlan.class);
         for (TopLevelPlan plan : plans) {
-            if (plan.getBuildKey().startsWith(discoveryKeyPrefix) /*|| plan.getBuildKey().startsWith(executionKeyPrefix)*/) {
+            if (plan.getBuildKey().startsWith(DISCOVERY_PREFIX_KEY) &&
+                    (plan.getBuildKey().startsWith(discoveryKeyPrefixById) || plan.getBuildKey().contains(discoveryKeyPrefixByLogical))) {
                 planManager.markPlansForDeletion(plan.getPlanKey());
             }
         }
