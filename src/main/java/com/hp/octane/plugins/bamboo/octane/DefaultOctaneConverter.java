@@ -54,6 +54,7 @@ import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunError;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
+import com.hp.octane.plugins.bamboo.listener.ParametersHelper;
 import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
@@ -125,7 +126,9 @@ public class DefaultOctaneConverter implements DTOConverter {
 		if (!variables.isEmpty()) {
 			List<CIParameter> params = new ArrayList<>();
 			for (VariableDefinition def : variables) {
-				params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+				if (!ParametersHelper.isEncrypted(def)) {
+					params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+				}
 			}
 			node.setParameters(params);
 		}
@@ -225,7 +228,9 @@ public class DefaultOctaneConverter implements DTOConverter {
 					List<CIParameter> params = new ArrayList<>();
 					node.setParameters(params);
 					for (VariableDefinition def : varDefinitions) {
-						params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+						if(!ParametersHelper.isEncrypted(def)) {
+							params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+						}
 					}
 				}
 			}
