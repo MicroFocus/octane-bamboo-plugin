@@ -126,9 +126,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 		if (!variables.isEmpty()) {
 			List<CIParameter> params = new ArrayList<>();
 			for (VariableDefinition def : variables) {
-				if (!ParametersHelper.isEncrypted(def)) {
-					params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
-				}
+				params.add(ParametersHelper.convertToCiParameter(def));
 			}
 			node.setParameters(params);
 		}

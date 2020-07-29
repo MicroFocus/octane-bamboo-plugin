@@ -39,13 +39,7 @@ public class ParametersHelper {
             Map<String, VariableDefinitionContext> variables = buildContext.getVariableContext().getEffectiveVariables();
             List<CIParameter> parameters = new ArrayList<>();
             variables.entrySet().forEach(v -> {
-                if (!ParametersHelper.isEncrypted(v.getValue())) {
-                    parameters.add(
-                            DTOFactory.getInstance().newDTO(CIParameter.class)
-                                    .setName(v.getKey())
-                                    .setValue(v.getValue().getValue())
-                                    .setType(CIParameterType.STRING));
-                }
+                parameters.add(convertToCiParameter(v.getValue()));
             });
             if (parameters != null && !parameters.isEmpty()) {
                 ciEvent.setParameters(parameters);
@@ -53,6 +47,19 @@ public class ParametersHelper {
         } catch (Exception e) {
             //do nothing - try/catch just to be on safe side for all other plans
         }
+    }
+
+    public static CIParameter convertToCiParameter(VariableDefinitionContext variable) {
+        CIParameter ciParameter = DTOFactory.getInstance().newDTO(CIParameter.class)
+                .setName(variable.getKey())
+                .setValue(variable.getValue())
+                .setDefaultValue(variable.getValue());
+        if (ParametersHelper.isEncrypted(variable)) {
+            ciParameter.setType(CIParameterType.PASSWORD);
+        } else {
+            ciParameter.setType(CIParameterType.STRING);
+        }
+        return ciParameter;
     }
 
     public static boolean isEncrypted(VariableDefinitionContext variable) {
