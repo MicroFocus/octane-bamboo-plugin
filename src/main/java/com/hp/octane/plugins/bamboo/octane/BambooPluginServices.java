@@ -47,7 +47,6 @@ import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameters;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
-import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
@@ -139,7 +138,7 @@ public class BambooPluginServices extends CIPluginServices {
             log.debug("proxy is required for host " + targetUrl.getHost());
             String protocol = targetUrl.getProtocol();
 
-            return CONVERTER.getProxyCconfiguration(getProxyProperty(protocol + ".proxyHost", null),
+            result = CONVERTER.getProxyCconfiguration(getProxyProperty(protocol + ".proxyHost", null),
                     Integer.parseInt(getProxyProperty(protocol + ".proxyPort", null)),
                     System.getProperty(protocol + ".proxyUser", ""),
                     System.getProperty(protocol + ".proxyPassword", ""));
@@ -169,21 +168,6 @@ public class BambooPluginServices extends CIPluginServices {
         log.debug("get ci server info");
         String baseUrl = getBambooServerBaseUrl();
         return CONVERTER.getServerInfo(baseUrl, bambooVersion);
-    }
-
-    @Override
-    public SnapshotNode getSnapshotByNumber(String pipeline, String snapshot, boolean arg2) {
-        // TODO implement get snapshot
-        log.info("get snapshot by number " + pipeline.toUpperCase() + " , " + snapshot);
-        return null;
-    }
-
-    @Override
-    public SnapshotNode getSnapshotLatest(String pipeline, boolean arg1) {
-        log.info("get latest snapshot  for pipeline " + pipeline);
-        pipeline = pipeline.toUpperCase();
-        ImmutableTopLevelPlan plan = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline), ImmutableTopLevelPlan.class);
-        return CONVERTER.getSnapshot(plan, plan.getLatestResultsSummary());
     }
 
     @Override
@@ -321,6 +305,12 @@ public class BambooPluginServices extends CIPluginServices {
     public OctaneResponse upsertCredentials(final CredentialsInfo credentialsInfo) {
         final Callable<OctaneResponse> action = () -> getUftManager().upsertCredentials(credentialsInfo);
         return executeImpersonatedCall(action, "upsertCredentials");
+    }
+
+    @Override
+    public List<CredentialsInfo> getCredentials() {
+        final Callable<List<CredentialsInfo>> action = () -> getUftManager().getCredentials();
+        return executeImpersonatedCall(action, "getCredentials");
     }
 
     @Override

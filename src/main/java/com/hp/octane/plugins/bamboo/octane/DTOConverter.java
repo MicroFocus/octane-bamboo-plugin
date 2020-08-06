@@ -22,7 +22,6 @@ import com.atlassian.bamboo.plan.PlanIdentifier;
 import com.atlassian.bamboo.plan.cache.ImmutableJob;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.bamboo.results.tests.TestResults;
-import com.atlassian.bamboo.resultsummary.ImmutableResultsSummary;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
 import com.hp.octane.integrations.dto.events.CIEvent;
@@ -33,7 +32,6 @@ import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
 import com.hp.octane.integrations.dto.scm.SCMData;
-import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
@@ -51,8 +49,6 @@ public interface DTOConverter {
 	                                            String proxyPassword);
 
 	CIServerInfo getServerInfo(String baseUrl, String bambooVersion);
-
-	SnapshotNode getSnapshot(ImmutableTopLevelPlan plan, ImmutableResultsSummary summary);
 
 	CIJobsList getRootJobsList(List<ImmutableTopLevelPlan> toplevels, boolean includeParameters);
 

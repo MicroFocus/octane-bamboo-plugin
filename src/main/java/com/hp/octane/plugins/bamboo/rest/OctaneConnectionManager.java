@@ -77,7 +77,6 @@ public class OctaneConnectionManager {
         updateClientInSDK(octaneConnection);
         octaneConnectionCollection.updateConnection(octaneConnection);
         saveSettings();
-        return;
     }
 
     public boolean deleteConfiguration(String id) {
@@ -109,7 +108,7 @@ public class OctaneConnectionManager {
         OctaneClient currentClient = OctaneSDK.getClientByInstanceId(configuration.getId());
         OctaneUrlParser octaneUrlParser = OctaneUrlParser.parse(configuration.getLocation());
 
-        OctaneConfiguration config = currentClient.getConfigurationService().getCurrentConfiguration();
+        OctaneConfiguration config = currentClient.getConfigurationService().getConfiguration();
         config.setSharedSpace(octaneUrlParser.getSharedSpace());
         config.setUrl(octaneUrlParser.getLocation());
         config.setClient(configuration.getClientId());

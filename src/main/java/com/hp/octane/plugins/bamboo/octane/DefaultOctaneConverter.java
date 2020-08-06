@@ -17,16 +17,13 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.builder.BuildState;
-import com.atlassian.bamboo.builder.LifeCycleState;
 import com.atlassian.bamboo.chains.cache.ImmutableChainStage;
 import com.atlassian.bamboo.commit.CommitContext;
 import com.atlassian.bamboo.commit.CommitFile;
 import com.atlassian.bamboo.plan.PlanIdentifier;
 import com.atlassian.bamboo.plan.cache.ImmutableJob;
-import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.bamboo.results.tests.TestResults;
-import com.atlassian.bamboo.resultsummary.ImmutableResultsSummary;
 import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.v2.build.BuildChanges;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
@@ -47,9 +44,6 @@ import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
 import com.hp.octane.integrations.dto.scm.*;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
-import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
-import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
-import com.hp.octane.integrations.dto.snapshots.SnapshotPhase;
 import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunError;
@@ -145,60 +139,6 @@ public class DefaultOctaneConverter implements DTOConverter {
 				.setType(CIServerTypes.BAMBOO.value())
 				.setVersion(bambooVersion)
 				.setUrl(baseUrl);
-	}
-
-	public SnapshotNode getSnapshot(ImmutableTopLevelPlan plan, ImmutableResultsSummary resultsSummary) {
-		SnapshotNode snapshotNode = getSnapshotNode(plan, resultsSummary, true);
-
-		List<SnapshotPhase> phases = new ArrayList<>(plan.getAllStages().size());
-		for (ImmutableChainStage stage : plan.getAllStages()) {
-			phases.add(getSnapshotPhaseFromStage(stage));
-		}
-		snapshotNode.setPhasesInternal(phases);
-		return snapshotNode;
-	}
-
-	private SnapshotPhase getSnapshotPhaseFromStage(ImmutableChainStage stage) {
-		SnapshotPhase phase = dtoFactoryInstance.newDTO(SnapshotPhase.class);
-		phase.setName(stage.getName());
-		phase.setBlocking(true);
-
-		List<SnapshotNode> nodes = new ArrayList<>(stage.getJobs().size());
-		for (ImmutableJob job : stage.getJobs()) {
-			// TODO decide if we want to mirror disabled jobs or not
-			nodes.add(getSnapshotNode(job, job.getLatestResultsSummary(), false));
-		}
-		phase.setBuilds(nodes);
-
-		return phase;
-	}
-
-	private SnapshotNode getSnapshotNode(ImmutablePlan plane, ImmutableResultsSummary resultsSummary, boolean isRoot) {
-
-		return dtoFactoryInstance.newDTO(SnapshotNode.class)
-				.setBuildCiId(resultsSummary.getPlanResultKey().getKey())
-				.setName(isRoot ? plane.getBuildName() : plane.getName())
-				.setJobCiId((getCiId(plane)))
-				.setDuration(resultsSummary.getDuration())
-				.setNumber(String.valueOf(resultsSummary.getBuildNumber()))
-				.setResult(getJobResult(resultsSummary.getBuildState()))
-				.setStatus(getJobStatus(plane.getLatestResultsSummary().getLifeCycleState()))
-				.setStartTime(resultsSummary.getBuildDate() != null ? resultsSummary.getBuildDate().getTime()
-						: (resultsSummary.getBuildCompletedDate() != null
-						? resultsSummary.getBuildCompletedDate().getTime() : System.currentTimeMillis()));
-	}
-
-	private CIBuildStatus getJobStatus(LifeCycleState lifeCycleState) {
-		switch (lifeCycleState) {
-			case FINISHED:
-				return CIBuildStatus.FINISHED;
-			case IN_PROGRESS:
-				return CIBuildStatus.RUNNING;
-			case QUEUED:
-				return CIBuildStatus.QUEUED;
-			default:
-				return CIBuildStatus.UNAVAILABLE;
-		}
 	}
 
 	private CIBuildResult getJobResult(BuildState buildState) {
@@ -313,7 +253,7 @@ public class DefaultOctaneConverter implements DTOConverter {
             String baseUrl = BambooPluginServices.getBambooServerBaseUrl();
             String planName = buildContext.getParentBuildContext().getTypedPlanKey().getKey();
             String jobName = buildContext.getResultKey().getEntityKey().getKey().substring(planName.length() + 1);//planName-JobName
-            int buildId = buildContext.getResultKey().getResultNumber();
+            long buildId = buildContext.getResultKey().getResultNumberLong();
             long taskId = 0;
             for (TaskDefinition td : buildContext.getBuildDefinition().getTaskDefinitions()) {
                 if (td.getPluginKey().equals(HPRunnerTypeUtils.UFT_FS_PLUGIN_KEY)) {

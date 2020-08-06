@@ -112,6 +112,7 @@ public class UftManager {
     private static String CREDENTIALS_PASSWORD_FIELD = "password";
 
     private static String USERNAME_PASSWORD_PLUGIN_KEY = "com.atlassian.bamboo.plugin.sharedCredentials:usernamePasswordCredentials";
+    private static String SSH_CREDENTIALS_PLUGIN_KEY = "com.atlassian.bamboo.plugin.sharedCredentials:sshCredentials";
     private static String DISCOVERY_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY + ":octaneUftTestDiscovery";
     private static String EXECUTION_TASK_PLUGIN_KEY = "com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask";
     private static String CONVERTER_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY + ":octaneTestFrameworkConverter";
@@ -123,7 +124,6 @@ public class UftManager {
     public static final String ALL_USERS = "ALL_USERS";
 
     private static final Logger log = SDKBasedLoggerProvider.getLogger(UftManager.class);
-
 
     private static final String UFT_INTEGRATION_PREFIX = "UFT";
 
@@ -154,33 +154,33 @@ public class UftManager {
         requirementService = ComponentLocator.getComponent(RequirementService.class);
     }
 
+    public List<CredentialsInfo> getCredentials() {
+        List<CredentialsInfo> results = new ArrayList<>();
+        Iterable<CredentialsData> allCredentials = credentialsManager.getAllCredentials();
+        for (CredentialsData cred : allCredentials) {
+            if (cred.getPluginKey().equals(USERNAME_PASSWORD_PLUGIN_KEY) || cred.getPluginKey().equals(SSH_CREDENTIALS_PLUGIN_KEY)) {
+                CredentialsInfo cr = DTOFactory.getInstance().newDTO(CredentialsInfo.class)
+                        .setUsername(cred.getName())
+                        .setCredentialsId(Long.toString(cred.getId()));
+                results.add(cr);
+            }
+        }
+
+        return results;
+    }
+
     public OctaneResponse upsertCredentials(CredentialsInfo credentialsInfo) {
 
         OctaneResponse result = DTOFactory.getInstance().newDTO(OctaneResponse.class);
         result.setStatus(HttpStatus.SC_CREATED);
 
-        if (SdkStringUtils.isNotEmpty(credentialsInfo.getCredentialsId())) {
-            CredentialsData cred = credentialsManager.getCredentials(Long.parseLong(credentialsInfo.getCredentialsId()));
-            if (cred != null) {
-                try {
-                    Map<String, String> confMap = new HashMap<>();
-                    confMap.put(CREDENTIALS_USERNAME_FIELD, credentialsInfo.getUsername());
-                    confMap.put(CREDENTIALS_PASSWORD_FIELD, encryptionService.encrypt(credentialsInfo.getPassword()));
-                    credentialsManager.editCredentials(cred.getId(), createCredentialName(credentialsInfo.getUsername(), false), confMap);
-                    result.setBody(Long.toString(cred.getId()));
-                } catch (Exception e) {
-                    result.setStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR);
-                    result.setBody("Failed to update credentials " + e.getMessage());
-                    log.error("Failed to update credentials " + e.getMessage(), e);
-                }
-            }
-        } else if (SdkStringUtils.isNotEmpty(credentialsInfo.getUsername()) && credentialsInfo.getPassword() != null) {
+        if (SdkStringUtils.isNotEmpty(credentialsInfo.getUsername()) && credentialsInfo.getPassword() != null) {
             //try to locate already existing credentials
             boolean found = false;
             Iterable<CredentialsData> credentialsIterator = credentialsManager.getAllCredentials(USERNAME_PASSWORD_PLUGIN_KEY);
             for (CredentialsData cred : credentialsIterator) {
                 if (cred.getName().startsWith("UFT")) {
-                    String credUserName = cred.getConfiguration().get(CREDENTIALS_USERNAME_FIELD);
+                    String credUserName = cred.getName();
                     String credPassword = cred.getConfiguration().get(CREDENTIALS_PASSWORD_FIELD);
                     if (SdkStringUtils.equals(credentialsInfo.getUsername(), credUserName) && SdkStringUtils.equals(credentialsInfo.getPassword(), encryptionService.decrypt(credPassword))) {
                         result.setBody(Long.toString(cred.getId()));
@@ -425,9 +425,16 @@ public class UftManager {
             serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_FETCH_WHOLE_REPOSITORY, Boolean.toString(false));
 
             if (SdkStringUtils.isNotEmpty(credentialsId)) { //existing credentials
-                serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.PASSWORD.name());
-                serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_CREDENTIALS_SOURCE, GitPasswordCredentialsSource.SHARED_CREDENTIALS.name());
-                serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_SHAREDCREDENTIALS_ID, credentialsId);
+                CredentialsData cred = credentialsManager.getCredentials(Long.parseLong(credentialsId));
+                if (USERNAME_PASSWORD_PLUGIN_KEY.equals(cred.getPluginKey())) {
+                    serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.PASSWORD.name());
+                    serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_CREDENTIALS_SOURCE, GitPasswordCredentialsSource.SHARED_CREDENTIALS.name());
+                    serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_SHAREDCREDENTIALS_ID, credentialsId);
+                } else {
+                    serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.SSH_KEYPAIR.name());
+                    serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_SSH_CREDENTIALS_SOURCE, GitPasswordCredentialsSource.SHARED_CREDENTIALS.name());
+                    serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_SSH_SHAREDCREDENTIALS_ID, credentialsId);
+                }
             } else if (SdkStringUtils.isNotEmpty(username)) { //new credentials
                 serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.PASSWORD.name());
                 serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_CREDENTIALS_SOURCE, GitPasswordCredentialsSource.CUSTOM.name());
@@ -451,7 +458,11 @@ public class UftManager {
                 CredentialsData cred = credentialsManager.getCredentials(Long.parseLong(credentialsId));
                 myUsername = cred.getConfiguration().get(CREDENTIALS_USERNAME_FIELD);
                 String encryptedPassword = cred.getConfiguration().get(CREDENTIALS_PASSWORD_FIELD);
-                myPassword = encryptionService.decrypt(encryptedPassword);
+                try {
+                    myPassword = encryptionService.decrypt(encryptedPassword);
+                } catch (Exception e) {
+                    myPassword = encryptedPassword;
+                }
             }
 
             serverConfiguration.put(SvnConfigurationConstants.SVN_USERNAME, myUsername);
