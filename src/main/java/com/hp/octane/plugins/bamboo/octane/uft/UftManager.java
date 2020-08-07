@@ -417,6 +417,13 @@ public class UftManager {
     private PartialVcsRepositoryData createRepositoryData(String repositoryName, SCMRepository scmRepository, String username, String password, String credentialsId) {
         String pluginKey = null;
         HashMap<String, String> serverConfiguration = new HashMap<>();
+        CredentialsData selectedCredentials = null;
+        if (SdkStringUtils.isNotEmpty(credentialsId)) {
+            selectedCredentials = credentialsManager.getCredentials(Long.parseLong(credentialsId));
+            if (selectedCredentials == null) {
+                throw new IllegalArgumentException("Credentials not found for id=" + credentialsId);
+            }
+        }
         if (scmRepository.getType().equals(SCMType.GIT)) {
             pluginKey = "com.atlassian.bamboo.plugins.atlassian-bamboo-plugin-git:gitv2";
             serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_REPOSITORY_URL, scmRepository.getUrl());
@@ -424,16 +431,17 @@ public class UftManager {
             serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_USE_SHALLOW_CLONES, Boolean.toString(true));
             serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_FETCH_WHOLE_REPOSITORY, Boolean.toString(false));
 
-            if (SdkStringUtils.isNotEmpty(credentialsId)) { //existing credentials
-                CredentialsData cred = credentialsManager.getCredentials(Long.parseLong(credentialsId));
-                if (USERNAME_PASSWORD_PLUGIN_KEY.equals(cred.getPluginKey())) {
+            if (selectedCredentials != null) { //existing credentials
+                if (USERNAME_PASSWORD_PLUGIN_KEY.equals(selectedCredentials.getPluginKey())) {
                     serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.PASSWORD.name());
                     serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_CREDENTIALS_SOURCE, GitPasswordCredentialsSource.SHARED_CREDENTIALS.name());
                     serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_PASSWORD_SHAREDCREDENTIALS_ID, credentialsId);
-                } else {
+                } else if (SSH_CREDENTIALS_PLUGIN_KEY.equals(selectedCredentials.getPluginKey())) {
                     serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.SSH_KEYPAIR.name());
                     serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_SSH_CREDENTIALS_SOURCE, GitPasswordCredentialsSource.SHARED_CREDENTIALS.name());
                     serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_SSH_SHAREDCREDENTIALS_ID, credentialsId);
+                } else {
+                    throw new UnsupportedOperationException("Plugin doesn't support using of " + extractPluginId(selectedCredentials.getPluginKey()) + " for GIT.");
                 }
             } else if (SdkStringUtils.isNotEmpty(username)) { //new credentials
                 serverConfiguration.put(GitConfigurationConstants.REPOSITORY_GIT_AUTHENTICATION_TYPE, GitAuthenticationType.PASSWORD.name());
@@ -446,6 +454,10 @@ public class UftManager {
             }
 
         } else if (scmRepository.getType().equals(SCMType.SVN)) {
+            if (!USERNAME_PASSWORD_PLUGIN_KEY.equals(selectedCredentials.getPluginKey())) {
+
+                throw new UnsupportedOperationException("Plugin doesn't support using of " + extractPluginId(selectedCredentials.getPluginKey()) + " for SVN");
+            }
             pluginKey = "com.atlassian.bamboo.plugin.system.repository:svnv2";
             serverConfiguration.put(SvnConfigurationConstants.SVN_REPO_ROOT_URL, scmRepository.getUrl());
             serverConfiguration.put(SvnConfigurationConstants.SVN_AUTH_TYPE, AuthenticationType.PASSWORD.getKey());
@@ -505,6 +517,14 @@ public class UftManager {
 
     }
 
+    public String extractPluginId(String pluginKey) {
+        int index = pluginKey.lastIndexOf(":");
+        if (index > 0) {
+            return pluginKey.substring(index + 1);
+        } else {
+            return pluginKey;
+        }
+    }
 
     private ImmutableChain createExecutorChain(DiscoveryInfo discoveryInfo, BambooUser bambooUser) throws PlanCreationDeniedException {
         VcsRepositoryData linkedRepository = getLinkedRepository(discoveryInfo.getScmRepository(), discoveryInfo.getScmRepositoryCredentialsId(), bambooUser);
