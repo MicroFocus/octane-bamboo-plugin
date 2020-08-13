@@ -60,6 +60,10 @@
                     <td>Protractor</td>
                     <td>protractor conf.js --grep="$bamboo_testsToRunConverted"</td>
                 </tr>
+                <tr>
+                    <td>Cucumber</td>
+                    <td>mvn clean -Dcucumber.options="$bamboo_testsToRunConverted" test</td>
+                </tr>
                 </tbody>
             </table>
             </br>
@@ -86,6 +90,10 @@
                 <tr>
                     <td>Protractor</td>
                     <td>protractor conf.js --grep="%bamboo_testsToRunConverted%"</td>
+                </tr>
+                <tr>
+                    <td>Cucumber</td>
+                    <td>mvn clean -Dcucumber.options="%bamboo_testsToRunConverted%" test</td>
                 </tr>
                 </tbody>
             </table>
