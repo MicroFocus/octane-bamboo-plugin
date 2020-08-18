@@ -454,8 +454,7 @@ public class UftManager {
             }
 
         } else if (scmRepository.getType().equals(SCMType.SVN)) {
-            if (!USERNAME_PASSWORD_PLUGIN_KEY.equals(selectedCredentials.getPluginKey())) {
-
+            if (selectedCredentials != null && !USERNAME_PASSWORD_PLUGIN_KEY.equals(selectedCredentials.getPluginKey())) {
                 throw new UnsupportedOperationException("Plugin doesn't support using of " + extractPluginId(selectedCredentials.getPluginKey()) + " for SVN");
             }
             pluginKey = "com.atlassian.bamboo.plugin.system.repository:svnv2";
