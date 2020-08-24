@@ -55,6 +55,7 @@ import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class DefaultOctaneConverter implements DTOConverter {
 
@@ -171,6 +172,14 @@ public class DefaultOctaneConverter implements DTOConverter {
 						if(!ParametersHelper.isEncrypted(def)) {
 							params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
 						}
+					}
+
+					//setIsTestRunner
+					if (node.getParameters() != null) {
+						Optional opt = node.getParameters().stream().filter(p -> OctaneConstants.TESTS_TO_RUN_PARAMETER.equals(p.getName())).findFirst();
+						node.setIsTestRunner(opt.isPresent());
+					} else {
+						node.setIsTestRunner(false);
 					}
 				}
 			}
