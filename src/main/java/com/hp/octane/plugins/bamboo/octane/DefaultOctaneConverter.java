@@ -331,7 +331,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 
 	public CIEventCause getCauseWithDetails(String buildCiId, String project, String user) {
 		return DTOFactory.getInstance().newDTO(CIEventCause.class).setBuildCiId(buildCiId)
-				.setCauses(new ArrayList<CIEventCause>()).setProject(project).setType(CIEventCauseType.UPSTREAM)
+				.setCauses(new ArrayList<>()).setProject(project).setType(CIEventCauseType.UPSTREAM)
 				.setUser(user);
 	}
 
@@ -404,7 +404,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 			scmData = DTOFactory.getInstance().newDTO(SCMData.class);
 			scmData.setCommits(scmCommitList);
 			scmData.setRepository(scmRepository);
-			scmData.setBuiltRevId(buildContext.getBuildResultKey());
+			scmData.setBuiltRevId(buildContext.getPlanResultKey().getKey());
 		}
 		return scmData;
 	}

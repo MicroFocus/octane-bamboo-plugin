@@ -22,6 +22,8 @@ import com.atlassian.bamboo.plan.PlanManager;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.plan.cache.ImmutableChainBranch;
+import com.atlassian.bamboo.plan.cache.ImmutablePlan;
+import com.atlassian.bamboo.v2.build.BuildContext;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.events.CIEvent;
@@ -72,9 +74,25 @@ public class MultibranchHelper {
         }
     }
 
+    public static void enrichMultiBranchEventForJob(BuildContext buildContext, CIEvent ciEvent) {
+        try {
+            PlanKey parentKey = buildContext.getParentBuildContext().getPlanResultKey().getPlanKey();
+            ImmutablePlan plan = getCachedPlanManager().getPlanByKey(parentKey);
+            boolean isMultiBranchChild = plan != null && plan instanceof ImmutableChainBranch;
+
+            if (isMultiBranchChild) {
+                ciEvent.setSkipValidation(true);
+            }
+        } catch (Exception e) {
+            log.error("Failed to enrichMultiBranchEventForJob : " + e.getMessage());
+        }
+    }
+
     public static void enrichMultiBranchEvent(ImmutableChain chain, CIEvent ciEvent) {
         if (chain instanceof ImmutableChainBranch) {
-            ciEvent.setParentCiId(chain.getMaster().getPlanKey().toString()).setMultiBranchType(MultiBranchType.MULTI_BRANCH_CHILD);
+            ciEvent.setParentCiId(chain.getMaster().getPlanKey().toString())
+                    .setMultiBranchType(MultiBranchType.MULTI_BRANCH_CHILD)
+                    .setSkipValidation(true);
         }
     }
 

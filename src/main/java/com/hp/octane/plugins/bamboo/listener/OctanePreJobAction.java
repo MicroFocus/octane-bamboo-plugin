@@ -39,7 +39,7 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 		PlanResultKey resultKey = buildContext.getPlanResultKey();
 
 		CIEventCause cause = CONVERTER.getCauseWithDetails(
-				buildContext.getParentBuildIdentifier().getBuildResultKey(),
+				buildContext.getParentBuildIdentifier().getPlanResultKey().getKey(),
 				buildContext.getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
 
 		//create and send started event
@@ -53,6 +53,9 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 				Arrays.asList(cause),
 				String.valueOf(resultKey.getBuildNumber()),
 				PhaseType.INTERNAL);
+
+		MultibranchHelper.enrichMultiBranchEventForJob(buildContext,event);
+
 		ParametersHelper.addParametersToEvent(event, buildContext);
 		OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
 

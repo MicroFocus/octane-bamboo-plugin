@@ -44,11 +44,11 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
         }
 
         log.info("Executing chain " + chain.getName() + " build id "
-                + chainExecution.getBuildIdentifier().getBuildResultKey() + " build number "
+                + chainExecution.getBuildIdentifier().getPlanResultKey().getKey() + " build number "
                 + chainExecution.getBuildIdentifier().getBuildNumber());
         List<CIEventCause> causes = new ArrayList<CIEventCause>();
         CIEvent event = CONVERTER.getEventWithDetails(chainExecution.getPlanResultKey().getPlanKey().getKey(),
-                chainExecution.getBuildIdentifier().getBuildResultKey(), chain.getName(), CIEventType.STARTED,
+                chainExecution.getBuildIdentifier().getPlanResultKey().getKey(), chain.getName(), CIEventType.STARTED,
                 chainExecution.getStartTime() != null ? chainExecution.getStartTime().getTime() : System.currentTimeMillis(),
                 chainExecution.getAverageDuration(), causes,
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),

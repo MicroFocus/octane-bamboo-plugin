@@ -82,6 +82,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 (event.getTimestamp() - event.getContext().getCurrentResult().getTasksStartDate().getTime()),
                 PhaseType.INTERNAL);
         ciEvent.setTestResultExpected(hasTests);
+        MultibranchHelper.enrichMultiBranchEventForJob( event.getContext(),ciEvent);
 
         ParametersHelper.addParametersToEvent(ciEvent, event.getContext());
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
