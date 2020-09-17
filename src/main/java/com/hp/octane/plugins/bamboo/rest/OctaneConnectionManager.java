@@ -106,11 +106,9 @@ public class OctaneConnectionManager {
 
     private void updateClientInSDK(OctaneConnection configuration) {
         OctaneClient currentClient = OctaneSDK.getClientByInstanceId(configuration.getId());
-        OctaneUrlParser octaneUrlParser = OctaneUrlParser.parse(configuration.getLocation());
 
         OctaneConfiguration config = currentClient.getConfigurationService().getConfiguration();
-        config.setSharedSpace(octaneUrlParser.getSharedSpace());
-        config.setUrl(octaneUrlParser.getLocation());
+        config.setUiLocation(configuration.getLocation());
         config.setClient(configuration.getClientId());
         config.setSecret(configuration.getClientSecret());
     }

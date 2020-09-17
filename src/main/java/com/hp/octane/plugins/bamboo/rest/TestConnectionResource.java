@@ -106,16 +106,9 @@ public class TestConnectionResource {
         if (!hasBuildPermission(bambooUser)) {
             throw new IllegalArgumentException("Bamboo user doesn't have enough permissions");
         }
-        OctaneUrlParser octaneUrlParser;
-        try {
-            octaneUrlParser = OctaneUrlParser.parse(location);
-        } catch (OctaneSDKGeneralException e) {
-            throw new IllegalArgumentException(e.getMessage());
-        }
+        OctaneUrlParser octaneUrlParser = OctaneUrlParser.parse(location);
 
-        OctaneConfiguration testedOctaneConfiguration = new OctaneConfiguration(UUID.randomUUID().toString(),
-                octaneUrlParser.getLocation(),
-                octaneUrlParser.getSharedSpace());
+        OctaneConfiguration testedOctaneConfiguration = OctaneConfiguration.createWithUiLocation(UUID.randomUUID().toString(), location);
         testedOctaneConfiguration.setClient(clientId);
         testedOctaneConfiguration.setSecret(clientSecret);
         try {
