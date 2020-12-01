@@ -27,6 +27,10 @@ import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.v2.build.BuildChanges;
 import com.atlassian.bamboo.v2.build.BuildRepositoryChanges;
+import com.atlassian.bamboo.v2.build.trigger.CodeChangedTriggerReason;
+import com.atlassian.bamboo.v2.build.trigger.ManualBuildTriggerReason;
+import com.atlassian.bamboo.v2.build.trigger.ScheduledTriggerReason;
+import com.atlassian.bamboo.v2.build.trigger.TriggerReason;
 import com.atlassian.bamboo.variable.VariableDefinition;
 import com.atlassian.bamboo.vcs.configuration.PlanRepositoryDefinition;
 import com.hp.octane.integrations.dto.DTOFactory;
@@ -54,6 +58,7 @@ import org.apache.commons.lang.StringUtils;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -329,10 +334,22 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return event;
 	}
 
-	public CIEventCause getCauseWithDetails(String buildCiId, String project, String user) {
+	public CIEventCause getCause(TriggerReason reason) {
+		if (reason instanceof ManualBuildTriggerReason) {
+			ManualBuildTriggerReason manual = (ManualBuildTriggerReason) reason;
+			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.USER).setUser(manual.getUserName());
+		} else if (reason instanceof CodeChangedTriggerReason) {
+			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.SCM);
+		} else if (reason instanceof ScheduledTriggerReason) {
+			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.TIMER);
+		} else {
+			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.UNDEFINED);
+		}
+	}
+
+	public CIEventCause getUpstreamCause(String buildCiId, String project, CIEventCause parentReason) {
 		return DTOFactory.getInstance().newDTO(CIEventCause.class).setBuildCiId(buildCiId)
-				.setCauses(new ArrayList<>()).setProject(project).setType(CIEventCauseType.UPSTREAM)
-				.setUser(user);
+				.setCauses(Collections.singletonList(parentReason)).setProject(project).setType(CIEventCauseType.UPSTREAM);
 	}
 
 	public BuildContext getBuildContext(String instanceId, String jobId, String buildId) {

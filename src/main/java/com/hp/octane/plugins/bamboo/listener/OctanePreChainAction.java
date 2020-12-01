@@ -21,18 +21,16 @@ import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.plugins.PreChainAction;
 import com.atlassian.bamboo.v2.build.BuildContext;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collections;
 
 public class OctanePreChainAction extends BaseListener implements PreChainAction {
 
-    public void execute(Chain chain, ChainExecution chainExecution) throws Exception {
+    public void execute(Chain chain, ChainExecution chainExecution) {
         if (!OctaneConnectionManager.hasActiveClients()) {
             return;
         }
@@ -46,11 +44,11 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
         log.info("Executing chain " + chain.getName() + " build id "
                 + chainExecution.getBuildIdentifier().getPlanResultKey().getKey() + " build number "
                 + chainExecution.getBuildIdentifier().getBuildNumber());
-        List<CIEventCause> causes = new ArrayList<CIEventCause>();
         CIEvent event = CONVERTER.getEventWithDetails(chainExecution.getPlanResultKey().getPlanKey().getKey(),
                 chainExecution.getBuildIdentifier().getPlanResultKey().getKey(), chain.getName(), CIEventType.STARTED,
                 chainExecution.getStartTime() != null ? chainExecution.getStartTime().getTime() : System.currentTimeMillis(),
-                chainExecution.getAverageDuration(), causes,
+                chainExecution.getAverageDuration(),
+                Collections.singletonList(CONVERTER.getCause(chainExecution.getTriggerReason())),
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
                 PhaseType.INTERNAL);
 

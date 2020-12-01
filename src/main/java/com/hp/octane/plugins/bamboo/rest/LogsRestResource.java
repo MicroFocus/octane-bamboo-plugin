@@ -38,7 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 
-@Path("/logs")//http://localhost:8085/rest/octane-admin/1.0/logs
+@Path("/logs")//http://localhost:8085/rest/octane-admin/1.0/logs , http://localhost:8085/rest/octane-admin/1.0/logs/events
 @Scanned
 public class LogsRestResource {
 
@@ -48,20 +48,34 @@ public class LogsRestResource {
     private static final Logger log = SDKBasedLoggerProvider.getLogger(LogsRestResource.class);
     private UserManager userManager;
 
+    @Path("/events")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getLastEvents() {
+        return getLogFile("events", null);
+    }
+
+    @Path("/events/{id}")
+    @GET
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response getEventsById(@PathParam("id") Integer id) {
+        return getLogFile("events", null);
+    }
+
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public Response getLastLog() {
-        return getLogFile(null);
+        return getLogFile("nga", null);
     }
 
     @Path("/{id}")
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public Response getLogById(@PathParam("id") Integer id) {
-        return getLogFile(id);
+        return getLogFile("nga" , id);
     }
 
-    private Response getLogFile(Integer id) {
+    private Response getLogFile(String name, Integer id) {
         if (!hasPermissions(request)) {
             return Response.status(Response.Status.UNAUTHORIZED).entity("user does not have permission").build();
         }
@@ -70,7 +84,7 @@ public class LogsRestResource {
                 SDKBasedLoggerProvider.getAllowedStorageFile().getAbsolutePath(),
                 "nga",
                 "logs",
-                id == null ? "nga.log" : String.format("nga-%s.log", id));
+                id == null ? name + ".log" : String.format("%s-%s.log", name, id));
 
         if (path.toFile().exists()) {
             try {

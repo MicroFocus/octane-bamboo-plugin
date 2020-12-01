@@ -69,6 +69,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 public class BambooPluginServices extends CIPluginServices {
@@ -83,6 +85,7 @@ public class BambooPluginServices extends CIPluginServices {
     private PlanExecutionManager planExecMan;
     private BuildQueueManager buildQueueManager;
     private BambooUserManager bambooUserManager;
+    Pattern parentExtractorRegex = Pattern.compile("^(.*?)[0-9]+$");
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
 
@@ -171,7 +174,7 @@ public class BambooPluginServices extends CIPluginServices {
     }
 
     @Override
-    public void stopPipelineRun(String pipeline, String paramsJson) {
+    public void stopPipelineRun(String pipeline, CIParameters ciParameters) {
         log.info("starting pipeline stop");
         Callable<String> action = () -> {
             BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
@@ -199,7 +202,7 @@ public class BambooPluginServices extends CIPluginServices {
 
 
     @Override
-    public void runPipeline(final String pipeline, final String parametersJson) {
+    public void runPipeline(final String pipeline, CIParameters ciParameters) {
         log.info("starting pipeline run");
 
         Callable<String> impersonated = () -> {
@@ -217,10 +220,8 @@ public class BambooPluginServices extends CIPluginServices {
 
             HashMap<String, String> variables = new HashMap<>();
             HashMap<String, String> params = new HashMap<>();
-            if (SdkStringUtils.isNotEmpty(parametersJson)) {
-
-                CIParameters parameters = DTOFactory.getInstance().dtoFromJson(parametersJson, CIParameters.class);
-                for (CIParameter param : parameters.getParameters()) {
+            if (ciParameters != null) {
+                for (CIParameter param : ciParameters.getParameters()) {
                     //if testsToRun parameter more then 3900 ,split it for many variables
                     if (param.getName().equals(OctaneConstants.TESTS_TO_RUN_PARAMETER) && param.getValue().toString().length() > OctaneConstants.BAMBOO_MAX_FIELD_CAPACITY) {
                         String[] split = param.getValue().toString().split("(?<=\\G.{3900})");
@@ -377,5 +378,15 @@ public class BambooPluginServices extends CIPluginServices {
         String baseUrl = ComponentLocator.getComponent(AdministrationConfigurationAccessor.class)
                 .getAdministrationConfiguration().getBaseUrl();
         return baseUrl;
+    }
+
+    @Override
+    public String getParentJobName(String jobId) {
+        Matcher m = parentExtractorRegex.matcher(jobId);
+        if(m.matches()) {
+            return m.group(1);
+        }
+
+        return null;
     }
 }

@@ -22,7 +22,8 @@ import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
 import com.hp.octane.integrations.OctaneClient;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.utils.OctaneUrlParser;
+import com.hp.octane.integrations.services.configurationparameters.LogEventsParameter;
+import com.hp.octane.integrations.services.configurationparameters.factory.ConfigurationParameterFactory;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
 import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import com.hp.octane.plugins.bamboo.octane.utils.JsonHelper;
@@ -101,6 +102,7 @@ public class OctaneConnectionManager {
         OctaneConfiguration octaneConfiguration = OctaneConfiguration.createWithUiLocation(configuration.getId(), configuration.getLocation());
         octaneConfiguration.setClient(configuration.getClientId());
         octaneConfiguration.setSecret(configuration.getClientSecret());
+        ConfigurationParameterFactory.addParameter(octaneConfiguration, LogEventsParameter.KEY, "true");
         OctaneSDK.addClient(octaneConfiguration, BambooPluginServices.class);
     }
 

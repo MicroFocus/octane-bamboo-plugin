@@ -22,6 +22,7 @@ import com.atlassian.bamboo.plan.PlanIdentifier;
 import com.atlassian.bamboo.plan.cache.ImmutableJob;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.bamboo.results.tests.TestResults;
+import com.atlassian.bamboo.v2.build.trigger.TriggerReason;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
 import com.hp.octane.integrations.dto.events.CIEvent;
@@ -68,8 +69,9 @@ public interface DTOConverter {
 	CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType,
 								long startTime, long estimatedDuration, List<CIEventCause> causes, String number, SCMData scmData, PhaseType phaseType);
 
+	CIEventCause getCause(TriggerReason reason);
 
-	CIEventCause getCauseWithDetails(String buildCiId, String project, String user);
+	CIEventCause getUpstreamCause(String buildCiId, String project, CIEventCause parentReason);
 
 	BuildContext getBuildContext(String instanceId, String identifier, String build);
 

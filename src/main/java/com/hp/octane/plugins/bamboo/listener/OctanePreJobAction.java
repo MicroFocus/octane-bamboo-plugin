@@ -38,9 +38,11 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 
 		PlanResultKey resultKey = buildContext.getPlanResultKey();
 
-		CIEventCause cause = CONVERTER.getCauseWithDetails(
+		CIEventCause parentReason = CONVERTER.getCause(buildContext.getTriggerReason());
+		CIEventCause cause = CONVERTER.getUpstreamCause(
 				buildContext.getParentBuildIdentifier().getPlanResultKey().getKey(),
-				buildContext.getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
+				buildContext.getParentBuildContext().getPlanResultKey().getPlanKey().getKey(),
+				parentReason);
 
 		//create and send started event
 		CIEvent event = CONVERTER.getEventWithDetails(

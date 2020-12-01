@@ -65,9 +65,12 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 (results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty());
         LOG.info(planResultKey.toString() + " : onJobCompleted, hasTests = " + hasTests);
 
-        CIEventCause cause = CONVERTER.getCauseWithDetails(
+        CIEventCause parentReason = CONVERTER.getCause(event.getContext().getTriggerReason());
+        String parentId = event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey();
+        CIEventCause cause = CONVERTER.getUpstreamCause(
                 event.getContext().getParentBuildIdentifier().getPlanResultKey().getKey(),
-                event.getContext().getParentBuildContext().getPlanResultKey().getPlanKey().getKey(), "admin");
+                parentId,
+                parentReason);
 
         CIEvent ciEvent = CONVERTER.getEventWithDetails(
                 planResultKey.getPlanKey().getKey(),
@@ -95,7 +98,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             }
             testResultExpected.add(event.getContext().getParentBuildContext().getPlanResultKey().getKey());
             OctaneSDK.getClients().forEach(client ->
-                    client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey(), null));
+                    client.getTestsService().enqueuePushTestsResult(planKey.getKey(), planResultKey.getKey(), parentId));
         }
     }
 
@@ -142,7 +145,6 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             return;
         }
 
-        List<CIEventCause> causes = new ArrayList<>();
         CIEvent ciEvent = CONVERTER.getEventWithDetails(
                 chain.getPlanKey().getKey(),
                 chainExecution.getBuildIdentifier().getPlanResultKey().getKey(),
@@ -150,7 +152,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 CIEventType.FINISHED,
                 chainExecution.getStartTime() != null ? chainExecution.getStartTime().getTime() : chainExecution.getQueueTime().getTime(),
                 chainResultsSummary.getDuration(),
-                causes,
+                Collections.singletonList(CONVERTER.getCause(chainExecution.getTriggerReason())),
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
                 chainResultsSummary.getBuildState(),
                 chainResultsSummary.getProcessingDuration(),//System.currentTimeMillis(),
