@@ -57,6 +57,11 @@ public class MqmResultsHelper {
         return Paths.get(dirFile.getAbsolutePath(), OctaneConstants.MQM_RESULT_FOLDER, "Build_" + planResultKey.getBuildNumber(), OctaneConstants.MQM_TESTS_FILE_NAME);
     }
 
+    public static Path getScmDataFilePath(PlanResultKey planResultKey) {
+        File dirFile = getBuildResultDirectory(planResultKey.getPlanKey());
+        return Paths.get(dirFile.getAbsolutePath(), OctaneConstants.MQM_RESULT_FOLDER, "Build_" + planResultKey.getBuildNumber(), OctaneConstants.SCM_DATA_FILE_NAME);
+    }
+
     public static InputStream generateTestResultStream(com.atlassian.bamboo.v2.build.BuildContext buildContext, String jobId, String buildId) {
 
         InputStream output = null;
@@ -98,9 +103,7 @@ public class MqmResultsHelper {
         return output;
     }
 
-    public static synchronized void saveToTestResultFile(InputStream is, PlanResultKey planResultKey) throws IOException {
-        Path targetFilePath = getMqmResultFilePath(planResultKey);
-
+    public static synchronized void saveStreamToFile(InputStream is, PlanResultKey planResultKey, Path targetFilePath) {
         try {
             if (is == null) {
                 targetFilePath.toFile().createNewFile();

@@ -85,7 +85,7 @@ public class BambooPluginServices extends CIPluginServices {
     private PlanExecutionManager planExecMan;
     private BuildQueueManager buildQueueManager;
     private BambooUserManager bambooUserManager;
-    Pattern parentExtractorRegex = Pattern.compile("^(.*?)[0-9]+$");
+    Pattern parentExtractorRegex = Pattern.compile("^(.*?)[0-9]+$");//SIM-STM1 => SIM-STM
 
     private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
 
@@ -292,6 +292,20 @@ public class BambooPluginServices extends CIPluginServices {
             output = mqmResultFile.exists() && mqmResultFile.length() > 0 ? new FileInputStream(mqmResultFile.getAbsolutePath()) : null;
         } catch (IOException e) {
             log.error("failed to get test results for  " + jobId + " #" + buildId + " from " + mqmResultFile.getAbsolutePath());
+        }
+        return output;
+    }
+
+    @Override
+    public InputStream getSCMData(String jobId, String buildId) {
+        InputStream output = null;
+        PlanResultKey planResultKey = PlanKeys.getPlanResultKey(buildId);
+
+        File scmDataFile = MqmResultsHelper.getScmDataFilePath(planResultKey).toFile();
+        try {
+            output = scmDataFile.exists() && scmDataFile.length() > 0 ? new FileInputStream(scmDataFile.getAbsolutePath()) : null;
+        } catch (IOException e) {
+            log.error("failed to get scm data for  " + jobId + " #" + buildId + " from " + scmDataFile.getAbsolutePath());
         }
         return output;
     }

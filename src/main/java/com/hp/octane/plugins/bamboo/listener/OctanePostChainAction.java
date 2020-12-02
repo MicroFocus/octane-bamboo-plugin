@@ -44,6 +44,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.*;
 
 public class OctanePostChainAction extends BaseListener implements PostChainAction {
@@ -126,7 +127,9 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         } else {
             LOG.info(planResultKey.toString() + " : Generating test result from context");
             InputStream is = MqmResultsHelper.generateTestResultStream(event.getContext(), planResultKey.getKey(), Integer.toString(planResultKey.getBuildNumber()));
-            MqmResultsHelper.saveToTestResultFile(is, planResultKey);
+
+            Path targetFilePath = MqmResultsHelper.getMqmResultFilePath(planResultKey);
+            MqmResultsHelper.saveStreamToFile(is,planResultKey,targetFilePath);
         }
 
         File testResultFile = MqmResultsHelper.getMqmResultFilePath(planResultKey).toFile();
