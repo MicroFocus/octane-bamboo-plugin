@@ -102,6 +102,7 @@ public class OctaneConnectionManager {
         OctaneConfiguration octaneConfiguration = OctaneConfiguration.createWithUiLocation(configuration.getId(), configuration.getLocation());
         octaneConfiguration.setClient(configuration.getClientId());
         octaneConfiguration.setSecret(configuration.getClientSecret());
+        octaneConfiguration.setImpersonatedUser(configuration.getBambooUser());
         ConfigurationParameterFactory.addParameter(octaneConfiguration, LogEventsParameter.KEY, "true");
         ConfigurationParameterFactory.addParameter(octaneConfiguration, "SCM_REST_API", "true");
         OctaneSDK.addClient(octaneConfiguration, BambooPluginServices.class);
