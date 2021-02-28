@@ -29,7 +29,7 @@ public class ALMOctaneCucumberTestReporterTask implements TaskType {
                     taskContext.getConfigurationMap().get(ALMOctaneCucumberTestReporterConfigurator.CUCUMBER_REPORT_PATTERN_FIELD),
                     buildLogger,
                     taskContext.getBuildContext().getBuildResult().getTasksStartDate());
-            ALMOctaneCucumberTestReporterUtils.createGherkinFiles(targetDirectory.getAbsolutePath(), taskContext.getBuildContext().getShortName(), taskContext.getBuildContext().getBuildNumber(), buildLogger);
+            ALMOctaneCucumberTestReporterUtils.aggregateGherkinFilesToMqmResultFile(targetDirectory.getAbsolutePath(), taskContext.getBuildContext().getShortName(), taskContext.getBuildContext().getBuildNumber(), buildLogger);
         } catch (Exception e) {
             buildLogger.addBuildLogEntry("Exception running cucumber task : " + e.getMessage());
         }

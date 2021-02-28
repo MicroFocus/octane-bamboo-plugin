@@ -10,7 +10,7 @@
     <b>This task must be a final task.</b>
 </div>
 
-[@ww.textfield class="text long-field" name='cucumberReportXML' label='Cucumber report XMLs' /]
+[@ww.textfield class="text long-field" name='cucumberReportXML' label='Cucumber report XMLs' description='Pattern for searching test result files. Default is **/*OctaneGherkinResults.xml' /]
 
 <style type="text/css">
     .toolTip {

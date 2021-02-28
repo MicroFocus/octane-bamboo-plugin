@@ -47,7 +47,7 @@ public class ALMOctaneCucumberTestReporterUtils {
     public static final String DEFAULT_GLOB = "**/*" + GHERKIN_NGA_RESULTS + ".xml";
 
 
-    public static void createGherkinFiles(String targetDirectoryPath, String planName, int buildNumber, BuildLogger buildLogger) throws Exception {
+    public static void aggregateGherkinFilesToMqmResultFile(String targetDirectoryPath, String planName, int buildNumber, BuildLogger buildLogger) throws Exception {
         List<GherkinTestResult> result = new ArrayList<>();
         int i = 0;
 
@@ -92,7 +92,7 @@ public class ALMOctaneCucumberTestReporterUtils {
 
     public static void copyTestResults(String targetDirectoryPath, String workingDirectoryPath, String userPattern, BuildLogger buildLogger, Date taskStartDate) throws IOException {
         //collect test result from working directory and move it to build directory
-        addLogEntry(buildLogger, "Collecting Cucumber results");
+        addLogEntry(buildLogger, "Collecting results");
         Path startDir = Paths.get(workingDirectoryPath);
         FileSystem fs = FileSystems.getDefault();
 
@@ -122,8 +122,6 @@ public class ALMOctaneCucumberTestReporterUtils {
                     } else {
                         finalCollection.add(file);
                     }
-
-
                 }
                 return FileVisitResult.CONTINUE;
             }
