@@ -1,6 +1,6 @@
 <div id="helpCucumber" class="toolTip">
     This action enables Bamboo to read the Cucumber test report XML structure, and then send test results to
-    <a href="http://hpe-nga-staging.s3-website-us-west-1.amazonaws.com/en/munich-push-3/Online/Content/UserGuide/how_automate_gherkin.htm" target="_blank"> ALM Octane.</a> as part of the Gherkin test integration.
+    <a href="https://admhelp.microfocus.com/octane/en/latest/Online/Content/UserGuide/how_automate_gherkin.htm" target="_blank"> ALM Octane.</a> as part of the Gherkin test integration.
     <br/>
     Specify the path to the Cucumber report XML files in the Ant glob syntax.
     You can specify multiple patterns by separating them with commas.
