@@ -17,6 +17,7 @@
 package com.hp.octane.plugins.bamboo.octane.gherkin;
 
 import com.atlassian.bamboo.build.logger.BuildLogger;
+import com.atlassian.bamboo.utils.SystemProperty;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import org.apache.commons.io.FileUtils;
@@ -37,10 +38,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ALMOctaneCucumberTestReporterUtils {
     public static final String GHERKIN_NGA_RESULTS = "OctaneGherkinResults";
@@ -90,7 +90,7 @@ public class ALMOctaneCucumberTestReporterUtils {
         buildLogger.addBuildLogEntry("Micro Focus ALM Octane Cucumber test reporter: " + message);
     }
 
-    public static void copyTestResults(String targetDirectoryPath, String workingDirectoryPath, String userPattern, BuildLogger buildLogger) throws IOException {
+    public static void copyTestResults(String targetDirectoryPath, String workingDirectoryPath, String userPattern, BuildLogger buildLogger, Date taskStartDate) throws IOException {
         //collect test result from working directory and move it to build directory
         addLogEntry(buildLogger, "Collecting Cucumber results");
         Path startDir = Paths.get(workingDirectoryPath);
@@ -106,13 +106,30 @@ public class ALMOctaneCucumberTestReporterUtils {
         final PathMatcher matcher = fs.getPathMatcher("glob:" + userPattern);
         final PathMatcher exclude = fs.getPathMatcher("glob:" + "**/" + OctaneConstants.MQM_RESULT_FOLDER + "/**");
         List<Path> finalCollection = new ArrayList<>();
+
+        //see example : TestCollationServiceImpl
         FileVisitor<Path> matcherVisitor = new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attribs) {
                 if (matcher.matches(file.toAbsolutePath()) && !exclude.matches(file.toAbsolutePath())) {
-                    finalCollection.add(file);
+                    File tempFile = file.toFile();
+                    boolean isFileRecentEnough = this.isFileRecentEnough(tempFile);
+
+                    if (!isFileRecentEnough) {
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+                        String msg = String.format("File %s was ignored because it was modified (%s) before task started (%s)", file, dateFormat.format(new Date(tempFile.lastModified())), dateFormat.format(taskStartDate));
+                        addLogEntry(buildLogger, msg);
+                    } else {
+                        finalCollection.add(file);
+                    }
+
+
                 }
                 return FileVisitResult.CONTINUE;
+            }
+
+            private boolean isFileRecentEnough(File file) {
+                return file.lastModified() >= taskStartDate.getTime() - SystemProperty.FS_TIMESTAMP_RESOLUTION_MS.getTypedValue();
             }
         };
         Files.walkFileTree(startDir, matcherVisitor);
