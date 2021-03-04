@@ -107,4 +107,12 @@
         <resource type="freemarker" name="edit" location="templates/ALMOctaneCucumberTestReporter.ftl"/>
         <configuration class="com.hp.octane.plugins.bamboo.octane.gherkin.ALMOctaneCucumberTestReporterConfigurator"/>
     </taskType>
+    <taskType key="octaneTestResultPublisher" name="ALM Octane Test Reporter"
+              class="com.hp.octane.plugins.bamboo.octane.mqmtestresults.MqmTestResultsReporterTask">
+        <description>Publish test results to ALM Octane in internal ALM Octane format.</description>
+        <category name="test"/>
+        <resource type="download" name="icon" location="images/octane.png"/>
+        <resource type="freemarker" name="edit" location="templates/MqmTestResultsReporter.ftl"/>
+        <configuration class="com.hp.octane.plugins.bamboo.octane.mqmtestresults.MqmTestResultsReporterConfigurator"/>
+    </taskType>
 </atlassian-plugin>
