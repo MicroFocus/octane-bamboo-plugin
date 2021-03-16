@@ -60,8 +60,14 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         PlanKey planKey = event.getPlanKey();
         PlanResultKey planResultKey = event.getPlanResultKey();
 
+        ArtifactContext artifactContext = event.getContext().getArtifactContext();
+        boolean hasTestResultsArtifact = artifactContext.getPublishingResults()
+                .stream().filter(r -> r.getArtifactDefinitionContext().getName().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME)).findFirst().isPresent();
+
         CurrentBuildResult results = event.getContext().getBuildResult();
-        boolean hasTests = (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
+        boolean hasTests =
+                hasTestResultsArtifact ||
+                (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
                 (results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
                 (results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty());
         LOG.info(planResultKey.toString() + " : onJobCompleted, hasTests = " + hasTests);
@@ -93,7 +99,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
         if (hasTests) {
             try {
-                saveJobTestResults(event);
+                saveJobTestResults(event, hasTestResultsArtifact);
             } catch (Exception e) {
                 LOG.error("Failed to saveJobTestResults : " + e.getMessage());
             }
@@ -103,14 +109,9 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         }
     }
 
-    private static void saveJobTestResults(PostBuildCompletedEvent event) throws IOException {
+    private static void saveJobTestResults(PostBuildCompletedEvent event, boolean hasTestResultsArtifact) {
         PlanResultKey planResultKey = event.getPlanResultKey();
-        ArtifactContext artifactContext = event.getContext().getArtifactContext();
-
-
-        boolean hasTestResultsArtifact = artifactContext.getPublishingResults()
-                .stream().filter(r -> r.getArtifactDefinitionContext().getName().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME)).findFirst().isPresent();
-        if (hasTestResultsArtifact) {
+         if (hasTestResultsArtifact) {
             LOG.info(planResultKey.toString() + " : test result artifact found - " + OctaneConstants.MQM_RESULT_ARTIFACT_NAME);
             ResultsSummaryManager resultsSummaryManager = ComponentLocator.getComponent(ResultsSummaryManager.class);
             ResultsSummary rs = resultsSummaryManager.getResultsSummary(planResultKey);
@@ -119,7 +120,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             ArtifactLink link = links.stream().filter(l -> l.getArtifact().getLabel().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME)).findFirst().orElse(null);
             if (link != null) {
                 File buildResultDirectory = new File(MqmResultsHelper.getBuildResultDirectory(planResultKey.getPlanKey()),OctaneConstants.MQM_RESULT_FOLDER);
-                LOG.info(planResultKey.toString() + " : Generating test result from artifacts. Copy artifacts to " + buildResultDirectory.getAbsolutePath());
+                LOG.info(planResultKey + " : Generating test result from artifacts. Copy artifacts to " + buildResultDirectory.getAbsolutePath());
                 ArtifactsHelper.copyArtifactTo(buildResultDirectory, link.getArtifact());
             } else {
                 new RuntimeException(OctaneConstants.MQM_RESULT_ARTIFACT_NAME + " artifact is not found");
@@ -134,7 +135,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
         File testResultFile = MqmResultsHelper.getMqmResultFilePath(planResultKey).toFile();
         boolean testResultFileExist = testResultFile.exists();
-        LOG.info(planResultKey.toString() + " : test result file created=" + testResultFileExist + ". Path is " + testResultFile);
+        LOG.info(planResultKey + " : test result file created=" + testResultFileExist + ". Path is " + testResultFile);
     }
 
     public void execute(Chain chain, ChainResultsSummary chainResultsSummary, ChainExecution chainExecution) {
