@@ -24,6 +24,7 @@ import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.*;
+import com.hp.octane.integrations.utils.SdkConstants;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
@@ -54,7 +55,7 @@ public class MqmResultsHelper {
 
     public static Path getMqmResultFilePath(PlanResultKey planResultKey) {
         File dirFile = getBuildResultDirectory(planResultKey.getPlanKey());
-        return Paths.get(dirFile.getAbsolutePath(), OctaneConstants.MQM_RESULT_FOLDER, "Build_" + planResultKey.getBuildNumber(), OctaneConstants.MQM_TESTS_FILE_NAME);
+        return Paths.get(dirFile.getAbsolutePath(), OctaneConstants.MQM_RESULT_FOLDER, "Build_" + planResultKey.getBuildNumber(), SdkConstants.General.MQM_TESTS_FILE_NAME);
     }
 
     public static Path getScmDataFilePath(PlanResultKey planResultKey) {
@@ -90,7 +91,7 @@ public class MqmResultsHelper {
 
         if (!testRuns.isEmpty()) {
             List<TestField> testFields = runnerType.getTestFields();
-            BuildContext context = CONVERTER.getBuildContext(OctaneConstants.INSTANCE_ID_TO_BE_SET_IN_SDK, jobId, buildId);
+            BuildContext context = CONVERTER.getBuildContext(SdkConstants.General.INSTANCE_ID_TO_BE_SET_IN_SDK, jobId, buildId);
             TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class)
                     .setTestRuns(testRuns)
                     .setBuildContext(context)
