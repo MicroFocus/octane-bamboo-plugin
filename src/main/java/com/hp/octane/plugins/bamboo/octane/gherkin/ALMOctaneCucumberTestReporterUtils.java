@@ -38,27 +38,12 @@ public class ALMOctaneCucumberTestReporterUtils {
     public static final String GHERKIN_NGA_RESULTS = "OctaneGherkinResults";
     public static final String DEFAULT_GLOB = "**/*" + GHERKIN_NGA_RESULTS + ".xml";
 
-
     public static void aggregateGherkinFilesToMqmResultFile(String targetDirectoryPath, String planName, int buildNumber, BuildLogger buildLogger) throws Exception {
-        List<File> gherkinFiles = findGherkinFiles(targetDirectoryPath);
+        List<File> gherkinFiles = GherkinUtils.findGherkinFilesByTemplateWithCounter(targetDirectoryPath, GHERKIN_NGA_RESULTS + "%s.xml", 0);
 
-        String mqmFilePath = targetDirectoryPath + File.separator + SdkConstants.General.MQM_TESTS_FILE_NAME;
-        addLogEntry(buildLogger, "Creating mqm test result file : " + mqmFilePath);
-        GherkinUtils.aggregateGherkinFilesToMqmResultFile(gherkinFiles, mqmFilePath, planName, Integer.toString(buildNumber));
-    }
-
-    private static List<File> findGherkinFiles(String targetDirectoryPath) {
-        List<File> result = new ArrayList<>();
-        int i = 0;
-        File gherkinTestResultsFile = new File(generateGherkinResultFileName(i, targetDirectoryPath));
-
-        while (gherkinTestResultsFile.exists()) {
-            result.add(gherkinTestResultsFile);
-            i++;
-            gherkinTestResultsFile = new File(generateGherkinResultFileName(i, targetDirectoryPath));
-        }
-
-        return result;
+        File mqmFile = new File(targetDirectoryPath , SdkConstants.General.MQM_TESTS_FILE_NAME);
+        addLogEntry(buildLogger, "Creating mqm test result file : " + mqmFile.getAbsolutePath());
+        GherkinUtils.aggregateGherkinFilesToMqmResultFile(gherkinFiles, mqmFile, planName, Integer.toString(buildNumber));
     }
 
     private static String generateGherkinResultFileName(int index, String targetDirectoryPath) {
