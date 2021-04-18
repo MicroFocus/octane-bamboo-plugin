@@ -21,6 +21,7 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.fileserver.SystemDirectory;
+import com.hp.octane.integrations.services.logging.CommonLoggerContextUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -44,11 +45,11 @@ public final class SDKBasedLoggerProvider {
 
 	public static void initOctaneAllowedStorageProperty() {
 		if (!sysParamConfigured) {
-			System.setProperty("octaneAllowedStorage", getAllowedStorageFile().getAbsolutePath() + File.separator);
+			//System.setProperty("octaneAllowedStorage", getAllowedStorageFile().getAbsolutePath() + File.separator);
+			CommonLoggerContextUtil.configureLogger(getAllowedStorageFile());
 			sysParamConfigured = true;
 		}
 	}
-
 	public static File getAllowedStorageFile() {
 		File f = new File(SystemDirectory.getApplicationHome(), "octanePluginContent");
 		if (!allowedOctaneStorageExist) {
