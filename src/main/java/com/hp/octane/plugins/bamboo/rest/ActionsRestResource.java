@@ -58,7 +58,7 @@ public class ActionsRestResource {
 
                 client -> {
                     ConfigurationService cs = client.getConfigurationService();
-                    clients.put(cs.getConfiguration().geLocationForLog(), cs.getOctaneRootsCacheCollection());
+                    clients.put(cs.getConfiguration().getLocationForLog(), cs.getOctaneRootsCacheCollection());
                 }
         );
 

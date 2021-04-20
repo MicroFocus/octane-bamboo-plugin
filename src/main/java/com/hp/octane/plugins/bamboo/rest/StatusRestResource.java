@@ -101,7 +101,7 @@ public class StatusRestResource {
                     clientMetrics.put("configurationService", format(client.getConfigurationService().getMetrics()));
                     clientMetrics.put("restClient", format(client.getRestService().obtainOctaneRestClient().getMetrics()));
 
-                    allMetrics.put(client.getConfigurationService().getConfiguration().geLocationForLog(), clientMetrics);
+                    allMetrics.put(client.getConfigurationService().getConfiguration().getLocationForLog(), clientMetrics);
                 }
         );
 
