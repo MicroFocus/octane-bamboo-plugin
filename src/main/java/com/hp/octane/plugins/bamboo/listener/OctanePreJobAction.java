@@ -21,12 +21,12 @@ import com.atlassian.bamboo.chains.plugins.PreJobAction;
 import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.v2.build.BuildContext;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.scm.SCMData;
+import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import com.hp.octane.plugins.bamboo.octane.MqmResultsHelper;
 import com.hp.octane.plugins.bamboo.octane.SDKBasedLoggerProvider;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
@@ -76,7 +76,7 @@ public class OctanePreJobAction extends BaseListener implements PreJobAction {
 		SCMData scmData = CONVERTER.getScmData(buildContext);
 		if (scmData != null) {
 			List<SCMData> scmDataList = Collections.singletonList(scmData);
-			InputStream is = DTOFactory.getInstance().dtoCollectionToJsonStream(scmDataList);
+			InputStream is = DefaultOctaneConverter.getDTOFactory().dtoCollectionToJsonStream(scmDataList);
 			Path targetFilePath = MqmResultsHelper.getScmDataFilePath(resultKey);
 			LOG.info("Generating scm data file for " + resultKey.getKey() + " (" + scmData.getCommits().size() + " commits): " + targetFilePath);
 			MqmResultsHelper.saveStreamToFile(is, resultKey, targetFilePath);

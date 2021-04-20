@@ -22,13 +22,11 @@ import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.storage.StorageLocationService;
 import com.atlassian.bamboo.v2.build.CurrentBuildResult;
 import com.atlassian.sal.api.component.ComponentLocator;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.*;
 import com.hp.octane.integrations.utils.SdkConstants;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,7 +37,7 @@ import java.util.List;
 
 public class MqmResultsHelper {
     private static StorageLocationService storageLocationService;
-    private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
+    private static DefaultOctaneConverter CONVERTER = DefaultOctaneConverter.getInstance();
     private static final Logger log = SDKBasedLoggerProvider.getLogger(MqmResultsHelper.class);
 
     private static StorageLocationService getStorageLocationService() {
@@ -92,13 +90,13 @@ public class MqmResultsHelper {
         if (!testRuns.isEmpty()) {
             List<TestField> testFields = runnerType.getTestFields();
             BuildContext context = CONVERTER.getBuildContext(SdkConstants.General.INSTANCE_ID_TO_BE_SET_IN_SDK, jobId, buildId);
-            TestsResult testsResult = DTOFactory.getInstance().newDTO(TestsResult.class)
+            TestsResult testsResult = DefaultOctaneConverter.getDTOFactory().newDTO(TestsResult.class)
                     .setTestRuns(testRuns)
                     .setBuildContext(context)
                     .setTestFields(testFields);
 
             //  return stream to SDK
-            output = DTOFactory.getInstance().dtoToXmlStream(testsResult);
+            output = DefaultOctaneConverter.getDTOFactory().dtoToXmlStream(testsResult);
 
         }
         return output;

@@ -35,7 +35,6 @@ import com.atlassian.bamboo.v2.build.queue.BuildQueueManager;
 import com.atlassian.plugin.PluginAccessor;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.CIPluginServices;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hp.octane.integrations.dto.executor.CredentialsInfo;
@@ -87,7 +86,7 @@ public class BambooPluginServices extends CIPluginServices {
     private BambooUserManager bambooUserManager;
     Pattern parentExtractorRegex = Pattern.compile("^(.*?)[0-9]+$");//SIM-STM1 => SIM-STM
 
-    private static DTOConverter CONVERTER = DefaultOctaneConverter.getInstance();
+    private static DefaultOctaneConverter CONVERTER = DefaultOctaneConverter.getInstance();
 
     public BambooPluginServices() {
         this.planExecMan = ComponentLocator.getComponent(PlanExecutionManager.class);
@@ -129,7 +128,7 @@ public class BambooPluginServices extends CIPluginServices {
     @Override
     public CIPluginInfo getPluginInfo() {
         log.debug("get plugin info");
-        return DTOFactory.getInstance().newDTO(CIPluginInfo.class).setVersion(pluginVersion);
+        return DefaultOctaneConverter.getDTOFactory().newDTO(CIPluginInfo.class).setVersion(pluginVersion);
     }
 
     @Override

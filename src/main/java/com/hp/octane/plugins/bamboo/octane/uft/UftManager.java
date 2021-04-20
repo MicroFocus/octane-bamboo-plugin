@@ -63,7 +63,6 @@ import com.atlassian.bamboo.web.utils.BuildConfigurationActionHelper;
 import com.atlassian.bamboo.webwork.util.ActionParametersMapImpl;
 import com.atlassian.bamboo.ww2.actions.build.admin.create.BuildConfiguration;
 import com.atlassian.sal.api.component.ComponentLocator;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hp.octane.integrations.dto.executor.CredentialsInfo;
 import com.hp.octane.integrations.dto.executor.DiscoveryInfo;
@@ -159,7 +158,7 @@ public class UftManager {
         Iterable<CredentialsData> allCredentials = credentialsManager.getAllCredentials();
         for (CredentialsData cred : allCredentials) {
             if (cred.getPluginKey().equals(USERNAME_PASSWORD_PLUGIN_KEY) || cred.getPluginKey().equals(SSH_CREDENTIALS_PLUGIN_KEY)) {
-                CredentialsInfo cr = DTOFactory.getInstance().newDTO(CredentialsInfo.class)
+                CredentialsInfo cr = DefaultOctaneConverter.getDTOFactory().newDTO(CredentialsInfo.class)
                         .setUsername(cred.getName())
                         .setCredentialsId(Long.toString(cred.getId()));
                 results.add(cr);
@@ -171,7 +170,7 @@ public class UftManager {
 
     public OctaneResponse upsertCredentials(CredentialsInfo credentialsInfo) {
 
-        OctaneResponse result = DTOFactory.getInstance().newDTO(OctaneResponse.class);
+        OctaneResponse result = DefaultOctaneConverter.getDTOFactory().newDTO(OctaneResponse.class);
         result.setStatus(HttpStatus.SC_CREATED);
 
         if (SdkStringUtils.isNotEmpty(credentialsInfo.getUsername()) && credentialsInfo.getPassword() != null) {
@@ -212,7 +211,7 @@ public class UftManager {
 
     public OctaneResponse checkRepositoryConnectivity(TestConnectivityInfo testConnectivityInfo) {
         log.info("checkRepositoryConnectivity");
-        OctaneResponse result = DTOFactory.getInstance().newDTO(OctaneResponse.class);
+        OctaneResponse result = DefaultOctaneConverter.getDTOFactory().newDTO(OctaneResponse.class);
         if (testConnectivityInfo.getScmRepository() == null || SdkStringUtils.isEmpty(testConnectivityInfo.getScmRepository().getUrl())) {
             result.setStatus(HttpStatus.SC_BAD_REQUEST);
             result.setBody("Missing input for testing");

@@ -33,6 +33,8 @@ import com.atlassian.bamboo.v2.build.trigger.ScheduledTriggerReason;
 import com.atlassian.bamboo.v2.build.trigger.TriggerReason;
 import com.atlassian.bamboo.variable.VariableDefinition;
 import com.atlassian.bamboo.vcs.configuration.PlanRepositoryDefinition;
+import com.atlassian.plugin.util.ContextClassLoaderSwitchingUtil;
+import com.ctc.wstx.stax.WstxEventFactory;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.causes.CIEventCauseType;
@@ -62,24 +64,29 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-public class DefaultOctaneConverter implements DTOConverter {
+public class DefaultOctaneConverter {
 
-	private DTOFactory dtoFactoryInstance;
+	private static DTOFactory dtoFactoryInstance;
 	private final static int DEFAULT_STRING_SIZE = 255;
-	private static DTOConverter converter;
+	private final static DefaultOctaneConverter converter = new DefaultOctaneConverter();
 
 	private DefaultOctaneConverter() {
-		super();
 		dtoFactoryInstance = DTOFactory.getInstance();
+
+		ContextClassLoaderSwitchingUtil.runInContext(WstxEventFactory.class.getClassLoader(), () -> {
+			//Some classes related to WstxInputFactory and WstxOutputFactory - are created in another classloader therefore we need to do it in this way
+			//this is the exception that is thrown if we don't call it with classLoaderSwitch
+			//com.ctc.wstx.stax.WstxInputFactory cannot be cast to javax.xml.stream.XMLInputFactory, java.lang.ClassCastException: com.ctc.wstx.stax.WstxInputFactory cannot be cast to javax.xml.stream.XMLInputFactory
+			dtoFactoryInstance.getXMLMapper();
+		});
 	}
 
-	public static DTOConverter getInstance() {
-		synchronized (DefaultOctaneConverter.class) {
-			if (converter == null) {
-				converter = new DefaultOctaneConverter();
-			}
-		}
+	public static DefaultOctaneConverter getInstance() {
 		return converter;
+	}
+
+	public static DTOFactory getDTOFactory(){
+		return dtoFactoryInstance;
 	}
 
 	public PipelineNode getPipelineNodeFromJob(ImmutableJob job) {
@@ -127,7 +134,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 			List<CIParameter> params = new ArrayList<>();
 			for (VariableDefinition def : variables) {
 				if (!ParametersHelper.isEncrypted(def)) {
-					params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+					params.add(dtoFactoryInstance.newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
 				}
 			}
 			node.setParameters(params);
@@ -164,7 +171,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 
 		List<PipelineNode> nodes = new ArrayList<>(plans.size());
 		for (ImmutableTopLevelPlan plan : plans) {
-			PipelineNode node = DTOFactory.getInstance().newDTO(PipelineNode.class).setJobCiId(getRootJobCiId(plan))
+			PipelineNode node = dtoFactoryInstance.newDTO(PipelineNode.class).setJobCiId(getRootJobCiId(plan))
 					.setName(plan.getName());
 
 			//add parameters
@@ -175,7 +182,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 					node.setParameters(params);
 					for (VariableDefinition def : varDefinitions) {
 						if(!ParametersHelper.isEncrypted(def)) {
-							params.add(DTOFactory.getInstance().newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
+							params.add(dtoFactoryInstance.newDTO(CIParameter.class).setName(def.getKey()).setDefaultValue(def.getValue()));
 						}
 					}
 
@@ -287,7 +294,6 @@ public class DefaultOctaneConverter implements DTOConverter {
         }
     }
 
-	@Override
 	public CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType, long startTime,
 									   long estimatedDuration, List<CIEventCause> causes, String number, BuildState buildState,
 									   Long currnetTime, PhaseType phaseType) {
@@ -300,13 +306,11 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return event;
 	}
 
-	@Override
 	public CIEvent getEventWithDetails(String project, CIEventType eventType) {
 		CIEvent event = dtoFactoryInstance.newDTO(CIEvent.class).setEventType(eventType).setProject(project);
 		return event;
 	}
 
-	@Override
 	public CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType,
 	                                   long startTime, long estimatedDuration, List<CIEventCause> causes, String number, PhaseType phaseType) {
 
@@ -325,44 +329,34 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return event;
 	}
 
-	@Override
-	public CIEvent getEventWithDetails(String project, String buildCiId, String displayName, CIEventType eventType, long startTime, long estimatedDuration,
-	                                   List<CIEventCause> causes, String number, SCMData scmData, PhaseType phaseType) {
-
-		CIEvent event = getEventWithDetails(project, buildCiId, displayName, eventType, startTime, estimatedDuration, causes, number, phaseType);
-		event.setScmData(scmData);
-		return event;
-	}
-
 	public CIEventCause getCause(TriggerReason reason) {
 		if (reason instanceof ManualBuildTriggerReason) {
 			ManualBuildTriggerReason manual = (ManualBuildTriggerReason) reason;
-			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.USER).setUser(manual.getUserName());
+			return dtoFactoryInstance.newDTO(CIEventCause.class).setType(CIEventCauseType.USER).setUser(manual.getUserName());
 		} else if (reason instanceof CodeChangedTriggerReason) {
-			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.SCM);
+			return dtoFactoryInstance.newDTO(CIEventCause.class).setType(CIEventCauseType.SCM);
 		} else if (reason instanceof ScheduledTriggerReason) {
-			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.TIMER);
+			return dtoFactoryInstance.newDTO(CIEventCause.class).setType(CIEventCauseType.TIMER);
 		} else {
-			return DTOFactory.getInstance().newDTO(CIEventCause.class).setType(CIEventCauseType.UNDEFINED);
+			return dtoFactoryInstance.newDTO(CIEventCause.class).setType(CIEventCauseType.UNDEFINED);
 		}
 	}
 
 	public CIEventCause getUpstreamCause(String buildCiId, String project, CIEventCause parentReason) {
-		return DTOFactory.getInstance().newDTO(CIEventCause.class).setBuildCiId(buildCiId)
+		return dtoFactoryInstance.newDTO(CIEventCause.class).setBuildCiId(buildCiId)
 				.setCauses(Collections.singletonList(parentReason)).setProject(project).setType(CIEventCauseType.UPSTREAM);
 	}
 
 	public BuildContext getBuildContext(String instanceId, String jobId, String buildId) {
-		return DTOFactory.getInstance().newDTO(BuildContext.class).setBuildId(buildId).setBuildName(buildId)
+		return dtoFactoryInstance.newDTO(BuildContext.class).setBuildId(buildId).setBuildName(buildId)
 				.setJobId(jobId).setJobName(jobId).setServerId(instanceId);
 	}
-
 
 	private List<SCMChange> getChangeList(List<CommitFile> fileList) {
 		List<SCMChange> scmChangesList = new ArrayList<>();
 
 		for (CommitFile commitFile : fileList) {
-			SCMChange scmChange = DTOFactory.getInstance().newDTO(SCMChange.class).
+			SCMChange scmChange = dtoFactoryInstance.newDTO(SCMChange.class).
 					setFile(commitFile.getName()).
 					setType("edit");//this is the default value - SCMChange not contains the change type and it must be not empty. for more information: https://answers.atlassian.com/questions/43728210/answers/43730617/comments/43880899
 			scmChangesList.add(scmChange);
@@ -372,7 +366,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 	}
 
 	private SCMRepository createRepository(PlanRepositoryDefinition repo) {
-		SCMRepository scmRepository = DTOFactory.getInstance().newDTO(SCMRepository.class);
+		SCMRepository scmRepository = dtoFactoryInstance.newDTO(SCMRepository.class);
 		if (repo.getPluginKey().contains(":svn")) {
 			scmRepository.setUrl(repo.getVcsLocation().getConfiguration().get("repository.svn.repositoryRoot"));
 			scmRepository.setType(SCMType.SVN);
@@ -389,7 +383,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 	}
 
 	private SCMCommit getScmCommit(CommitContext commitContext) {
-		SCMCommit scmCommit = DTOFactory.getInstance().newDTO(SCMCommit.class);
+		SCMCommit scmCommit = dtoFactoryInstance.newDTO(SCMCommit.class);
 		scmCommit.setRevId(commitContext.getChangeSetId());
 		scmCommit.setComment(commitContext.getComment());
 		scmCommit.setUser(commitContext.getAuthorContext().getName());
@@ -400,7 +394,6 @@ public class DefaultOctaneConverter implements DTOConverter {
 		return scmCommit;
 	}
 
-	@Override
 	public SCMData getScmData(com.atlassian.bamboo.v2.build.BuildContext buildContext) {
 		SCMData scmData = null;
 		SCMRepository scmRepository = null;
@@ -418,7 +411,7 @@ public class DefaultOctaneConverter implements DTOConverter {
 		}
 
 		if (scmCommitList.size() > 0) {
-			scmData = DTOFactory.getInstance().newDTO(SCMData.class);
+			scmData = dtoFactoryInstance.newDTO(SCMData.class);
 			scmData.setCommits(scmCommitList);
 			scmData.setRepository(scmRepository);
 			scmData.setBuiltRevId(buildContext.getPlanResultKey().getKey());

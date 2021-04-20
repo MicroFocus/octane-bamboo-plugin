@@ -11,11 +11,10 @@ import com.atlassian.bamboo.resultsummary.tests.TestCaseResultErrorImpl;
 import com.atlassian.bamboo.resultsummary.tests.TestState;
 import com.atlassian.bamboo.task.*;
 import com.atlassian.bamboo.utils.SystemProperty;
-import com.atlassian.sal.api.component.ComponentLocator;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.integrations.dto.tests.TestsResult;
+import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -142,7 +141,7 @@ public class MqmTestResultsReporterTask implements TaskType {
 
     private void publishToBamboo(TaskContext taskContext, File file, BuildLogger buildLogger) {
         addLogEntry(buildLogger, "Publish test results to Bamboo ");
-        TestsResult result = DTOFactory.getInstance().dtoFromXmlFile(file, TestsResult.class);
+        TestsResult result = DefaultOctaneConverter.getDTOFactory().dtoFromXmlFile(file, TestsResult.class);
         testCollationService.collateTestResults(taskContext, new TestReportProvider() {
 
             @NotNull

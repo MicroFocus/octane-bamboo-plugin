@@ -27,29 +27,22 @@ import com.atlassian.plugin.event.events.PluginDisablingEvent;
 import com.atlassian.plugin.event.events.PluginEnabledEvent;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.atlassian.sal.api.pluginsettings.PluginSettingsFactory;
-import com.ctc.wstx.stax.WstxInputFactory;
-import com.ctc.wstx.stax.WstxOutputFactory;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.ItemType;
 import com.hp.octane.plugins.bamboo.octane.BambooPluginServices;
+import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 
 public class GeneralEventsListener extends BaseListener {
 
     private final PluginSettingsFactory settingsFactory;
     private final CachedPlanManager planMan;
-    private final WstxInputFactory wstxInputFactory;
-    private final WstxOutputFactory wstxOutputFactory;
 
-
-    public GeneralEventsListener(PluginSettingsFactory settingsFactory,WstxInputFactory wstxInputFactory, WstxOutputFactory wstxOutputFactory) {
+    public GeneralEventsListener(PluginSettingsFactory settingsFactory) {
         this.settingsFactory = settingsFactory;
         this.planMan = ComponentLocator.getComponent(CachedPlanManager.class);
-        this.wstxInputFactory = wstxInputFactory;
-        this.wstxOutputFactory = wstxOutputFactory;
     }
 
     @EventListener
@@ -66,7 +59,7 @@ public class GeneralEventsListener extends BaseListener {
             return;
         }
         log.info("onChainMoved " + event.getOriginalPlanKey() + "=>" + event.getNewPlanKey());
-        CIEvent renamedEvent = DTOFactory.getInstance().newDTO(CIEvent.class).setEventType(CIEventType.RENAMED);
+        CIEvent renamedEvent = DefaultOctaneConverter.getDTOFactory().newDTO(CIEvent.class).setEventType(CIEventType.RENAMED);
         ImmutableChain chain = (ImmutableChain) planMan.getPlanByKey(event.getNewPlanKey());
         if (MultibranchHelper.isMultiBranchParent(chain)) {
             renamedEvent.setItemType(ItemType.MULTI_BRANCH);
@@ -80,7 +73,7 @@ public class GeneralEventsListener extends BaseListener {
                 .setPreviousProjectDisplayName(chain.getName());
 
         //second event to update inner plans
-        CIEvent renamedEvent2 =  DTOFactory.getInstance().newDTO(CIEvent.class).setEventType(CIEventType.RENAMED)
+        CIEvent renamedEvent2 =  DefaultOctaneConverter.getDTOFactory().newDTO(CIEvent.class).setEventType(CIEventType.RENAMED)
                 .setItemType(ItemType.FOLDER)
                 .setProject(event.getNewPlanKey().getKey())
                 .setProjectDisplayName(chain.getName())
@@ -106,12 +99,6 @@ public class GeneralEventsListener extends BaseListener {
     @EventListener
     public void onPluginEnabled(PluginEnabledEvent event) {
         if (BambooPluginServices.PLUGIN_KEY.equals(event.getPlugin().getKey())) {
-            try {
-                DTOFactory.getInstance().initXmlMapper(wstxInputFactory, wstxOutputFactory);
-                //ContextClassLoaderSwitchingUtil.runInContext(WstxEventFactory.class.getClassLoader(), this::initXmlMapper);
-            } catch (Throwable t) {
-                log.error("Failed to initXmlMapper " + t.getMessage());
-            }
             OctaneConnectionManager.getInstance().initSdkClients(settingsFactory);
         }
     }

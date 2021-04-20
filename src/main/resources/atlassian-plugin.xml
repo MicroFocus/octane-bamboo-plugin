@@ -27,8 +27,8 @@
     <!-- import Bamboo resources -->
     <component-import key="pluginSettingsFactory"
                       interface="com.atlassian.sal.api.pluginsettings.PluginSettingsFactory"/>
-    <component key="wstxInputFactory" class="com.ctc.wstx.stax.WstxInputFactory"/>;
-    <component key="wstxOutputFactory" class="com.ctc.wstx.stax.WstxOutputFactory"/>;
+    <!--component key="wstxInputFactory" class="com.ctc.wstx.stax.WstxInputFactory"/>;-->
+    <!--component key="wstxOutputFactory" class="com.ctc.wstx.stax.WstxOutputFactory"/>;-->
 
     <!-- add our i18n resource -->
     <resource type="i18n" name="i18n" location="bamboo-plugin"/>

@@ -17,10 +17,10 @@
 package com.hp.octane.plugins.bamboo.listener;
 
 import com.atlassian.bamboo.variable.VariableDefinitionContext;
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.parameters.CIParameter;
 import com.hp.octane.integrations.dto.parameters.CIParameterType;
+import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,7 +41,7 @@ public class ParametersHelper {
             variables.entrySet().forEach(v -> {
                 if (!ParametersHelper.isEncrypted(v.getValue())) {
                     parameters.add(
-                            DTOFactory.getInstance().newDTO(CIParameter.class)
+                            DefaultOctaneConverter.getDTOFactory().newDTO(CIParameter.class)
                                     .setName(v.getKey())
                                     .setValue(v.getValue().getValue())
                                     .setType(CIParameterType.STRING));

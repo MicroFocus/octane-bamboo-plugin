@@ -17,7 +17,6 @@
 
 package com.hp.octane.plugins.bamboo.octane;
 
-import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.tests.TestField;
 import org.apache.commons.lang3.StringUtils;
 
@@ -64,13 +63,13 @@ public enum HPRunnerType {
         } else {
             List<TestField> list = new ArrayList<>();
             if (StringUtils.isNotEmpty(Framework())) {
-                list.add(DTOFactory.getInstance().newDTO(TestField.class).setType("Framework").setValue(Framework()));
+                list.add(DefaultOctaneConverter.getDTOFactory().newDTO(TestField.class).setType("Framework").setValue(Framework()));
             }
             if (StringUtils.isNotEmpty(TestingToolType())) {
-                list.add(DTOFactory.getInstance().newDTO(TestField.class).setType("Testing_Tool_Type").setValue(TestingToolType()));
+                list.add(DefaultOctaneConverter.getDTOFactory().newDTO(TestField.class).setType("Testing_Tool_Type").setValue(TestingToolType()));
             }
             if (StringUtils.isNotEmpty(TestType())) {
-                list.add(DTOFactory.getInstance().newDTO(TestField.class).setType("Test_Type").setValue(TestType()));
+                list.add(DefaultOctaneConverter.getDTOFactory().newDTO(TestField.class).setType("Test_Type").setValue(TestType()));
             }
 
             return list;
