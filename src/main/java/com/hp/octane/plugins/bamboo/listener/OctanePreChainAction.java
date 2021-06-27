@@ -23,6 +23,7 @@ import com.atlassian.bamboo.v2.build.BuildContext;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
+import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 
@@ -32,12 +33,6 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
 
     public void execute(Chain chain, ChainExecution chainExecution) {
         if (!OctaneConnectionManager.hasActiveClients()) {
-            return;
-        }
-
-        if (MultibranchHelper.isMultiBranchParent(chain)) {
-            //don't sent event on multibranch parent
-            log.info(String.format("Chain '%s(%s)' is recognized as multi-branch parent. Start event is ignored.", chain.getPlanKey(), chain.getName()));
             return;
         }
 
@@ -51,6 +46,9 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
                 Collections.singletonList(CONVERTER.getCause(chainExecution.getTriggerReason())),
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
                 PhaseType.INTERNAL);
+        if (MultibranchHelper.isMultiBranchParent(chain)) {
+            event.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
+        }
 
         MultibranchHelper.enrichMultiBranchEvent(chain, event);
 

@@ -35,6 +35,7 @@ import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.causes.CIEventCause;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
+import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.plugins.bamboo.octane.*;
@@ -143,11 +144,6 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             return;
         }
         LOG.info("Chain " + chainExecution.getBuildIdentifier().getPlanResultKey() + " completed with result " + chainResultsSummary.getBuildState().toString());
-        if (MultibranchHelper.isMultiBranchParent(chain)) {
-            LOG.info(String.format("Chain '%s(%s)' is recognized as multi-branch parent. Finish event is ignored.", chain.getPlanKey(), chain.getName()));
-            //don't sent event on multibranch parent
-            return;
-        }
 
         CIEvent ciEvent = CONVERTER.getEventWithDetails(
                 chain.getPlanKey().getKey(),
@@ -161,6 +157,9 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 chainResultsSummary.getBuildState(),
                 chainResultsSummary.getProcessingDuration(),//System.currentTimeMillis(),
                 PhaseType.INTERNAL);
+        if (MultibranchHelper.isMultiBranchParent(chain)) {
+            ciEvent.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
+        }
         if (chainExecution.isStopRequested()) {
             ciEvent.setResult(CIBuildResult.ABORTED);
         }
