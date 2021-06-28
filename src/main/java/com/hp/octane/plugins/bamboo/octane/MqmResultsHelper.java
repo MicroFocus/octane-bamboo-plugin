@@ -34,6 +34,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MqmResultsHelper {
     private static StorageLocationService storageLocationService;
@@ -87,11 +88,14 @@ public class MqmResultsHelper {
             }
         }
 
-        if (!testRuns.isEmpty()) {
+        //filter null from the list
+        List<TestRun> filteredTestRuns = testRuns.stream().filter(x -> x!=null).collect(Collectors.toList());
+
+        if (!filteredTestRuns.isEmpty()) {
             List<TestField> testFields = runnerType.getTestFields();
             BuildContext context = CONVERTER.getBuildContext(SdkConstants.General.INSTANCE_ID_TO_BE_SET_IN_SDK, jobId, buildId);
             TestsResult testsResult = DefaultOctaneConverter.getDTOFactory().newDTO(TestsResult.class)
-                    .setTestRuns(testRuns)
+                    .setTestRuns(filteredTestRuns)
                     .setBuildContext(context)
                     .setTestFields(testFields);
 
