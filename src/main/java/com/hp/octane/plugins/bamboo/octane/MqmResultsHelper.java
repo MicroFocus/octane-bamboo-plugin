@@ -21,6 +21,7 @@ import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.storage.StorageLocationService;
 import com.atlassian.bamboo.v2.build.CurrentBuildResult;
+import com.atlassian.bamboo.variable.VariableDefinitionContext;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.dto.tests.*;
 import com.hp.octane.integrations.utils.SdkConstants;
@@ -32,8 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MqmResultsHelper {
@@ -87,9 +87,8 @@ public class MqmResultsHelper {
                         results.getTasksStartDate().getTime()));
             }
         }
-
-        //filter null from the list
-        List<TestRun> filteredTestRuns = testRuns.stream().filter(x -> x!=null).collect(Collectors.toList());
+        //filter tests that should not be reported to Octane
+        List<TestRun> filteredTestRuns = filterTestToIgnoreFromResults(testRuns,buildContext);
 
         if (!filteredTestRuns.isEmpty()) {
             List<TestField> testFields = runnerType.getTestFields();
@@ -104,6 +103,22 @@ public class MqmResultsHelper {
 
         }
         return output;
+    }
+
+    private static List<TestRun> filterTestToIgnoreFromResults(List<TestRun> testRuns, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
+
+        VariableDefinitionContext testsToIgnoreVar = buildContext.getVariableContext().getEffectiveVariables().get("octaneIgnoreTestsByName");
+
+        if(testsToIgnoreVar == null || testsToIgnoreVar.getValue() == null || testsToIgnoreVar.getValue().isEmpty()
+                || testRuns == null || testRuns.isEmpty()){
+            return testRuns;
+        }
+
+        String[] testsToIgnore =  testsToIgnoreVar.getValue().split(";");
+        Set<String> testsToIgnoreList = new HashSet<>(Arrays.asList(testsToIgnore));
+        List returnVal = testRuns.stream().filter(x ->!testsToIgnoreList.contains(x.getTestName())).collect(Collectors.toList());
+
+        return returnVal;
     }
 
     public static synchronized void saveStreamToFile(InputStream is, PlanResultKey planResultKey, Path targetFilePath) {

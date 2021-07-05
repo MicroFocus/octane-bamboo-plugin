@@ -230,9 +230,7 @@ public class DefaultOctaneConverter {
             }
         }
 
-        if("initalizationError".equalsIgnoreCase(testName)){
-        	return null;
-		}
+
 
         TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
                 .setDuration(Math.round(Double.valueOf(testResult.getDurationMs()))).setPackageName(packageName)
