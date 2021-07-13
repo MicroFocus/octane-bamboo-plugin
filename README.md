@@ -76,6 +76,21 @@ The Bamboo CI server user account that will run jobs at ALM Octane's request.
 **Caution:**  
 Make sure the user exists in the CI server.
 In Bamboo, you must specify a user.
+
+
+## Test run results
+
+#### Ignore test results
+If you want to ignore part of the test results, and not send it to Octane, 
+you can add "**octaneIgnoreTestsByName**" variable to your plan 
+and the value should be tests name separated by **;**
+
+For example:
+
+
+    variable name:octaneIgnoreTestsByName
+    value:initalizationError;testB;testG
+
 ----------------------------------------------------
 
 Certain versions of software accessible here may contain branding from Hewlett-Packard Company (now HP Inc.) and Hewlett Packard Enterprise Company.  As of September 1, 2017, the software is now offered by Micro Focus, a separately owned and operated company.  Any reference to the HP and Hewlett Packard Enterprise/HPE marks is historical in nature, and the HP and Hewlett Packard Enterprise/HPE marks are the property of their respective owners.
