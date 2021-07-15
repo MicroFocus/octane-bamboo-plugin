@@ -107,18 +107,25 @@ public class MqmResultsHelper {
 
     private static List<TestRun> filterTestToIgnoreFromResults(List<TestRun> testRuns, com.atlassian.bamboo.v2.build.BuildContext buildContext) {
 
-        VariableDefinitionContext testsToIgnoreVar = buildContext.getVariableContext().getEffectiveVariables().get("octaneIgnoreTestsByName");
+        Set<String> testsToIgnoreList = new HashSet<>();
+        //get the ignore tests from the local variable on the pipeline
+        testsToIgnoreList.addAll(getTestToIgnoreFromVariable(buildContext.getVariableContext().getEffectiveVariables().get("octaneIgnoreTestsByName")));
+        //get ignore tests from the global variable
+        testsToIgnoreList.addAll(getTestToIgnoreFromVariable(buildContext.getVariableContext().getEffectiveVariables().get("octaneIgnoreTestsByNameGlobal")));
 
-        if(testsToIgnoreVar == null || testsToIgnoreVar.getValue() == null || testsToIgnoreVar.getValue().isEmpty()
-                || testRuns == null || testRuns.isEmpty()){
-            return testRuns;
-        }
-
-        String[] testsToIgnore =  testsToIgnoreVar.getValue().split(";");
-        Set<String> testsToIgnoreList = new HashSet<>(Arrays.asList(testsToIgnore));
-        List returnVal = testRuns.stream().filter(x ->!testsToIgnoreList.contains(x.getTestName())).collect(Collectors.toList());
+        List returnVal = testRuns.stream().filter(x -> !testsToIgnoreList.contains(x.getTestName())).collect(Collectors.toList());
 
         return returnVal;
+    }
+
+    private static List getTestToIgnoreFromVariable(VariableDefinitionContext testsToIgnoreVar) {
+
+        if (testsToIgnoreVar == null || testsToIgnoreVar.getValue() == null || testsToIgnoreVar.getValue().isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        String[] testsToIgnore = testsToIgnoreVar.getValue().split(";");
+        return Arrays.asList(testsToIgnore);
     }
 
     public static synchronized void saveStreamToFile(InputStream is, PlanResultKey planResultKey, Path targetFilePath) {

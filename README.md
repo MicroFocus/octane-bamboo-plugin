@@ -81,15 +81,19 @@ In Bamboo, you must specify a user.
 ## Test run results
 
 #### Ignore test results
-If you want to ignore part of the test results, and not send it to Octane, 
-you can add "**octaneIgnoreTestsByName**" variable to your plan 
-and the value should be tests name separated by **;**
+If you want to ignore part of the test results, and not send it to Octane, you can use the following variables:  
+* **octaneIgnoreTestsByName** : a plan variable, for tests you want to ignore in specific plan. define this variable in the plan  
+* **octaneIgnoreTestsByNameGlobal** : a global variable, for tests you want to ignore in all plans, define this variable in the 'global variable' section
+
+The value should be tests names separated by **;**
 
 For example:
 
 
     variable name:octaneIgnoreTestsByName
     value:initalizationError;testB;testG
+
+
 
 ----------------------------------------------------
 
