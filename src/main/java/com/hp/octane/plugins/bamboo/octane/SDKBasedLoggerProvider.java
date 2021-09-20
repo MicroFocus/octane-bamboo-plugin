@@ -45,11 +45,12 @@ public final class SDKBasedLoggerProvider {
 
 	public static void initOctaneAllowedStorageProperty() {
 		if (!sysParamConfigured) {
-			//System.setProperty("octaneAllowedStorage", getAllowedStorageFile().getAbsolutePath() + File.separator);
-			CommonLoggerContextUtil.configureLogger(getAllowedStorageFile());
+			System.setProperty("octaneAllowedStorage", getAllowedStorageFile().getAbsolutePath() + File.separator);
+			//CommonLoggerContextUtil.configureLogger(getAllowedStorageFile());
 			sysParamConfigured = true;
 		}
 	}
+
 	public static File getAllowedStorageFile() {
 		File f = new File(SystemDirectory.getApplicationHome(), "octanePluginContent");
 		if (!allowedOctaneStorageExist) {
