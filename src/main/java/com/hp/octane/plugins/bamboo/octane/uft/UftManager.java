@@ -115,6 +115,7 @@ public class UftManager {
     private static String DISCOVERY_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY + ":octaneUftTestDiscovery";
     private static String EXECUTION_TASK_PLUGIN_KEY = "com.adm.app-delivery-management-bamboo:RunFromFileSystemUftTask";
     private static String CONVERTER_TASK_PLUGIN_KEY = BambooPluginServices.PLUGIN_KEY + ":octaneTestFrameworkConverter";
+    private static String UFT_REQUIREMENT_KEY = "system.builder.Micro Focus.Unified Functional Testing";
 
     private static final String TRIGGER_POLLING_PLUGIN_KEY = "com.atlassian.bamboo.triggers.atlassian-bamboo-triggers:poll";
     public static final String PROJECT_KEY = "UOI";
