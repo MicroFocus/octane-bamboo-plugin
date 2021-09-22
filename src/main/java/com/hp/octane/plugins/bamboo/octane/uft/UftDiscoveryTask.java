@@ -18,6 +18,7 @@ package com.hp.octane.plugins.bamboo.octane.uft;
 import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.task.*;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.dto.executor.impl.TestingToolType;
 import com.hp.octane.integrations.services.entities.EntitiesService;
 import com.hp.octane.integrations.uft.UftTestDiscoveryUtils;
 import com.hp.octane.integrations.uft.UftTestDispatchUtils;
@@ -67,10 +68,11 @@ public class UftDiscoveryTask implements TaskType {
             result.setScmRepositoryId(taskContext.getConfigurationMap().get(SCM_REPOSITORY_ID_PARAM));
             result.setTestRunnerId(taskContext.getConfigurationMap().get(TEST_RUNNER_ID_PARAM));
             result.setConfigurationId(spaceConfigurationId);
+            result.setTestingToolType(TestingToolType.UFT);
             result.setFullScan(true);
 
             EntitiesService entitiesService = OctaneSDK.getClientByInstanceId(spaceConfigurationId).getEntitiesService();
-            UftTestDispatchUtils.prepareDispatchingForFullSync(entitiesService, result);
+            UftTestDispatchUtils.prepareDiscoveryResultForDispatch(entitiesService, result);
 
 
             JobRunContext jobRunContext = new JobRunContext(taskContext.getBuildContext().getProjectName(), taskContext.getBuildContext().getBuildNumber());

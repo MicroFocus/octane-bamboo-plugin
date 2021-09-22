@@ -82,7 +82,7 @@ public class TestFrameworkConverterTask implements TaskType {
                 addLogEntry(buildLogger, "format : " + format);
             }
             TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework).setFormat(format)
-                    .convert(rawTests, checkoutDirectory);
+                    .convert(rawTests, checkoutDirectory, null);
             addLogEntry(buildLogger, "Found #tests : " + convertResult.getTestsData().size());
             addLogEntry(buildLogger, TESTS_TO_RUN_CONVERTED_PARAMETER + " = " + convertResult.getConvertedTestsString());
             addLogEntry(buildLogger, TESTS_TO_RUN_CONVERTED_PARAMETER + " length = " + convertResult.getConvertedTestsString().length());

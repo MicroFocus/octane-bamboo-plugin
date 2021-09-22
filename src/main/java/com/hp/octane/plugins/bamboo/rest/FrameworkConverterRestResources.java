@@ -53,7 +53,7 @@ public class FrameworkConverterRestResources {
 
             TestsToRunConverterResult convertResult = TestsToRunConvertersFactory.createConverter(testsToRunFramework)
                     .setFormat(format)
-                    .convert(rawTests, TestFrameworkConverterTask.DEFAULT_EXECUTING_DIRECTORY);
+                    .convert(rawTests, TestFrameworkConverterTask.DEFAULT_EXECUTING_DIRECTORY, null);
             return Response.ok("Conversion is successful : " + convertResult.getConvertedTestsString()).build();
         } catch (Exception e) {
             return Response.status(405).entity("Failed to convert : " + e.getMessage()).build();

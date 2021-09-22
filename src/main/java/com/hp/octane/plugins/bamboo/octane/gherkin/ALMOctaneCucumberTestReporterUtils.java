@@ -20,6 +20,7 @@ import com.atlassian.bamboo.build.logger.BuildLogger;
 import com.atlassian.bamboo.utils.SystemProperty;
 import com.hp.octane.integrations.testresults.GherkinUtils;
 import com.hp.octane.integrations.utils.SdkConstants;
+import com.hp.octane.plugins.bamboo.octane.DefaultOctaneConverter;
 import com.hp.octane.plugins.bamboo.octane.OctaneConstants;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
@@ -43,7 +44,7 @@ public class ALMOctaneCucumberTestReporterUtils {
 
         File mqmFile = new File(targetDirectoryPath , SdkConstants.General.MQM_TESTS_FILE_NAME);
         addLogEntry(buildLogger, "Creating mqm test result file : " + mqmFile.getAbsolutePath());
-        GherkinUtils.aggregateGherkinFilesToMqmResultFile(gherkinFiles, mqmFile, planName, Integer.toString(buildNumber));
+        GherkinUtils.aggregateGherkinFilesToMqmResultFile(gherkinFiles, mqmFile, planName, Integer.toString(buildNumber), DefaultOctaneConverter.getDTOFactory());
     }
 
     private static String generateGherkinResultFileName(int index, String targetDirectoryPath) {
