@@ -17,6 +17,7 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.builder.BuildState;
+import com.atlassian.bamboo.builder.LifeCycleState;
 import com.atlassian.bamboo.chains.cache.ImmutableChainStage;
 import com.atlassian.bamboo.commit.CommitContext;
 import com.atlassian.bamboo.commit.CommitFile;
@@ -50,6 +51,7 @@ import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.pipelines.PipelinePhase;
 import com.hp.octane.integrations.dto.scm.*;
 import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
+import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
 import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunError;
@@ -154,7 +156,7 @@ public class DefaultOctaneConverter {
 				.setUrl(baseUrl);
 	}
 
-	private CIBuildResult getJobResult(BuildState buildState) {
+	public CIBuildResult getJobResult(BuildState buildState) {
 
 		switch (buildState) {
 			case FAILED:
@@ -165,6 +167,21 @@ public class DefaultOctaneConverter {
 				return CIBuildResult.UNAVAILABLE;
 		}
 	}
+
+    public CIBuildStatus getCIBuildStatus(LifeCycleState state) {
+        switch (state) {
+            case PENDING:
+            case QUEUED:
+                return CIBuildStatus.QUEUED;
+            case IN_PROGRESS:
+                return CIBuildStatus.RUNNING;
+            case NOT_BUILT:
+            case FINISHED:
+                return CIBuildStatus.FINISHED;
+            default:
+                return CIBuildStatus.UNAVAILABLE;
+        }
+    }
 
 	public CIJobsList getRootJobsList(List<ImmutableTopLevelPlan> plans, boolean includeParameters) {
 		CIJobsList jobsList = dtoFactoryInstance.newDTO(CIJobsList.class).setJobs(new PipelineNode[0]);
