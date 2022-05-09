@@ -17,6 +17,8 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.applinks.ImpersonationService;
+import com.atlassian.bamboo.chains.Chain;
+import com.atlassian.bamboo.chains.ChainResultManager;
 import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
@@ -109,7 +111,7 @@ public class BambooPluginServices extends CIPluginServices {
         bambooVersion = ComponentLocator.getComponent(BambooApplication.class).getVersion();
         this.accessor = ComponentLocator.getComponent(ResultsSummaryVariableAccessor.class);
         this.resultsSummaryManager = ComponentLocator.getComponent(BuildResultsSummaryManager.class);
-        this.chainBranchManager  = ComponentLocator.getComponent(ChainBranchManager.class);
+        this.chainBranchManager = ComponentLocator.getComponent(ChainBranchManager.class);
     }
 
     @Override
@@ -189,6 +191,7 @@ public class BambooPluginServices extends CIPluginServices {
     @Override
     public void stopPipelineRun(String pipeline, CIParameters ciParameters) {
         log.info("starting pipeline stop");
+
         Callable<String> action = () -> {
             BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
             BambooUser user = um.getBambooUser(getRunAsUser());
@@ -201,6 +204,7 @@ public class BambooPluginServices extends CIPluginServices {
                 }
 
                 log.info(String.format("plan key=%s ,build key=%s ,chain key=%s", chain.getPlanKey().getKey(), chain.getBuildKey(), chain.getKey()));
+
                 CIParameter octaneExecutionId = ciParameters.getParameters().stream()
                         .filter(parameter -> parameter.getName().equals(OCTANE_AUTO_ACTION_EXECUTION_ID))
                         .findFirst().orElse(null);
@@ -210,9 +214,9 @@ public class BambooPluginServices extends CIPluginServices {
                 } else {
                     List<BuildResultsSummary> allQueuedSummaries = (ArrayList<BuildResultsSummary>) resultsSummaryManager.getAllQueuedResultSummaries(BuildResultsSummary.class);
                     List<BuildResultsSummary> allInProgressSummaries = (ArrayList<BuildResultsSummary>) resultsSummaryManager.getAllInProgressResultSummaries(BuildResultsSummary.class);
-                    Boolean stoppedInQueued = stopBuild(user, planKey, octaneExecutionId, allQueuedSummaries);
+                    Boolean stoppedInQueued = stopBuildWithOctaneId(user, planKey, octaneExecutionId, allQueuedSummaries);
                     if (!stoppedInQueued) {
-                        stopBuild(user, planKey, octaneExecutionId, allInProgressSummaries);
+                        stopBuildWithOctaneId(user, planKey, octaneExecutionId, allInProgressSummaries);
                     }
                 }
             } else {
@@ -223,19 +227,20 @@ public class BambooPluginServices extends CIPluginServices {
         executeImpersonatedCall(action, "Stop Pipeline");
     }
 
-    private Boolean stopBuild(BambooUser user, PlanKey planKey, CIParameter octaneExecutionId, List<BuildResultsSummary> resultSummaries) {
-        return resultSummaries.stream().map(resultsSummary -> { // maybe add filter only for this planKey
-            int buildId = resultsSummary.getBuildNumber();
-            PlanResultKey planResultKey = PlanKeys.getPlanResultKey(planKey, buildId);
-            Map<String, VariableDefinitionContext> contextMap = accessor.calculateCurrentVariablesState(planResultKey);
-            VariableDefinitionContext variable = contextMap.getOrDefault(OCTANE_AUTO_ACTION_EXECUTION_ID, null);
+    private Boolean stopBuildWithOctaneId(BambooUser user, PlanKey planKey, CIParameter octaneExecutionId, List<BuildResultsSummary> resultSummaries) {
+        return resultSummaries.parallelStream().filter(resultSummary -> resultSummary.getPlanKey().getKey().contains(planKey.getKey()))
+                .map(resultsSummary -> {
+                    int buildId = resultsSummary.getBuildNumber();
+                    PlanResultKey planResultKey = PlanKeys.getPlanResultKey(planKey, buildId);
+                    Map<String, VariableDefinitionContext> contextMap = accessor.calculateCurrentVariablesState(planResultKey);
+                    VariableDefinitionContext variable = contextMap.getOrDefault(OCTANE_AUTO_ACTION_EXECUTION_ID, null);
 
-            if (variable != null && octaneExecutionId.getValue().equals(variable.getValue())) {
-                planExecMan.stopPlan(planResultKey, true, user.getName());
-                return true;
-            }
-            return false;
-        }).filter(flag -> flag).findAny().orElse(false);
+                    if (variable != null && octaneExecutionId.getValue().equals(variable.getValue())) {
+                        planExecMan.stopPlan(planResultKey, true, user.getName());
+                        return true;
+                    }
+                    return false;
+                }).filter(flag -> flag).findAny().orElse(false);
     }
 
     @Override
@@ -258,7 +263,6 @@ public class BambooPluginServices extends CIPluginServices {
                         .setValue(parameterValue);
 
                 List<ChainResultsSummary> allSummaries = resultsSummaryManager.getResultSummariesForPlan(chain, 0, 0);
-
                 ResultsSummary buildToCheck = allSummaries.parallelStream().map(resultsSummary -> {
                     int buildId = resultsSummary.getBuildNumber();
                     PlanResultKey planResultKey = PlanKeys.getPlanResultKey(planKey, buildId);
@@ -293,27 +297,23 @@ public class BambooPluginServices extends CIPluginServices {
         };
 
         return executeImpersonatedCall(action, "Get Job Build Status");
-}
+    }
 
     @Override
     public CIBranchesList getBranchesList(String jobCiId, String filterBranchName) {
         log.info("getting pipeline build status");
 
         Callable<CIBranchesList> action = () -> {
-            BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
             ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(jobCiId.toUpperCase()), ImmutableChain.class);
-            List<Branch> branches = new ArrayList<>();
             if (chain != null) {
-
-
-                Branch branch = chainBranchManager.getBranchesForChain(chain).stream().map(chainBranch -> {
-                    if (chainBranch.getBuildName().equals(filterBranchName)) {
-                        return DTOFactory.getInstance().newDTO(Branch.class)
+                List<Branch> branches = new ArrayList<>();
+                Branch branch = chainBranchManager.getBranchesForChain(chain).parallelStream()
+                        .filter(chainBranch -> chainBranch.getBuildName().equals(filterBranchName))
+                        .map(chainBranch -> DTOFactory.getInstance().newDTO(Branch.class)
                                 .setName(chainBranch.getBuildName())
-                                .setInternalId(chainBranch.getPlanKey().getKey());
-                    }
-                    return null;
-                }).filter(Objects::nonNull).findAny().orElse(null);
+                                .setInternalId(chainBranch.getPlanKey().getKey()))
+                        .findAny().orElse(null);
+
                 if (branch == null) {
                     String defaultDisplayName = getDefaultDisplayName(chain);
                     if (Objects.equals(defaultDisplayName, filterBranchName)) {
@@ -322,8 +322,8 @@ public class BambooPluginServices extends CIPluginServices {
                                 .setInternalId(chain.getPlanKey().getKey());
                     }
                 }
-                if (branch != null) branches.add(branch);
 
+                if (branch != null) branches.add(branch);
                 return DTOFactory.getInstance().newDTO(CIBranchesList.class)
                         .setBranches(branches);
             } else {
