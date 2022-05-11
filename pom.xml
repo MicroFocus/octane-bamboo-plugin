@@ -81,7 +81,7 @@
 		<original.folder>${project.build.directory}/temp</original.folder>
 		<matching.obj>jarfile_batch_sign_local_timestamp</matching.obj>
 		<file.name>${project.artifactId}-${project.version}.jar</file.name>
-		<integrations.sdk.version>2.7.2.6</integrations.sdk.version>
+		<integrations.sdk.version>2.7.4.1</integrations.sdk.version>
 		<nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
 	</properties>
 
