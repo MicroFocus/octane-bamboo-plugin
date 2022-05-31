@@ -58,22 +58,6 @@ public class MultibranchHelper {
         return planManager;
     }
 
-    public static boolean isMultiBranchParent(ImmutableChain chain) {
-        try {
-            Set<PlanKey> branchKeys = getCachedPlanManager().getBranchKeysOfChain(chain.getPlanKey());
-            return !branchKeys.isEmpty();
-        } catch (Exception e) {
-            log.error("Failed to check isMultiBranchParent : " + e.getMessage());
-            return false;
-        }
-    }
-
-    public static void enrichMultiBranchParentPipeline(ImmutableChain chain, PipelineNode pipelineNode) {
-        if (isMultiBranchParent(chain)) {
-            pipelineNode.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
-        }
-    }
-
     public static void enrichMultiBranchEventForJob(BuildContext buildContext, CIEvent ciEvent) {
         try {
             PlanKey parentKey = buildContext.getParentBuildContext().getPlanResultKey().getPlanKey();

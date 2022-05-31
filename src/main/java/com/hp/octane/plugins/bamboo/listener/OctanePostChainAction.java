@@ -157,9 +157,6 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
                 chainResultsSummary.getBuildState(),
                 chainResultsSummary.getProcessingDuration(),//System.currentTimeMillis(),
                 PhaseType.INTERNAL);
-        if (MultibranchHelper.isMultiBranchParent(chain)) {
-            ciEvent.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
-        }
         if (chainExecution.isStopRequested()) {
             ciEvent.setResult(CIBuildResult.ABORTED);
         }

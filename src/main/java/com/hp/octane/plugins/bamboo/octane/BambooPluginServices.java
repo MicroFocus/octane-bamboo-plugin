@@ -136,7 +136,6 @@ public class BambooPluginServices extends CIPluginServices {
         Callable<ImmutableTopLevelPlan> planGetter = () -> planMan.getPlanByKey(PlanKeys.getPlanKey(pipelineIdUpper), ImmutableTopLevelPlan.class);
         ImmutableTopLevelPlan plan = executeImpersonatedCall(planGetter, "getPipeline");
         PipelineNode pipelineNode = CONVERTER.getRootPipelineNodeFromTopLevelPlan(plan);
-        MultibranchHelper.enrichMultiBranchParentPipeline(plan, pipelineNode);
         pipelineNode.setDefaultBranchName(getDefaultDisplayName(plan));
         return pipelineNode;
     }

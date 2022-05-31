@@ -42,6 +42,7 @@ import com.hp.octane.integrations.dto.causes.CIEventCauseType;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
+import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
@@ -57,6 +58,7 @@ import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunError;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.plugins.bamboo.listener.ParametersHelper;
+import com.sun.org.apache.xpath.internal.operations.Mult;
 import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
@@ -129,7 +131,8 @@ public class DefaultOctaneConverter {
 	public PipelineNode getRootPipelineNodeFromTopLevelPlan(ImmutableTopLevelPlan plan) {
 		PipelineNode node = dtoFactoryInstance.newDTO(PipelineNode.class)
 				.setJobCiId(getRootJobCiId(plan))
-				.setName(plan.getName());
+				.setName(plan.getName())
+                .setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
 		List<PipelinePhase> phases = new ArrayList<>(plan.getAllStages().size());
 		List<VariableDefinition> variables = plan.getVariables();
 		if (!variables.isEmpty()) {
@@ -189,7 +192,8 @@ public class DefaultOctaneConverter {
 		List<PipelineNode> nodes = new ArrayList<>(plans.size());
 		for (ImmutableTopLevelPlan plan : plans) {
 			PipelineNode node = dtoFactoryInstance.newDTO(PipelineNode.class).setJobCiId(getRootJobCiId(plan))
-					.setName(plan.getName());
+					.setName(plan.getName())
+                    .setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
 
 			//add parameters
 			if(includeParameters) {
@@ -246,8 +250,6 @@ public class DefaultOctaneConverter {
                 }
             }
         }
-
-
 
         TestRun testRun = dtoFactoryInstance.newDTO(TestRun.class).setClassName(simpleName)
                 .setDuration(Math.round(Double.valueOf(testResult.getDurationMs()))).setPackageName(packageName)
@@ -322,6 +324,7 @@ public class DefaultOctaneConverter {
 		//event.setDuration(currnetTime - event.getStartTime());
 		event.setDuration(currnetTime);
 		event.setResult(getJobResult(buildState));
+        event.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
 		return event;
 	}
 
@@ -340,7 +343,8 @@ public class DefaultOctaneConverter {
 				.setBuildCiId(buildCiId)
 				.setEstimatedDuration(estimatedDuration)
 				.setStartTime(startTime)
-				.setPhaseType(phaseType);
+				.setPhaseType(phaseType)
+                .setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
 		if (number != null) {
 			event.setNumber(number);
 		}
