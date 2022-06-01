@@ -46,9 +46,6 @@ public class OctanePreChainAction extends BaseListener implements PreChainAction
                 Collections.singletonList(CONVERTER.getCause(chainExecution.getTriggerReason())),
                 String.valueOf(chainExecution.getBuildIdentifier().getBuildNumber()),
                 PhaseType.INTERNAL);
-        if (MultibranchHelper.isMultiBranchParent(chain)) {
-            event.setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);
-        }
 
         MultibranchHelper.enrichMultiBranchEvent(chain, event);
 

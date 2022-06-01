@@ -61,11 +61,7 @@ public class GeneralEventsListener extends BaseListener {
         log.info("onChainMoved " + event.getOriginalPlanKey() + "=>" + event.getNewPlanKey());
         CIEvent renamedEvent = DefaultOctaneConverter.getDTOFactory().newDTO(CIEvent.class).setEventType(CIEventType.RENAMED);
         ImmutableChain chain = (ImmutableChain) planMan.getPlanByKey(event.getNewPlanKey());
-        if (MultibranchHelper.isMultiBranchParent(chain)) {
-            renamedEvent.setItemType(ItemType.MULTI_BRANCH);
-        } else {
-            renamedEvent.setItemType(ItemType.JOB);
-        }
+        renamedEvent.setItemType(ItemType.MULTI_BRANCH);
 
         renamedEvent.setProject(event.getNewPlanKey().getKey())
                 .setProjectDisplayName(chain.getName())
@@ -82,8 +78,6 @@ public class GeneralEventsListener extends BaseListener {
 
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(renamedEvent));
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(renamedEvent2));
-
-
     }
 
     @EventListener
