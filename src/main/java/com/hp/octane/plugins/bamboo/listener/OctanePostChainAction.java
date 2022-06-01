@@ -54,6 +54,10 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
     private static Set<String> testResultExpected = new HashSet<>();
 
+    private static final String TEST_RESULT_PUBLISHER_TASK = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin:octanetestresultpublisher",
+    CUCUMBER_TEST_RESULT_PUBLISHER_TASK = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin:octanecucumber";
+    private static final Set<String> octaneResultReporterTask = new HashSet(Arrays.asList(TEST_RESULT_PUBLISHER_TASK,CUCUMBER_TEST_RESULT_PUBLISHER_TASK));
+
     public static void onJobCompleted(PostBuildCompletedEvent event) {
         if (!OctaneConnectionManager.hasActiveClients()) {
             return;
@@ -62,12 +66,14 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         PlanResultKey planResultKey = event.getPlanResultKey();
 
         ArtifactContext artifactContext = event.getContext().getArtifactContext();
-        boolean hasTestResultsArtifact = artifactContext.getPublishingResults()
-                .stream().filter(r -> r.getArtifactDefinitionContext().getName().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME)).findFirst().isPresent();
+        boolean hasTestResultsArtifact = artifactContext.getPublishingResults().stream()
+                .anyMatch(r -> r.getArtifactDefinitionContext().getName().equals(OctaneConstants.MQM_RESULT_ARTIFACT_NAME));
+        boolean hasDefinedOctanePublisherTask = event.getContext().getRuntimeTaskDefinitions().stream()
+                .anyMatch(task -> octaneResultReporterTask.contains(task.getPluginKey().toLowerCase()));
 
         CurrentBuildResult results = event.getContext().getBuildResult();
         boolean hasTests =
-                hasTestResultsArtifact ||
+                (hasTestResultsArtifact && hasDefinedOctanePublisherTask) ||
                 (results.getFailedTestResults() != null && !results.getFailedTestResults().isEmpty()) ||
                 (results.getSkippedTestResults() != null && !results.getSkippedTestResults().isEmpty()) ||
                 (results.getSuccessfulTestResults() != null && !results.getSuccessfulTestResults().isEmpty());
@@ -100,7 +106,7 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
 
         if (hasTests) {
             try {
-                saveJobTestResults(event, hasTestResultsArtifact);
+                saveJobTestResults(event, hasTestResultsArtifact && hasDefinedOctanePublisherTask);
             } catch (Exception e) {
                 LOG.error("Failed to saveJobTestResults : " + e.getMessage());
             }
