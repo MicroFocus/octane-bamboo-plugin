@@ -58,7 +58,6 @@ import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunError;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.plugins.bamboo.listener.ParametersHelper;
-import com.sun.org.apache.xpath.internal.operations.Mult;
 import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
