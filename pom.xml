@@ -5,7 +5,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.hpe.adm.octane.ciplugins</groupId>
 	<artifactId>bamboo-ci-plugin</artifactId>
-	<version>1.12.8.0-SNAPSHOT</version>
+	<version>1.12.9.0-SNAPSHOT</version>
 	<packaging>atlassian-plugin</packaging>
 
 	<name>ALM Octane Bamboo CI Plugin</name>
@@ -81,7 +81,7 @@
 		<original.folder>${project.build.directory}/temp</original.folder>
 		<matching.obj>jarfile_batch_sign_local_timestamp</matching.obj>
 		<file.name>${project.artifactId}-${project.version}.jar</file.name>
-		<integrations.sdk.version>2.7.4.1</integrations.sdk.version>
+		<integrations.sdk.version>2.7.4.4</integrations.sdk.version>
 		<nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
 	</properties>
 
