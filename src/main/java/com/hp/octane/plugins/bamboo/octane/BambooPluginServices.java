@@ -58,8 +58,8 @@ import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
 import com.hp.octane.integrations.exceptions.ConfigurationException;
 import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
+import com.hp.octane.integrations.utils.SdkConstants;
 import com.hp.octane.integrations.utils.SdkStringUtils;
-import com.hp.octane.plugins.bamboo.listener.MultibranchHelper;
 import com.hp.octane.plugins.bamboo.octane.uft.UftManager;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnection;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
@@ -85,7 +85,6 @@ public class BambooPluginServices extends CIPluginServices {
     private final String pluginVersion;
     private final String bambooVersion;
     public final static String PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin";
-    private final String OCTANE_AUTO_ACTION_EXECUTION_ID = "octane_auto_action_execution_id";
 
     private CachedPlanManager planMan;
 
@@ -205,7 +204,7 @@ public class BambooPluginServices extends CIPluginServices {
                 log.info(String.format("plan key=%s ,build key=%s ,chain key=%s", chain.getPlanKey().getKey(), chain.getBuildKey(), chain.getKey()));
 
                 CIParameter octaneExecutionId = ciParameters.getParameters().stream()
-                        .filter(parameter -> parameter.getName().equals(OCTANE_AUTO_ACTION_EXECUTION_ID))
+                        .filter(parameter -> parameter.getName().equals(SdkConstants.JobParameters.OCTANE_AUTO_ACTION_EXECUTION_ID_PARAMETER_NAME))
                         .findFirst().orElse(null);
 
                 if (octaneExecutionId == null) {
@@ -232,7 +231,7 @@ public class BambooPluginServices extends CIPluginServices {
                     int buildId = resultsSummary.getBuildNumber();
                     PlanResultKey planResultKey = PlanKeys.getPlanResultKey(planKey, buildId);
                     Map<String, VariableDefinitionContext> contextMap = accessor.calculateCurrentVariablesState(planResultKey);
-                    VariableDefinitionContext variable = contextMap.getOrDefault(OCTANE_AUTO_ACTION_EXECUTION_ID, null);
+                    VariableDefinitionContext variable = contextMap.getOrDefault(SdkConstants.JobParameters.OCTANE_AUTO_ACTION_EXECUTION_ID_PARAMETER_NAME, null);
 
                     if (variable != null && octaneExecutionId.getValue().equals(variable.getValue())) {
                         planExecMan.stopPlan(planResultKey, true, user.getName());
@@ -266,7 +265,7 @@ public class BambooPluginServices extends CIPluginServices {
                     int buildId = resultsSummary.getBuildNumber();
                     PlanResultKey planResultKey = PlanKeys.getPlanResultKey(planKey, buildId);
                     Map<String, VariableDefinitionContext> contextMap = accessor.calculateCurrentVariablesState(planResultKey);
-                    VariableDefinitionContext variable = contextMap.getOrDefault(OCTANE_AUTO_ACTION_EXECUTION_ID, null);
+                    VariableDefinitionContext variable = contextMap.getOrDefault(SdkConstants.JobParameters.OCTANE_AUTO_ACTION_EXECUTION_ID_PARAMETER_NAME, null);
 
                     if (variable != null && ciParameter.getValue().equals(variable.getValue())) {
                         return resultsSummary;
