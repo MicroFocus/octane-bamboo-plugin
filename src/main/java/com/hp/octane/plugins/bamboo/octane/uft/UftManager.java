@@ -397,7 +397,7 @@ public class UftManager {
             Optional<Method> createLinkedRepositoryMethod = Arrays.asList(vcsRepositoryConfigurationService.getClass().getDeclaredMethods())
                     .stream().filter(method -> method.getName().equals("createLinkedRepository")).findFirst();
             if (createLinkedRepositoryMethod.isPresent()) {
-                Optional<Type> accessOptionParameter = Arrays.asList(createLinkedRepositoryMethod.get().getParameters()).stream().map(parameter -> parameter.getParameterizedType()).filter(type -> type.getTypeName().contains("LinkedRepositoryAccess")).findFirst();
+                Optional<Type> accessOptionParameter = Arrays.asList(createLinkedRepositoryMethod.get().getParameters()).stream().map(parameter -> parameter.getParameterizedType()).filter(type -> type.getTypeName().contains("RepositoryAccess")).findFirst();
 
                 if (accessOptionParameter.isPresent()) {
                     PartialVcsRepositoryData temp = null;
