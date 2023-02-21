@@ -17,8 +17,6 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.applinks.ImpersonationService;
-import com.atlassian.bamboo.chains.Chain;
-import com.atlassian.bamboo.chains.ChainResultManager;
 import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
@@ -26,6 +24,7 @@ import com.atlassian.bamboo.plan.*;
 import com.atlassian.bamboo.plan.branch.ChainBranchManager;
 import com.atlassian.bamboo.plan.cache.CachedPlanManager;
 import com.atlassian.bamboo.plan.cache.ImmutableChain;
+import com.atlassian.bamboo.plan.cache.ImmutablePlan;
 import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.bamboo.plugin.BambooApplication;
 import com.atlassian.bamboo.resultsummary.BuildResultsSummary;
@@ -532,6 +531,16 @@ public class BambooPluginServices extends CIPluginServices {
 
     @Override
     public String getParentJobName(String jobId) {
+
+        try {
+            PlanKey planKey = PlanKeys.getPlanKey(jobId);
+            ImmutablePlan plan = planMan.getPlanByKey(planKey);
+            if (plan != null && plan.getMaster() != null) {
+                return plan.getMaster().getKey();
+            }
+        } catch (IllegalArgumentException e){
+            log.warn("Cannot get plan from job ci ID will take using regex");
+        }
         Matcher m = parentExtractorRegex.matcher(jobId);
         if (m.matches()) {
             return m.group(1);
