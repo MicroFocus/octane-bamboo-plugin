@@ -40,6 +40,8 @@ public class UftDiscoveryTask implements TaskType {
     public static final String RESULT_FOLDER = "_discovery_results";
     public static final String RESULT_FILE_NAME_PREFIX = "uft_discovery_result_build_";
 
+    public static final String UFT_DISCOVERY_HAS_CLIENTS = "uftDiscoveryHasClients";
+
 
     @Override
     public TaskResult execute(@NotNull TaskContext taskContext) throws TaskException {
@@ -63,7 +65,6 @@ public class UftDiscoveryTask implements TaskType {
         }
 
         try {
-            OctaneSDK.getClientByInstanceId(spaceConfigurationId).getConfigurationService().validateConfigurationAndGetConnectivityStatus();
             result.setWorkspaceId(taskContext.getConfigurationMap().get(WORKSPACE_ID_PARAM));
             result.setScmRepositoryId(taskContext.getConfigurationMap().get(SCM_REPOSITORY_ID_PARAM));
             result.setTestRunnerId(taskContext.getConfigurationMap().get(TEST_RUNNER_ID_PARAM));
@@ -71,17 +72,24 @@ public class UftDiscoveryTask implements TaskType {
             result.setTestingToolType(TestingToolType.UFT);
             result.setFullScan(true);
 
-            EntitiesService entitiesService = OctaneSDK.getClientByInstanceId(spaceConfigurationId).getEntitiesService();
-            UftTestDispatchUtils.prepareDiscoveryResultForDispatch(entitiesService, result);
+            if(OctaneSDK.hasClients()) {
+                OctaneSDK.getClientByInstanceId(spaceConfigurationId).getConfigurationService().validateConfigurationAndGetConnectivityStatus();
+
+                EntitiesService entitiesService = OctaneSDK.getClientByInstanceId(spaceConfigurationId).getEntitiesService();
+                UftTestDispatchUtils.prepareDiscoveryResultForDispatch(entitiesService, result);
 
 
-            JobRunContext jobRunContext = new JobRunContext(taskContext.getBuildContext().getProjectName(), taskContext.getBuildContext().getBuildNumber());
-            UftTestDispatchUtils.dispatchDiscoveryResult(entitiesService, result, jobRunContext, new CustomLogger() {
-                @Override
-                public void add(String s) {
-                    buildLogger.addBuildLogEntry(s);
-                }
-            });
+                JobRunContext jobRunContext = new JobRunContext(taskContext.getBuildContext().getProjectName(), taskContext.getBuildContext().getBuildNumber());
+                UftTestDispatchUtils.dispatchDiscoveryResult(entitiesService, result, jobRunContext, new CustomLogger() {
+                    @Override
+                    public void add(String s) {
+                        buildLogger.addBuildLogEntry(s);
+                    }
+                });
+            } else {
+                buildLogger.addBuildLogEntry("Discovery task have no clients exist, will dispatch test on job complete trigger");
+                taskContext.getBuildContext().getBuildResult().getCustomBuildData().put(UFT_DISCOVERY_HAS_CLIENTS, "false");
+            }
 
             //save result
             File discoveryResultsFolder = new File(taskContext.getWorkingDirectory(), UftDiscoveryTask.RESULT_FOLDER);
@@ -92,7 +100,9 @@ public class UftDiscoveryTask implements TaskType {
             File reportXmlFile = new File(discoveryResultsFolder, UftDiscoveryTask.RESULT_FILE_NAME_PREFIX + taskContext.getBuildContext().getBuildNumber() + ".xml");
             try {
                 result.writeToFile(reportXmlFile);
-                buildLogger.addBuildLogEntry("Final result file is saved in " + reportXmlFile.getAbsolutePath());
+                buildLogger.addBuildLogEntry(String.format("%s result file is saved in %s",
+                        OctaneSDK.hasClients() ? "Final" :"Initial",
+                        reportXmlFile.getAbsolutePath()));
             } catch (IOException e) {
                 buildLogger.addBuildLogEntry(String.format("Failed to save final result file  " + reportXmlFile.getAbsolutePath() + " : " + e.getMessage()));
             }

@@ -25,6 +25,7 @@ import com.atlassian.bamboo.variable.VariableDefinitionContext;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.hp.octane.integrations.dto.tests.*;
 import com.hp.octane.integrations.utils.SdkConstants;
+import com.hp.octane.plugins.bamboo.octane.uft.UftDiscoveryTask;
 import org.apache.logging.log4j.Logger;
 
 import java.io.File;
@@ -60,6 +61,11 @@ public class MqmResultsHelper {
     public static Path getScmDataFilePath(PlanResultKey planResultKey) {
         File dirFile = getBuildResultDirectory(planResultKey.getPlanKey());
         return Paths.get(dirFile.getAbsolutePath(), OctaneConstants.MQM_RESULT_FOLDER, "Build_" + planResultKey.getBuildNumber(), OctaneConstants.SCM_DATA_FILE_NAME);
+    }
+
+    public static Path getDiscoveryFilePath(PlanResultKey planResultKey) {
+        File dirFile = getBuildResultDirectory(planResultKey.getPlanKey());
+        return Paths.get(dirFile.getAbsolutePath(), UftDiscoveryTask.RESULT_FOLDER, "Build_" + planResultKey.getBuildNumber(), UftDiscoveryTask.RESULT_FILE_NAME_PREFIX+planResultKey.getBuildNumber());
     }
 
     public static InputStream generateTestResultStream(com.atlassian.bamboo.v2.build.BuildContext buildContext, String jobId, String buildId) {

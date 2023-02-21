@@ -18,12 +18,14 @@ package com.hp.octane.plugins.bamboo.octane;
 import com.atlassian.bamboo.artifact.MutableArtifact;
 import com.atlassian.bamboo.build.Job;
 import com.atlassian.bamboo.build.artifact.*;
+import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionImpl;
 import com.atlassian.bamboo.plan.artifact.ArtifactDefinitionManager;
 import com.atlassian.bamboo.util.RequestCacheThreadLocal;
 import com.atlassian.bamboo.utils.XsrfUtils;
 import com.atlassian.sal.api.component.ComponentLocator;
 import com.google.common.io.Files;
+import com.hp.octane.integrations.uft.items.UftTestDiscoveryResult;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -79,6 +81,55 @@ public class ArtifactsHelper {
         }
         return false;
     }
+
+    public static UftTestDiscoveryResult getTestDiscovery(MutableArtifact artifact,PlanResultKey planResultKey){
+        File f;
+        try {
+            final ArtifactLinkDataProvider dataProvider = artifactLinkManager.getArtifactLinkDataProvider(artifact);
+            if (dataProvider instanceof FileSystemArtifactLinkDataProvider) {
+                f = getDiscoveryFile((FileSystemArtifactLinkDataProvider) dataProvider);
+            } else {
+                f = MqmResultsHelper.getDiscoveryFilePath(planResultKey).toFile();
+                getDiscoveryFile(dataProvider,f,"");
+            }
+            if(f != null && f.exists()){
+                 return UftTestDiscoveryResult.readFromFile(f);
+            }
+        } catch (IOException e) {
+            logAndThrow(e, "Failed to download artifacts");
+        }
+        return null;
+    }
+
+    private static File getDiscoveryFile(FileSystemArtifactLinkDataProvider dataProvider){
+        return Arrays.asList(requireNonNull(dataProvider.getFile().listFiles())).stream()
+                .filter(File::isFile)
+                .filter(f -> f.getName().contains("uft_discovery_result_build"))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static void getDiscoveryFile(ArtifactLinkDataProvider dataProvider, File targetDir,String startFrom){
+
+        for (ArtifactFileData data : requireNonNull(dataProvider).listObjects(startFrom)) {
+            try {
+                if (data instanceof TrampolineArtifactFileData) {
+                    final TrampolineArtifactFileData trampolineData = (TrampolineArtifactFileData) data;
+                    data = trampolineData.getDelegate();
+                    if (data.getFileType().equals(ArtifactFileData.FileType.REGULAR_FILE)) {
+                        if(data.getUrl()!= null) {
+                            FileUtils.copyURLToFile(new URL(data.getUrl()), targetDir);
+                        }
+                    } else {
+                        getDiscoveryFile(dataProvider, targetDir, trampolineData.getTag());
+                    }
+                }
+            } catch (IOException e) {
+                logAndThrow(e, "Failed to download artifacts to " + targetDir);
+            }
+        }
+    }
+
 
     public static void copyArtifactTo(File targetDir, MutableArtifact artifact) {
         targetDir.mkdirs();
