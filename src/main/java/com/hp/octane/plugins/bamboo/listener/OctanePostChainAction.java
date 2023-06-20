@@ -23,6 +23,7 @@ import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.chains.plugins.PostChainAction;
 import com.atlassian.bamboo.plan.PlanKey;
+import com.atlassian.bamboo.plan.PlanKeys;
 import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.plan.artifact.ArtifactContext;
 import com.atlassian.bamboo.resultsummary.ResultsSummary;
@@ -180,6 +181,15 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         } catch (IOException ioe){
             LOG.error("Failed to get Discovery artifact = " + ioe);
         }
+        enqueueBuildLog(event.getPlanResultKey().getPlanKey().getKey(), event.getPlanResultKey().getKey(),
+                getRootJob(event.getContext()));
+    }
+
+    private static String getRootJob(BuildContext buildContext) {
+        if (buildContext.getParentBuildContext() == null) {
+            return buildContext.getPlanResultKey().getPlanKey().getKey();
+        }
+        return getRootJob(buildContext.getParentBuildContext());
     }
 
     private static void saveJobTestResults(PostBuildCompletedEvent event, boolean hasTestResultsArtifact) {
@@ -243,5 +253,25 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         com.atlassian.bamboo.v2.build.BuildContext buildContext = (BuildContext) chainExecution.getBuildIdentifier();
         ParametersHelper.addParametersToEvent(ciEvent, buildContext);
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
+
+        String buildCiId =
+                PlanKeys.getPlanResultKey(chain.getPlanKey(), chainExecution.getBuildIdentifier().getBuildNumber())
+                        .getKey();
+
+        enqueueBuildLog(chain.getPlanKey().getKey(), buildCiId, chain.getPlanKey().getKey());
+    }
+
+    private static void enqueueBuildLog(String jobCiId, String buildCiId, String parents) {
+        if (!OctaneSDK.hasClients()) {
+            return;
+        }
+        try {
+            LOG.info("enqueued build '" + jobCiId + " #" + buildCiId + "' for log submission");
+            OctaneSDK.getClients().forEach(octaneClient -> {
+                octaneClient.getLogsService().enqueuePushBuildLog(jobCiId, buildCiId, parents);
+            });
+        } catch (Exception t) {
+            LOG.error("failed to enqueue " + jobCiId + " for logs push to Octane", t);
+        }
     }
 }

@@ -17,6 +17,9 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.applinks.ImpersonationService;
+import com.atlassian.bamboo.build.LogEntry;
+import com.atlassian.bamboo.build.logger.BuildLogFileAccessor;
+import com.atlassian.bamboo.build.logger.BuildLogFileAccessorFactory;
 import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
@@ -68,6 +71,7 @@ import org.apache.http.HttpStatus;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -77,6 +81,7 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public class BambooPluginServices extends CIPluginServices {
@@ -95,6 +100,8 @@ public class BambooPluginServices extends CIPluginServices {
     private BuildResultsSummaryManager resultsSummaryManager;
     private ChainBranchManager chainBranchManager;
 
+    private BuildLogFileAccessorFactory buildLogFileAccessorFactory;
+
     Pattern parentExtractorRegex = Pattern.compile("^(.*?)[0-9]+$");//SIM-STM1 => SIM-STM
 
     private static DefaultOctaneConverter CONVERTER = DefaultOctaneConverter.getInstance();
@@ -110,6 +117,34 @@ public class BambooPluginServices extends CIPluginServices {
         this.accessor = ComponentLocator.getComponent(ResultsSummaryVariableAccessor.class);
         this.resultsSummaryManager = ComponentLocator.getComponent(BuildResultsSummaryManager.class);
         this.chainBranchManager = ComponentLocator.getComponent(ChainBranchManager.class);
+        this.buildLogFileAccessorFactory = ComponentLocator.getComponent(BuildLogFileAccessorFactory.class);
+    }
+
+    @Override
+    public InputStream getBuildLog(String jobId, String buildId) {
+        InputStream result = null;
+        BuildLogFileAccessor fileAccessor = null;
+        try {
+            PlanKey planKey = PlanKeys.getPlanKey(jobId);
+            int buildNumber = PlanKeys.getPlanResultKey(buildId).getBuildNumber();
+
+            fileAccessor = buildLogFileAccessorFactory.createBuildLogFileAccessor(planKey, buildNumber);
+            if (fileAccessor.openFileForIteration()) {
+                List<LogEntry> resultEntries = fileAccessor.getLastNLogs(fileAccessor.getNumberOfLinesInFile());
+                if (resultEntries != null && !resultEntries.isEmpty()) {
+                    result = new ByteArrayInputStream(
+                            resultEntries.stream().map(LogEntry::getLog).collect(Collectors.joining("\n"))
+                                    .getBytes());
+                }
+            }
+        } catch (IOException ioe) {
+            log.error("cannot get build logger Job Id = {} Build Id = {}", jobId, buildId);
+        } finally {
+            if (fileAccessor != null) {
+                fileAccessor.closeFileForIteration();
+            }
+        }
+        return result;
     }
 
     @Override
