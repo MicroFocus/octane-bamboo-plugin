@@ -270,6 +270,8 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
             OctaneSDK.getClients().forEach(octaneClient -> {
                 octaneClient.getLogsService().enqueuePushBuildLog(jobCiId, buildCiId, parents);
             });
+        } catch (IllegalArgumentException iae) {
+            LOG.error(iae.getMessage());
         } catch (Exception t) {
             LOG.error("failed to enqueue " + jobCiId + " for logs push to Octane", t);
         }

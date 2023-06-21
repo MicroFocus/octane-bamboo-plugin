@@ -139,6 +139,8 @@ public class BambooPluginServices extends CIPluginServices {
             }
         } catch (IOException ioe) {
             log.error("cannot get build logger Job Id = {} Build Id = {}", jobId, buildId);
+        } catch (IllegalArgumentException iae) {
+            log.error(iae.getMessage());
         } finally {
             if (fileAccessor != null) {
                 fileAccessor.closeFileForIteration();
