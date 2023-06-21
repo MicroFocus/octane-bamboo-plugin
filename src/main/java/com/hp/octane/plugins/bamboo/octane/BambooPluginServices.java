@@ -370,7 +370,7 @@ public class BambooPluginServices extends CIPluginServices {
     @NotNull
     private String getDefaultDisplayName(ImmutableChain chain) {
         PlanRepositoryDefinition repositoryDefinition = PlanHelper.getDefaultPlanRepositoryDefinition(chain);
-        return repositoryDefinition.getBranch().getVcsBranch().getDisplayName();
+        return repositoryDefinition != null ? repositoryDefinition.getBranch().getVcsBranch().getDisplayName() : "";
     }
 
     @Override
