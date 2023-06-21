@@ -254,11 +254,15 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         ParametersHelper.addParametersToEvent(ciEvent, buildContext);
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(ciEvent));
 
-        String buildCiId =
-                PlanKeys.getPlanResultKey(chain.getPlanKey(), chainExecution.getBuildIdentifier().getBuildNumber())
-                        .getKey();
+        try {
+            String buildCiId =
+                    PlanKeys.getPlanResultKey(chain.getPlanKey(), chainExecution.getBuildIdentifier().getBuildNumber())
+                            .getKey();
 
-        enqueueBuildLog(chain.getPlanKey().getKey(), buildCiId, chain.getPlanKey().getKey());
+            enqueueBuildLog(chain.getPlanKey().getKey(), buildCiId, chain.getPlanKey().getKey());
+        } catch (IllegalArgumentException iae) {
+            LOG.error(iae.getMessage());
+        }
     }
 
     private static void enqueueBuildLog(String jobCiId, String buildCiId, String parents) {
