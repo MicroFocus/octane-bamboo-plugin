@@ -14,7 +14,7 @@
 	</description>
 	<url>https://github.com/MicroFocus/octane-bamboo-plugin</url>
 	<organization>
-		<name>Micro Focus</name>
+		<name>OpenText</name>
 	</organization>
 	<licenses>
 		<license>
@@ -29,19 +29,19 @@
 			<id>lazara3</id>
 			<name>Ayellet Lazar</name>
 			<email>ayellet.lazar@microfocus.com</email>
-			<organization>Micro Focus</organization>
+			<organization>OpenText</organization>
 		</developer>
 		<developer>
 			<id>radislavB</id>
 			<name>Radislav Berkovich</name>
 			<email>radislav.berkovich@microfocus.com</email>
-			<organization>Micro Focus</organization>
+			<organization>OpenText</organization>
 		</developer>
 		<developer>
 			<id>elishevaHa</id>
 			<name>elisheva halberstam</name>
 			<email>elisheva.halberstam@microfocus.com</email>
-			<organization>Micro Focus</organization>
+			<organization>OpenText</organization>
 		</developer>
 	</developers>
 
