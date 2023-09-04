@@ -1,17 +1,33 @@
-/*
- *     Copyright 2017 EntIT Software LLC, a Micro Focus company, L.P.
- *     Licensed under the Apache License, Version 2.0 (the "License");
- *     you may not use this file except in compliance with the License.
- *     You may obtain a copy of the License at
+/**
  *
- *       http://www.apache.org/licenses/LICENSE-2.0
+ * Copyright 2017-2023 Open Text
  *
- *     Unless required by applicable law or agreed to in writing, software
- *     distributed under the License is distributed on an "AS IS" BASIS,
- *     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *     See the License for the specific language governing permissions and
- *     limitations under the License.
+ * The only warranties for products and services of Open Text and
+ * its affiliates and licensors (“Open Text”) are as may be set forth
+ * in the express warranty statements accompanying such products and services.
+ * Nothing herein should be construed as constituting an additional warranty.
+ * Open Text shall not be liable for technical or editorial errors or
+ * omissions contained herein. The information contained herein is subject
+ * to change without notice.
  *
+ * Except as specifically indicated otherwise, this document contains
+ * confidential information and a valid license is required for possession,
+ * use or copying. If this work is provided to the U.S. Government,
+ * consistent with FAR 12.211 and 12.212, Commercial Computer Software,
+ * Computer Software Documentation, and Technical Data for Commercial Items are
+ * licensed to the U.S. Government under vendor's standard commercial license.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.hp.octane.plugins.bamboo.octane.uft;
@@ -273,7 +289,7 @@ public class UftManager {
     private Project getMainProject() {
 
         String name = "UftOctaneIntegration";
-        String desc = "This project was created by the Micro Focus Octane plugin for managing execution of UFT tests and integration with ALM Octane.";
+        String desc = "This project was created by the Open Text Octane plugin for managing execution of UFT tests and integration with ALM Octane.";
         Project project = projectManager.getProjectByKey(PROJECT_KEY);
         if (project == null) {
             project = projectManager.createProject(PROJECT_KEY, name, desc);
@@ -283,7 +299,7 @@ public class UftManager {
     }
 
     private Plan buildDiscoveryPlan(Project project, DiscoveryInfo discoveryInfo, VcsRepositoryData linkedRepository) throws PlanCreationDeniedException {
-        String description = String.format("This plan was created by the Micro Focus plugin for discovery of UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
+        String description = String.format("This plan was created by the Open Text plugin for discovery of UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
         String key = createChainBuildKey(DISCOVERY_PREFIX_KEY, discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
         String name = String.format("UFT test discovery - Test Runner ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
@@ -530,7 +546,7 @@ public class UftManager {
         String chainKeyStr = createChainBuildKey(EXECUTOR_PREFIX_KEY, discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
         log.warn("Creating execution plan for test runner " + discoveryInfo.getExecutorId());
-        String description = String.format("This plan was created by the Micro Focus plugin for execution of UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
+        String description = String.format("This plan was created by the Open Text plugin for execution of UFT tests. It is associated with ALM Octane test runner #%s.", discoveryInfo.getExecutorId());
         String name = String.format("UFT test executor - Test Runner ID %s (%s)", discoveryInfo.getExecutorId(), discoveryInfo.getExecutorLogicalName());
 
         final BuildConfiguration buildConfiguration = new BuildConfiguration();
@@ -598,7 +614,7 @@ public class UftManager {
     }
 
     private boolean registerArtifactForExecution(@NotNull Job job) {
-        String name = "Micro Focus Tasks Artifact Definition";
+        String name = "Open Text Tasks Artifact Definition";
         String pattern = "UFT_Build_${bamboo.buildNumber}/**";
         return ArtifactsHelper.registerArtifactDefinition(job, name, pattern);
     }
