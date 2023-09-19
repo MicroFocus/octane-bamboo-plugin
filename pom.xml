@@ -68,8 +68,8 @@
 		<maven-source-plugin.version>2.2.1</maven-source-plugin.version>
 		<maven-jar-plugin.version>3.1.2</maven-jar-plugin.version>
 
-        <bamboo.version>6.8.0</bamboo.version>
-        <bamboo.data.version>6.8.0</bamboo.data.version>
+        <bamboo.version>7.0.6</bamboo.version>
+        <bamboo.data.version>7.0.6</bamboo.data.version>
 		<amps.version>8.0.0</amps.version>
 		<plugin.testrunner.version>2.0.1</plugin.testrunner.version>
 		<spotbugs.version>3.1.9</spotbugs.version>
@@ -81,7 +81,7 @@
 		<original.folder>${project.build.directory}/temp</original.folder>
 		<matching.obj>jarfile_batch_sign_local_timestamp</matching.obj>
 		<file.name>${project.artifactId}-${project.version}.jar</file.name>
-		<integrations.sdk.version>2.8.1.1</integrations.sdk.version>
+		<integrations.sdk.version>2.23.4.1</integrations.sdk.version>
 		<nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
 		<jackson.version>2.14.2</jackson.version>
 	</properties>
