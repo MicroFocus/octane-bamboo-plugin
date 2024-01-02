@@ -34,6 +34,7 @@
 package com.hp.octane.plugins.bamboo.octane;
 
 import com.atlassian.bamboo.applinks.ImpersonationService;
+import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.build.LogEntry;
 import com.atlassian.bamboo.build.logger.BuildLogFileAccessor;
 import com.atlassian.bamboo.build.logger.BuildLogFileAccessorFactory;
@@ -42,10 +43,7 @@ import com.atlassian.bamboo.configuration.AdministrationConfigurationAccessor;
 import com.atlassian.bamboo.configuration.ConcurrentBuildConfig;
 import com.atlassian.bamboo.plan.*;
 import com.atlassian.bamboo.plan.branch.ChainBranchManager;
-import com.atlassian.bamboo.plan.cache.CachedPlanManager;
-import com.atlassian.bamboo.plan.cache.ImmutableChain;
-import com.atlassian.bamboo.plan.cache.ImmutablePlan;
-import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
+import com.atlassian.bamboo.plan.cache.*;
 import com.atlassian.bamboo.plugin.BambooApplication;
 import com.atlassian.bamboo.resultsummary.BuildResultsSummary;
 import com.atlassian.bamboo.resultsummary.BuildResultsSummaryManager;
@@ -107,7 +105,8 @@ public class BambooPluginServices extends CIPluginServices {
     private final String bambooVersion;
     public final static String PLUGIN_KEY = "com.hpe.adm.octane.ciplugins.bamboo-ci-plugin";
 
-    private CachedPlanManager planMan;
+    private PlanManager planMan;
+    private CachedPlanManager cachedPlanMan;
 
     private ImpersonationService impService;
     private PlanExecutionManager planExecMan;
@@ -125,7 +124,8 @@ public class BambooPluginServices extends CIPluginServices {
 
     public BambooPluginServices() {
         this.planExecMan = ComponentLocator.getComponent(PlanExecutionManager.class);
-        this.planMan = ComponentLocator.getComponent(CachedPlanManager.class);
+        this.planMan = ComponentLocator.getComponent(PlanManager.class);
+        this.cachedPlanMan = ComponentLocator.getComponent(CachedPlanManager.class);
         this.impService = ComponentLocator.getComponent(ImpersonationService.class);
         this.buildQueueManager = ComponentLocator.getComponent(BuildQueueManager.class);
         this.bambooUserManager = ComponentLocator.getComponent(BambooUserManager.class);
@@ -175,8 +175,8 @@ public class BambooPluginServices extends CIPluginServices {
     public CIJobsList getJobsList(boolean includeParameters, Long workspaceId) {
         log.info("Get jobs list");
 
-        Callable<List<ImmutableTopLevelPlan>> plansGetter = () -> planMan.getPlans();
-        List<ImmutableTopLevelPlan> plans = executeImpersonatedCall(plansGetter, "getJobsList");
+        Callable<List<TopLevelPlan>> plansGetter = () -> planMan.getAllPlans(TopLevelPlan.class);
+        List<TopLevelPlan> plans = executeImpersonatedCall(plansGetter, "getJobsList");
         return CONVERTER.getRootJobsList(plans, includeParameters);
     }
 
@@ -185,8 +185,11 @@ public class BambooPluginServices extends CIPluginServices {
         //workaround for bamboo
         final String pipelineIdUpper = pipelineId.toUpperCase();
         log.info("get pipeline " + pipelineIdUpper);
-        Callable<ImmutableTopLevelPlan> planGetter = () -> planMan.getPlanByKey(PlanKeys.getPlanKey(pipelineIdUpper), ImmutableTopLevelPlan.class);
-        ImmutableTopLevelPlan plan = executeImpersonatedCall(planGetter, "getPipeline");
+        Callable<Plan> planGetter = () -> {
+            PlanKey planKey = PlanKeys.getPlanKey(pipelineIdUpper);
+            return planMan.getPlanByKey(planKey);
+        };
+        AbstractChain plan = (AbstractChain) executeImpersonatedCall(planGetter, "getPipeline");
         PipelineNode pipelineNode = CONVERTER.getRootPipelineNodeFromTopLevelPlan(plan);
         pipelineNode.setDefaultBranchName(getDefaultDisplayName(plan));
         return pipelineNode;
@@ -247,7 +250,7 @@ public class BambooPluginServices extends CIPluginServices {
             BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
             BambooUser user = um.getBambooUser(getRunAsUser());
             PlanKey planKey = PlanKeys.getPlanKey(pipeline.toUpperCase());
-            ImmutableChain chain = planMan.getPlanByKey(planKey, ImmutableChain.class);
+            ImmutableChain chain = cachedPlanMan.getPlanByKey(planKey, ImmutableChain.class);
 
             if (chain != null) {
                 if (!isUserHasPermission(BambooPermission.BUILD, user, chain)) {
@@ -302,7 +305,7 @@ public class BambooPluginServices extends CIPluginServices {
             BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
             BambooUser user = um.getBambooUser(getRunAsUser());
             PlanKey planKey = PlanKeys.getPlanKey(pipeline.toUpperCase());
-            ImmutableChain chain = planMan.getPlanByKey(planKey, ImmutableChain.class);
+            ImmutableChain chain = cachedPlanMan.getPlanByKey(planKey, ImmutableChain.class);
 
             if (chain != null) {
                 if (!isUserHasPermission(BambooPermission.READ, user, chain)) {
@@ -355,7 +358,7 @@ public class BambooPluginServices extends CIPluginServices {
         log.info("getting pipeline build status");
 
         Callable<CIBranchesList> action = () -> {
-            ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(jobCiId.toUpperCase()), ImmutableChain.class);
+            ImmutableChain chain = cachedPlanMan.getPlanByKey(PlanKeys.getPlanKey(jobCiId.toUpperCase()), ImmutableChain.class);
             if (chain != null) {
                 List<Branch> branches = new ArrayList<>();
                 Branch branch = chainBranchManager.getBranchesForChain(chain).parallelStream()
@@ -397,7 +400,7 @@ public class BambooPluginServices extends CIPluginServices {
         Callable<String> impersonated = () -> {
             BambooUserManager um = ComponentLocator.getComponent(BambooUserManager.class);
             BambooUser user = um.getBambooUser(getRunAsUser());
-            ImmutableChain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline.toUpperCase()), ImmutableChain.class);
+            Chain chain = planMan.getPlanByKey(PlanKeys.getPlanKey(pipeline.toUpperCase()), Chain.class);
             if (chain == null || chain.isSuspendedFromBuilding()) {
                 throw new ConfigurationException(HttpStatus.SC_NOT_FOUND);
             }
@@ -442,7 +445,7 @@ public class BambooPluginServices extends CIPluginServices {
 
             ExecutionRequestResult result = planExecMan.startManualExecution(chain, user, params, variables);
             if (result.getErrors().getTotalErrors() > 0) {
-                throw new ConfigurationException(504);
+                throw new ConfigurationException(result.getErrors().getErrorMessages().toString(), 504);
             }
 
             return null;

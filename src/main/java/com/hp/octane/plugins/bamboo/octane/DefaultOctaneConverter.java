@@ -37,9 +37,10 @@ import com.atlassian.bamboo.builder.LifeCycleState;
 import com.atlassian.bamboo.chains.cache.ImmutableChainStage;
 import com.atlassian.bamboo.commit.CommitContext;
 import com.atlassian.bamboo.commit.CommitFile;
+import com.atlassian.bamboo.plan.AbstractChain;
 import com.atlassian.bamboo.plan.PlanIdentifier;
+import com.atlassian.bamboo.plan.TopLevelPlan;
 import com.atlassian.bamboo.plan.cache.ImmutableJob;
-import com.atlassian.bamboo.plan.cache.ImmutableTopLevelPlan;
 import com.atlassian.bamboo.results.tests.TestResults;
 import com.atlassian.bamboo.task.TaskDefinition;
 import com.atlassian.bamboo.v2.build.BuildChanges;
@@ -112,8 +113,8 @@ public class DefaultOctaneConverter {
 		return dtoFactoryInstance.newDTO(PipelineNode.class).setJobCiId(getJobCiId(job)).setName(job.getBuildName());
 	}
 
-	public String getRootJobCiId(ImmutableTopLevelPlan plan) {
-		return getCiId(plan);
+	public String getRootJobCiId(PlanIdentifier identifier) {
+		return getCiId(identifier);
 	}
 
 	public String getJobCiId(ImmutableJob job) {
@@ -143,7 +144,7 @@ public class DefaultOctaneConverter {
 				.setPassword(password);
 	}
 
-	public PipelineNode getRootPipelineNodeFromTopLevelPlan(ImmutableTopLevelPlan plan) {
+	public PipelineNode getRootPipelineNodeFromTopLevelPlan(AbstractChain plan) {
 		PipelineNode node = dtoFactoryInstance.newDTO(PipelineNode.class)
 				.setJobCiId(getRootJobCiId(plan))
 				.setName(plan.getName())
@@ -201,11 +202,11 @@ public class DefaultOctaneConverter {
         }
     }
 
-	public CIJobsList getRootJobsList(List<ImmutableTopLevelPlan> plans, boolean includeParameters) {
+		public CIJobsList getRootJobsList(List<TopLevelPlan> plans, boolean includeParameters) {
 		CIJobsList jobsList = dtoFactoryInstance.newDTO(CIJobsList.class).setJobs(new PipelineNode[0]);
 
 		List<PipelineNode> nodes = new ArrayList<>(plans.size());
-		for (ImmutableTopLevelPlan plan : plans) {
+		for (TopLevelPlan plan : plans) {
 			PipelineNode node = dtoFactoryInstance.newDTO(PipelineNode.class).setJobCiId(getRootJobCiId(plan))
 					.setName(plan.getName())
                     .setMultiBranchType(MultiBranchType.MULTI_BRANCH_PARENT);

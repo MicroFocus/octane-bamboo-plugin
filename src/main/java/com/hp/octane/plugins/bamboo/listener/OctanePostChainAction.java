@@ -34,7 +34,6 @@ package com.hp.octane.plugins.bamboo.listener;
 
 import com.atlassian.bamboo.build.artifact.ArtifactLink;
 import com.atlassian.bamboo.build.artifact.ArtifactLinkManager;
-import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.ChainResultsSummary;
 import com.atlassian.bamboo.chains.plugins.PostChainAction;
@@ -42,6 +41,7 @@ import com.atlassian.bamboo.plan.PlanKey;
 import com.atlassian.bamboo.plan.PlanKeys;
 import com.atlassian.bamboo.plan.PlanResultKey;
 import com.atlassian.bamboo.plan.artifact.ArtifactContext;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.resultsummary.ResultsSummary;
 import com.atlassian.bamboo.resultsummary.ResultsSummaryManager;
 import com.atlassian.bamboo.v2.build.BuildContext;
@@ -63,6 +63,7 @@ import com.hp.octane.plugins.bamboo.octane.uft.UftDiscoveryTask;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.io.IOException;
@@ -237,7 +238,8 @@ public class OctanePostChainAction extends BaseListener implements PostChainActi
         LOG.info(planResultKey + " : test result file created=" + testResultFileExist + ". Path is " + testResultFile);
     }
 
-    public void execute(Chain chain, ChainResultsSummary chainResultsSummary, ChainExecution chainExecution) {
+    @Override
+    public void execute(@NotNull ImmutableChain chain, @NotNull ChainResultsSummary chainResultsSummary, @NotNull ChainExecution chainExecution) throws InterruptedException, Exception {
         if (!OctaneConnectionManager.hasActiveClients()) {
             return;
         }
