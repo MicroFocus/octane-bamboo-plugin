@@ -637,7 +637,7 @@ public class UftManager {
         BambooUser user = bambooUserManager.getBambooUser(runAsUser);
         try {
             ImmutableChain chain = createExecutorChain(discoveryInfo, user);
-            return DefaultOctaneConverter.getInstance().getRootPipelineNodeFromTopLevelPlan((ImmutableTopLevelPlan) chain);
+            return DefaultOctaneConverter.getInstance().getRootPipelineNodeFromTopLevelPlan((AbstractChain) chain);
         } catch (Exception e) {
             String msg = "Failed to createExecutor : " + e.getMessage();
             log.error(msg);

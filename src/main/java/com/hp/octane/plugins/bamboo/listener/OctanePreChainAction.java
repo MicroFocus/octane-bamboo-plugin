@@ -34,6 +34,7 @@ package com.hp.octane.plugins.bamboo.listener;
 import com.atlassian.bamboo.chains.Chain;
 import com.atlassian.bamboo.chains.ChainExecution;
 import com.atlassian.bamboo.chains.plugins.PreChainAction;
+import com.atlassian.bamboo.plan.cache.ImmutableChain;
 import com.atlassian.bamboo.v2.build.BuildContext;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.events.CIEvent;
@@ -41,12 +42,14 @@ import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.MultiBranchType;
 import com.hp.octane.integrations.dto.events.PhaseType;
 import com.hp.octane.plugins.bamboo.rest.OctaneConnectionManager;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collections;
 
 public class OctanePreChainAction extends BaseListener implements PreChainAction {
 
-    public void execute(Chain chain, ChainExecution chainExecution) {
+    @Override
+    public void execute(@NotNull ImmutableChain chain, @NotNull ChainExecution chainExecution) throws InterruptedException, Exception {
         if (!OctaneConnectionManager.hasActiveClients()) {
             return;
         }
