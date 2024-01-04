@@ -52,7 +52,7 @@
 		<tag>HEAD</tag>
 	</scm>
 
-	<issueManagement></issueManagement>
+	<issueManagement/>
 
 	<distributionManagement>
 		<repository>
@@ -81,7 +81,7 @@
 		<original.folder>${project.build.directory}/temp</original.folder>
 		<matching.obj>jarfile_batch_sign_local_timestamp</matching.obj>
 		<file.name>${project.artifactId}-${project.version}.jar</file.name>
-		<integrations.sdk.version>2.23.4.1</integrations.sdk.version>
+		<integrations.sdk.version>2.23.4.2</integrations.sdk.version>
 		<nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
 		<jackson.version>2.14.2</jackson.version>
 	</properties>
